@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#000000"/>
+  <title>NaZeleniy — Поиск фильмов</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous"/>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body x-data="app()" x-init="init()">
+
+  <!-- ── Sidebar ─────────────────────────────────────────── -->
+  <aside class="side-panel" x-data="{ open: false }" :class="{ open }">
+    <button class="toggle-btn" @click="open = !open">
+      <i class="fas" :class="open ? 'fa-chevron-left' : 'fa-chevron-right'"></i>
+    </button>
+    <nav class="nav-links">
+      <a href="index.html" class="nav-link" title="Главная">
+        <i class="fas fa-home"></i>
+        <span class="nav-text">Главная</span>
+      </a>
+      <a href="#" class="nav-link" title="Популярное" @click.prevent="$dispatch('nav-top')">
+        <i class="fas fa-fire"></i>
+        <span class="nav-text">Популярное</span>
+      </a>
+      <a href="#" class="nav-link" title="Случайный" @click.prevent="$dispatch('nav-random')">
+        <i class="fas fa-dice"></i>
+        <span class="nav-text">Случайный</span>
+      </a>
+      <a href="#" class="nav-link" title="Настройки">
+        <i class="fas fa-cog"></i>
+        <span class="nav-text">Настройки</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- ── Main ───────────────────────────────────────────── -->
+  <main
+    class="main-content"
+    @nav-top.window="fetchTop()"
+    @nav-random.window="fetchRandom()"
+  >
+
+    <!-- Search -->
+    <section class="search-section">
+      <div class="search-container">
+        <div class="search-input-wrapper" @click.outside="closeSuggestions()">
+          <input
+            type="text"
+            class="search-input"
+            :class="{ 'has-suggestions': showSuggestions && suggestions.length > 0 }"
+            placeholder="Введите название фильма..."
+            x-model="query"
+            @keydown.enter.prevent="commitSearch()"
+            @keydown.escape="closeSuggestions()"
+            @keydown.arrow-down.prevent="highlightNext()"
+            @keydown.arrow-up.prevent="highlightPrev()"
+            @input.debounce.350ms="fetchSuggestions()"
+            @focus="if (suggestions.length) showSuggestions = true"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <span class="search-spinner" x-show="suggestionsLoading" x-cloak>
+            <i class="fas fa-circle-notch fa-spin"></i>
+          </span>
+          <button class="search-icon-btn" x-show="!suggestionsLoading" @click="commitSearch()" aria-label="Поиск">
+            <i class="fas fa-search"></i>
+          </button>
+
+          <!-- Suggestions dropdown -->
+          <div class="suggestions-dropdown" x-show="showSuggestions && suggestions.length > 0" x-cloak>
+            <template x-for="(movie, i) in suggestions" :key="movie.kinopoiskId || movie.filmId || i">
+              <a
+                href="#"
+                class="suggestion-item"
+                :class="{ highlighted: i === highlightedIndex }"
+                @click.prevent="selectSuggestion(movie)"
+                @mouseenter="highlightedIndex = i"
+                @mouseleave="highlightedIndex = -1"
+              >
+                <div class="suggestion-poster">
+                  <img :src="movie.posterUrlPreview || movie.posterUrl || ''" :alt="movie.nameRu || movie.nameEn" loading="lazy"/>
+                </div>
+                <div class="suggestion-info">
+                  <span class="suggestion-title" x-text="movie.nameRu || movie.nameEn || 'Без названия'"></span>
+                  <span class="suggestion-meta">
+                    <span x-text="movie.year || ''"></span>
+                    <template x-if="movie.genres && movie.genres.length > 0">
+                      <span x-text="' · ' + (movie.genres[0] ? movie.genres[0].genre : '')"></span>
+                    </template>
+                  </span>
+                </div>
+                <i class="fas fa-arrow-up-left suggestion-arrow"></i>
+              </a>
+            </template>
+          </div>
+        </div>
+
+        <!-- Filter buttons -->
+        <div class="search-types">
+          <button class="type-btn" :class="{ active: searchType === 'top' }" @click="fetchTop()">
+            <i class="fas fa-fire"></i> Популярное
+          </button>
+          <button class="type-btn" :class="{ active: searchType === 'name' }" @click="onSearch()">
+            <i class="fas fa-search"></i> По названию
+          </button>
+          <button class="type-btn random-btn" @click="fetchRandom()">
+            <i class="fas fa-dice"></i> Случайный
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Movie grid -->
+    <div class="loading-spinner" x-show="loading" x-transition>
+      <i class="fas fa-circle-notch fa-spin"></i>
+    </div>
+
+    <div class="grid" x-show="!loading && movies.length > 0" x-transition>
+      <template x-for="movie in movies" :key="movie.kinopoiskId || movie.filmId || Math.random()">
+        <a class="movie-card" :href="'/movie/' + (movie.kinopoiskId || movie.filmId)">
+          <div class="movie-poster-container">
+            <img
+              class="movie-poster"
+              :src="movie.posterUrlPreview || movie.posterUrl || ''"
+              :alt="movie.nameRu || movie.nameEn || 'Постер'"
+              loading="lazy"
+              @load="$el.style.opacity = 1"
+              style="opacity:0; transition: opacity 0.3s ease"
+            />
+          </div>
+          <div class="movie-badge-rating" x-show="movie.ratingKinopoisk > 0">
+            <i class="fas fa-star"></i>
+            <span x-text="(movie.ratingKinopoisk || 0).toFixed(1)"></span>
+          </div>
+          <div class="movie-badge-type" x-text="movieType(movie)"></div>
+          <div class="movie-info">
+            <h3 class="movie-title" x-text="movie.nameRu || movie.nameEn || 'Без названия'"></h3>
+            <span class="movie-year" x-text="movie.year || ''"></span>
+          </div>
+        </a>
+      </template>
+    </div>
+
+    <div class="empty-state" x-show="!loading && movies.length === 0" x-transition>
+      <i class="fas fa-film"></i>
+      <p x-text="query ? 'Ничего не найдено по запросу «' + query + '»' : 'Ничего не найдено'"></p>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" x-show="!loading && totalPages > 1" x-transition>
+      <button class="page-btn" :disabled="currentPage <= 1" @click="prevPage()">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <span class="page-info" x-text="currentPage + ' / ' + totalPages"></span>
+      <button class="page-btn" :disabled="currentPage >= totalPages" @click="nextPage()">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+
+  </main>
+</body>
+</html>
