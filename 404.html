@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <script>
+    // GitHub Pages 404 trick: redirect /movie/123 → movie.html?id=123
+    const parts = window.location.pathname.split('/')
+    const movieIndex = parts.indexOf('movie')
+
+    if (movieIndex !== -1 && parts[movieIndex + 1]) {
+      const id = parts[movieIndex + 1]
+      window.location.replace('/movie.html?id=' + id)
+    } else {
+      window.location.replace('/')
+    }
+  </script>
+</head>
+<body></body>
+</html>
