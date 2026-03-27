@@ -2,9 +2,8 @@
 // Reads ?id=<kinopoiskId> from the URL and fetches the movie from the API.
 // Depends on API_BASE defined in api.js.
 
-// Read movie ID from URL path: /movie/123
-const pathParts = window.location.pathname.split('/')
-const movieId   = pathParts[pathParts.length - 1]
+// Read movie ID from URL query: movie.html?id=123
+const movieId = new URLSearchParams(window.location.search).get('id')
 
 // ── Sidebar toggle ──────────────────────────────────────────
 const sidebar    = document.getElementById('sidebar')
