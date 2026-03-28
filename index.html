@@ -48,6 +48,20 @@
     <!-- Search -->
     <section class="search-section">
       <div class="search-container">
+
+        <!-- Filter buttons -->
+        <div class="search-types">
+          <button class="type-btn" :class="{ active: searchType === 'top' }" @click="fetchTop()">
+            <i class="fas fa-fire"></i> Популярное
+          </button>
+          <button class="type-btn" :class="{ active: searchType === 'name' }" @click="onSearch()">
+            <i class="fas fa-search"></i> По названию
+          </button>
+          <button class="type-btn random-btn" @click="fetchRandom()">
+            <i class="fas fa-dice"></i> Случайный
+          </button>
+        </div>
+
         <div class="search-input-wrapper" @click.outside="closeSuggestions()">
           <input
             type="text"
@@ -100,18 +114,6 @@
           </div>
         </div>
 
-        <!-- Filter buttons -->
-        <div class="search-types">
-          <button class="type-btn" :class="{ active: searchType === 'top' }" @click="fetchTop()">
-            <i class="fas fa-fire"></i> Популярное
-          </button>
-          <button class="type-btn" :class="{ active: searchType === 'name' }" @click="onSearch()">
-            <i class="fas fa-search"></i> По названию
-          </button>
-          <button class="type-btn random-btn" @click="fetchRandom()">
-            <i class="fas fa-dice"></i> Случайный
-          </button>
-        </div>
       </div>
     </section>
 

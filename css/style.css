@@ -1,10 +1,10 @@
 /* ── CSS Variables ────────────────────────────────────── */
 :root {
-  --accent:            #6c5ce7;
-  --accent-hover:      #5a4fcf;
-  --accent-light:      #8a7ce8;
-  --accent-dim:        rgba(108, 92, 231, 0.15);
-  --accent-glow:       rgba(108, 92, 231, 0.4);
+  --accent:            #27ae60;
+  --accent-hover:      #1e8449;
+  --accent-light:      #2ecc71;
+  --accent-dim:        rgba(39, 174, 96, 0.15);
+  --accent-glow:       rgba(39, 174, 96, 0.4);
 
   --bg:                #000000;
   --bg-secondary:      #1e1e1e;

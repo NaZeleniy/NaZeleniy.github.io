@@ -19,7 +19,8 @@ function app() {
 
     // ── Init ───────────────────────────────────────────────
     init() {
-      this.fetchTop()
+      this.searchType = 'name'
+      this.loading    = false
     },
 
     // ── Helpers ────────────────────────────────────────────
@@ -139,8 +140,7 @@ function app() {
     },
 
     async fetchRandom() {
-      this.searchType = 'random'
-      this.loading    = true
+      this.loading = true
       this.closeSuggestions()
       try {
         const page = Math.floor(Math.random() * 5) + 1
@@ -148,11 +148,12 @@ function app() {
         if (!r.ok) throw new Error('API error ' + r.status)
         const data = await r.json()
         const arr  = Array.isArray(data) ? data : []
-        this.movies     = arr.length ? [arr[Math.floor(Math.random() * arr.length)]] : []
-        this.totalPages = 1
+        if (arr.length) {
+          const movie = arr[Math.floor(Math.random() * arr.length)]
+          window.location.href = 'movie.html?id=' + (movie.kinopoiskId || movie.filmId)
+        }
       } catch (e) {
         console.error('fetchRandom:', e)
-        this.movies = []
       } finally {
         this.loading = false
       }
