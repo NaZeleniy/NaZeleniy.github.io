@@ -63,16 +63,7 @@
       <p>Ничего не найдено</p>
     </div>
 
-    <!-- Pagination -->
-    <div class="pagination" x-show="!loading && totalPages > 1" x-transition>
-      <button class="page-btn" :disabled="currentPage <= 1" @click="prevPage()">
-        <i class="fas fa-chevron-left"></i>
-      </button>
-      <span class="page-info" x-text="currentPage + ' / ' + totalPages"></span>
-      <button class="page-btn" :disabled="currentPage >= totalPages" @click="nextPage()">
-        <i class="fas fa-chevron-right"></i>
-      </button>
-    </div>
+    <div id="scroll-sentinel"></div>
 
   </main>
 
