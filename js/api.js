@@ -1,4 +1,4 @@
-const API_BASE = window.location.hostname === 'nazeleniy.mooo.com'
+const API_BASE = window.location.hostname.endsWith('github.io')
   ? 'https://nazeleniy.mooo.com'
   : ''
 
