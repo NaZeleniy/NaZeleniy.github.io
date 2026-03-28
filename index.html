@@ -38,7 +38,7 @@
           <div class="movie-poster-container">
             <img
               class="movie-poster"
-              :src="movie.posterUrlPreview || movie.posterUrl || ''"
+              :src="posterUrl(movie.posterUrlPreview || movie.posterUrl)"
               :alt="movie.nameRu || movie.nameEn || 'Постер'"
               loading="lazy"
               @load="$el.style.opacity = 1"

@@ -76,7 +76,7 @@ function _renderSearch(activePage) {
                  @mouseenter="highlightedIndex = i"
                  @mouseleave="highlightedIndex = -1">
                 <div class="suggestion-poster">
-                  <img :src="movie.posterUrlPreview || movie.posterUrl || ''" :alt="movie.nameRu || movie.nameEn" loading="lazy"/>
+                  <img :src="posterUrl(movie.posterUrlPreview || movie.posterUrl)" :alt="movie.nameRu || movie.nameEn" loading="lazy"/>
                 </div>
                 <div class="suggestion-info">
                   <span class="suggestion-title" x-text="movie.nameRu || movie.nameEn || 'Без названия'"></span>

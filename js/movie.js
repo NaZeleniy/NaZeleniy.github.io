@@ -45,7 +45,7 @@ function renderMovie(movie) {
   document.title = title + ' — NaZeleniy'
 
   const bgEl = document.getElementById('bg-poster')
-  const bgUrl = movie.posterUrlPreview || movie.posterUrl || ''
+  const bgUrl = posterUrl(movie.posterUrlPreview || movie.posterUrl)
   if (bgEl && bgUrl) bgEl.style.backgroundImage = `url(${bgUrl})`
 
   let ratingsHtml = ''
@@ -86,8 +86,8 @@ function renderMovie(movie) {
     ? `<li class="rating-boxes"><div class="rating-box age"><strong>${formatAge(movie.ratingAgeLimits)}</strong></div></li>`
     : ''
 
-  const posterSrc = movie.posterUrlPreview || movie.posterUrl || ''
-  const posterFull = movie.posterUrl || movie.posterUrlPreview || ''
+  const posterSrc = posterUrl(movie.posterUrlPreview || movie.posterUrl)
+  const posterFull = posterUrl(movie.posterUrl || movie.posterUrlPreview)
   const posterHtml = posterSrc
     ? `<div class="movie-poster-container desktop-only">
          <a href="${posterFull}" target="_blank" rel="noopener noreferrer">

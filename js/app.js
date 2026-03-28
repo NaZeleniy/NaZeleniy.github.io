@@ -29,7 +29,7 @@ function app() {
     },
 
     onCardEnter(movie) {
-      this.bgPoster = movie.posterUrlPreview || movie.posterUrl || ''
+      this.bgPoster = posterUrl(movie.posterUrlPreview || movie.posterUrl)
       this.prefetch(movie)
     },
 
@@ -44,6 +44,9 @@ function app() {
     },
 
     async onInput() {
+      if (this.query.trim()) {
+        this.loading = true
+      }
       await this.fetchSuggestions()
       if (this.query.trim()) {
         this.searchType = 'name'
