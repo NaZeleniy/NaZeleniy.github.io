@@ -1,4 +1,6 @@
-const API_BASE = 'https://nazeleniy.mooo.com'
+const API_BASE = window.location.hostname === 'nazeleniy.mooo.com'
+  ? 'https://nazeleniy.mooo.com'
+  : ''
 
 function posterUrl(url) {
   if (!url) return ''
