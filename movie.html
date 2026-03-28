@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#000000"/>
+  <title>Загрузка... — NaZeleniy</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous"/>
+</head>
+<body>
+
+  <!-- ── Sidebar ─────────────────────────────────────────── -->
+  <aside class="side-panel" id="sidebar">
+    <button class="toggle-btn" id="toggleBtn">
+      <i class="fas fa-chevron-right" id="toggleIcon"></i>
+    </button>
+    <nav class="nav-links">
+      <a href="/" class="nav-link" title="Главная">
+        <i class="fas fa-home"></i>
+        <span class="nav-text">Главная</span>
+      </a>
+      <a href="/" class="nav-link" title="Популярное">
+        <i class="fas fa-fire"></i>
+        <span class="nav-text">Популярное</span>
+      </a>
+      <a href="#" class="nav-link" title="Настройки">
+        <i class="fas fa-cog"></i>
+        <span class="nav-text">Настройки</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- ── Movie content (filled by movie.js) ─────────────── -->
+  <div class="movie-info">
+    <div class="content">
+      <div class="content-card" id="movieContent">
+        <div class="loading-spinner">
+          <i class="fas fa-circle-notch fa-spin"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/movie.js"></script>
+</body>
+</html>
