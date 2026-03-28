@@ -10,6 +10,7 @@ function app() {
     _topPage: 1,
     _topDone: false,
     _topLoading: false,
+    _searchLoading: false,
 
     suggestions: [],
     showSuggestions: false,
@@ -127,19 +128,57 @@ function app() {
     },
 
     async search() {
+      if (this._scrollObserver) { this._scrollObserver.disconnect(); this._scrollObserver = null }
       this.loading = true
       try {
-        const r = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(this.query.trim())}&page=${this.currentPage}`)
-        if (!r.ok) throw new Error('API error ' + r.status)
-        const data = await r.json()
-        this.movies = data.movies || []
-        this.totalPages = data.totalPages || 1
+        const q = encodeURIComponent(this.query.trim())
+        const [r1, r2] = await Promise.all([
+          fetch(`${API_BASE}/api/search?q=${q}&page=1`),
+          fetch(`${API_BASE}/api/search?q=${q}&page=2`),
+        ])
+        if (!r1.ok) throw new Error('upstream ' + r1.status)
+        const d1 = await r1.json()
+        this.totalPages = d1.totalPages || 1
+        const movies1 = d1.movies || []
+        let movies2 = []
+        if (this.totalPages > 1) {
+          try { if (r2.ok) movies2 = (await r2.json()).movies || [] } catch {}
+        }
+        this.movies = [...movies1, ...movies2]
+        this.currentPage = Math.min(2, this.totalPages)
       } catch (e) {
         console.error(e)
         this.movies = []
       } finally {
         this.loading = false
       }
+      setTimeout(() => this.initSearchScroll(), 0)
+    },
+
+    initSearchScroll() {
+      if (this.currentPage >= this.totalPages) return
+      const sentinel = document.getElementById('scroll-sentinel')
+      if (!sentinel) return
+      this._scrollObserver = new IntersectionObserver(async entries => {
+        if (!entries[0].isIntersecting || this._searchLoading || this.currentPage >= this.totalPages) return
+        this._searchLoading = true
+        this.currentPage++
+        try {
+          const r = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(this.query.trim())}&page=${this.currentPage}`)
+          if (!r.ok) throw new Error()
+          const data = await r.json()
+          this.movies = [...this.movies, ...(data.movies || [])]
+        } catch {
+          this.currentPage = this.totalPages
+        } finally {
+          this._searchLoading = false
+        }
+        if (this.currentPage >= this.totalPages) {
+          this._scrollObserver.disconnect()
+          this._scrollObserver = null
+        }
+      }, { rootMargin: '600px' })
+      this._scrollObserver.observe(sentinel)
     },
 
     async fetchTop() {
@@ -149,21 +188,29 @@ function app() {
       this.query = ''
       this.suggestions = []
       this.showSuggestions = false
-      this._topPage = 1
+      this._topPage = 2
       this._topDone = false
       this.loading = true
       try {
-        const r = await fetch(`${API_BASE}/api/top?page=1`)
-        if (!r.ok) throw new Error('API error ' + r.status)
-        const data = await r.json()
-        this.movies = Array.isArray(data) ? data : []
+        const [r1, r2] = await Promise.all([
+          fetch(`${API_BASE}/api/top?page=1`),
+          fetch(`${API_BASE}/api/top?page=2`),
+        ])
+        if (!r1.ok) throw new Error('upstream ' + r1.status)
+        const d1 = await r1.json()
+        let d2 = []
+        try { if (r2.ok) d2 = await r2.json() } catch {}
+        this.movies = [
+          ...(Array.isArray(d1) ? d1 : []),
+          ...(Array.isArray(d2) ? d2 : []),
+        ]
       } catch (e) {
         console.error(e)
         this.movies = []
       } finally {
         this.loading = false
       }
-      this.$nextTick(() => this.initTopScroll())
+      setTimeout(() => this.initTopScroll(), 0)
     },
 
     initTopScroll() {
@@ -189,7 +236,7 @@ function app() {
         } finally {
           this._topLoading = false
         }
-      }, { rootMargin: '200px' })
+      }, { rootMargin: '600px' })
       this._scrollObserver.observe(sentinel)
     },
 

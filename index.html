@@ -42,7 +42,7 @@
               :alt="movie.nameRu || movie.nameEn || 'Постер'"
               loading="lazy"
               @load="$el.style.opacity = 1"
-              style="opacity:0; transition: opacity 0.3s ease"
+              style="opacity:0; transition: opacity 0.6s ease-in-out"
             />
           </div>
           <div class="movie-badge-rating" x-show="movie.ratingKinopoisk > 0">
@@ -63,16 +63,7 @@
       <p x-text="'Ничего не найдено по запросу «' + query + '»'"></p>
     </div>
 
-    <!-- Pagination -->
-    <div class="pagination" x-show="!loading && totalPages > 1" x-transition>
-      <button class="page-btn" :disabled="currentPage <= 1" @click="prevPage()">
-        <i class="fas fa-chevron-left"></i>
-      </button>
-      <span class="page-info" x-text="currentPage + ' / ' + totalPages"></span>
-      <button class="page-btn" :disabled="currentPage >= totalPages" @click="nextPage()">
-        <i class="fas fa-chevron-right"></i>
-      </button>
-    </div>
+    <div id="scroll-sentinel"></div>
 
   </main>
 
