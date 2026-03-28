@@ -139,12 +139,23 @@ async function loadMovie() {
     renderError('ID фильма не указан')
     return
   }
+
+  try {
+    const preview = JSON.parse(sessionStorage.getItem('moviePreview') || 'null')
+    if (preview && String(preview.kinopoiskId || preview.filmId) === movieId) {
+      renderMovie(preview)
+      sessionStorage.removeItem('moviePreview')
+    }
+  } catch {}
+
   try {
     const r = await fetch(`${API_BASE}/api/movie/${movieId}`)
     if (!r.ok) throw new Error('Фильм не найден')
     renderMovie(await r.json())
   } catch (e) {
-    renderError(e.message || 'Ошибка загрузки фильма')
+    if (!document.getElementById('movieContent').children.length) {
+      renderError(e.message || 'Ошибка загрузки фильма')
+    }
   }
 }
 

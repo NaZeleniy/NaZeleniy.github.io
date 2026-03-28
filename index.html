@@ -34,7 +34,8 @@
     <div class="grid" x-show="!loading && movies.length > 0" x-transition>
       <template x-for="(movie, i) in movies" :key="movie.kinopoiskId || movie.filmId || i">
         <a class="movie-card" :href="'movie.html?id=' + (movie.kinopoiskId || movie.filmId)"
-           @mouseenter="onCardEnter(movie)">
+           @mouseenter="onCardEnter(movie)"
+           @click="sessionStorage.setItem('moviePreview', JSON.stringify(movie))">
           <div class="movie-poster-container">
             <img
               class="movie-poster"
