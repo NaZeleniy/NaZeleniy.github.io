@@ -7,6 +7,9 @@ function app() {
     totalPages: 1,
     currentPage: 1,
     bgPoster: '',
+    _topPage: 1,
+    _topDone: false,
+    _topLoading: false,
 
     suggestions: [],
     showSuggestions: false,
@@ -142,22 +145,52 @@ function app() {
     async fetchTop() {
       this.searchType = 'top'
       this.currentPage = 1
+      this.totalPages = 1
       this.query = ''
       this.suggestions = []
       this.showSuggestions = false
+      this._topPage = 1
+      this._topDone = false
       this.loading = true
       try {
         const r = await fetch(`${API_BASE}/api/top?page=1`)
         if (!r.ok) throw new Error('API error ' + r.status)
         const data = await r.json()
         this.movies = Array.isArray(data) ? data : []
-        this.totalPages = 1
       } catch (e) {
         console.error(e)
         this.movies = []
       } finally {
         this.loading = false
       }
+      this.$nextTick(() => this.initTopScroll())
+    },
+
+    initTopScroll() {
+      if (this._scrollObserver) this._scrollObserver.disconnect()
+      const sentinel = document.getElementById('scroll-sentinel')
+      if (!sentinel) return
+      this._scrollObserver = new IntersectionObserver(async entries => {
+        if (!entries[0].isIntersecting || this._topLoading || this._topDone) return
+        this._topLoading = true
+        this._topPage++
+        try {
+          const r = await fetch(`${API_BASE}/api/top?page=${this._topPage}`)
+          if (!r.ok) throw new Error()
+          const data = await r.json()
+          const next = Array.isArray(data) ? data : []
+          if (next.length === 0) {
+            this._topDone = true
+          } else {
+            this.movies = [...this.movies, ...next]
+          }
+        } catch {
+          this._topDone = true
+        } finally {
+          this._topLoading = false
+        }
+      }, { rootMargin: '200px' })
+      this._scrollObserver.observe(sentinel)
     },
 
     async fetchRandom() {
