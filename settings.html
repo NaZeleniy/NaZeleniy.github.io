@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#000000"/>
+  <title>NaZeleniy — Настройки</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous"/>
+  <script src="js/settings.js"></script>
+  <script src="js/header.js"></script>
+  <script>
+    function settingsPage() {
+      return {
+        s: Settings.get(),
+        update(key, value) {
+          this.s[key] = value
+          Settings.save({ [key]: value })
+          Settings.apply(this.s)
+        },
+      }
+    }
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body x-data="settingsPage()">
+
+  <div id="app-sidebar"></div>
+
+  <main class="main-content">
+    <div class="settings-page">
+
+      <h1 class="settings-title">Настройки</h1>
+
+      <!-- Внешний вид -->
+      <section class="settings-section">
+        <h2 class="settings-section-title">Внешний вид</h2>
+
+        <div class="settings-row">
+          <div class="settings-label">
+            <span>Фоновый эффект</span>
+            <span class="settings-hint">Постер фильма размытым фоном</span>
+          </div>
+          <button class="toggle" :class="{ on: s.bgEffect }" @click="update('bgEffect', !s.bgEffect)" role="switch" :aria-checked="s.bgEffect">
+            <span class="toggle-thumb"></span>
+          </button>
+        </div>
+
+        <div class="settings-row">
+          <div class="settings-label">
+            <span>Размер карточек</span>
+            <span class="settings-hint">Ширина постеров в сетке</span>
+          </div>
+          <div class="seg-control">
+            <button :class="{ active: s.cardSize === 'small'  }" @click="update('cardSize', 'small')">Маленький</button>
+            <button :class="{ active: s.cardSize === 'medium' }" @click="update('cardSize', 'medium')">Средний</button>
+            <button :class="{ active: s.cardSize === 'large'  }" @click="update('cardSize', 'large')">Большой</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <script>renderHeader('settings')</script>
+</body>
+</html>

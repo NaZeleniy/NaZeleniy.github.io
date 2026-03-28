@@ -1,52 +1,73 @@
-// Alpine.js component for the main page.
-// Depends on API_BASE defined in api.js.
 function app() {
   return {
-    // ── State ──────────────────────────────────────────────
-    query:       '',
-    searchType:  'top',
-    movies:      [],
-    loading:     true,
-    totalPages:  1,
+    query: '',
+    searchType: 'top',
+    movies: [],
+    loading: true,
+    totalPages: 1,
     currentPage: 1,
+    bgPoster: '',
 
-    // suggestions
-    suggestions:        [],
-    showSuggestions:    false,
+    suggestions: [],
+    showSuggestions: false,
     suggestionsLoading: false,
-    highlightedIndex:   -1,
-    _suggestAbort:      null,
+    highlightedIndex: -1,
+    _suggestAbort: null,
 
-    // ── Init ───────────────────────────────────────────────
     init() {
       this.searchType = 'name'
-      this.loading    = false
+      this.loading = false
     },
 
-    // ── Helpers ────────────────────────────────────────────
+    prefetch(movie) {
+      const id = movie.kinopoiskId || movie.filmId
+      if (!id) return
+      const href = 'movie.html?id=' + id
+      if (!document.head.querySelector(`link[rel="prefetch"][href="${href}"]`)) {
+        document.head.insertAdjacentHTML('beforeend', `<link rel="prefetch" href="${href}">`)
+      }
+    },
+
+    onCardEnter(movie) {
+      this.bgPoster = movie.posterUrlPreview || movie.posterUrl || ''
+      this.prefetch(movie)
+    },
+
     movieType(movie) {
       switch (movie.type) {
         case 'TV_SERIES':
         case 'MINI_SERIES': return 'Сериал'
-        case 'TV_SHOW':     return 'Шоу'
-        case 'FILM':        return 'Фильм'
-        default:            return movie.type ? 'Фильм' : ''
+        case 'TV_SHOW': return 'Шоу'
+        case 'FILM': return 'Фильм'
+        default: return movie.type ? 'Фильм' : ''
       }
     },
 
-    // ── Suggestions ────────────────────────────────────────
+    async onInput() {
+      await this.fetchSuggestions()
+      if (this.query.trim()) {
+        this.searchType = 'name'
+        this.currentPage = 1
+        await this.search()
+      } else {
+        this.movies = []
+        this.totalPages = 1
+        this.currentPage = 1
+      }
+    },
+
     async fetchSuggestions() {
       const q = this.query.trim()
       if (!q) {
-        this.suggestions    = []
+        this.suggestions = []
         this.showSuggestions = false
         return
       }
 
       if (this._suggestAbort) this._suggestAbort.abort()
-      this._suggestAbort      = new AbortController()
+      this._suggestAbort = new AbortController()
       this.suggestionsLoading = true
-      this.highlightedIndex   = -1
+      this.highlightedIndex = -1
 
       try {
         const r = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(q)}&page=1`, {
@@ -54,24 +75,22 @@ function app() {
         })
         if (!r.ok) throw new Error('status ' + r.status)
         const data = await r.json()
-        this.suggestions    = (data.movies || []).slice(0, 7)
+        this.suggestions = (data.movies || []).slice(0, 7)
         this.showSuggestions = this.suggestions.length > 0
       } catch (e) {
-        if (e.name !== 'AbortError') console.error('suggestions:', e)
+        if (e.name !== 'AbortError') console.error(e)
       } finally {
         this.suggestionsLoading = false
       }
     },
 
     closeSuggestions() {
-      this.showSuggestions  = false
+      this.showSuggestions = false
       this.highlightedIndex = -1
     },
 
     selectSuggestion(movie) {
-      this.query = movie.nameRu || movie.nameEn || ''
-      this.closeSuggestions()
-      this.onSearch()
+      window.location.href = 'movie.html?id=' + (movie.kinopoiskId || movie.filmId)
     },
 
     highlightNext() {
@@ -94,10 +113,9 @@ function app() {
       }
     },
 
-    // ── Search ─────────────────────────────────────────────
     onSearch() {
       if (!this.query.trim()) return this.fetchTop()
-      this.searchType  = 'name'
+      this.searchType = 'name'
       this.currentPage = 1
       this.search()
     },
@@ -107,11 +125,11 @@ function app() {
       try {
         const r = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(this.query.trim())}&page=${this.currentPage}`)
         if (!r.ok) throw new Error('API error ' + r.status)
-        const data  = await r.json()
-        this.movies     = data.movies || []
+        const data = await r.json()
+        this.movies = data.movies || []
         this.totalPages = data.totalPages || 1
       } catch (e) {
-        console.error('search:', e)
+        console.error(e)
         this.movies = []
       } finally {
         this.loading = false
@@ -119,20 +137,20 @@ function app() {
     },
 
     async fetchTop() {
-      this.searchType      = 'top'
-      this.currentPage     = 1
-      this.query           = ''
-      this.suggestions     = []
+      this.searchType = 'top'
+      this.currentPage = 1
+      this.query = ''
+      this.suggestions = []
       this.showSuggestions = false
-      this.loading         = true
+      this.loading = true
       try {
         const r = await fetch(`${API_BASE}/api/top?page=1`)
         if (!r.ok) throw new Error('API error ' + r.status)
-        const data  = await r.json()
-        this.movies     = Array.isArray(data) ? data : []
+        const data = await r.json()
+        this.movies = Array.isArray(data) ? data : []
         this.totalPages = 1
       } catch (e) {
-        console.error('fetchTop:', e)
+        console.error(e)
         this.movies = []
       } finally {
         this.loading = false
@@ -144,16 +162,16 @@ function app() {
       this.closeSuggestions()
       try {
         const page = Math.floor(Math.random() * 5) + 1
-        const r    = await fetch(`${API_BASE}/api/top?page=` + page)
+        const r = await fetch(`${API_BASE}/api/top?page=` + page)
         if (!r.ok) throw new Error('API error ' + r.status)
         const data = await r.json()
-        const arr  = Array.isArray(data) ? data : []
+        const arr = Array.isArray(data) ? data : []
         if (arr.length) {
           const movie = arr[Math.floor(Math.random() * arr.length)]
           window.location.href = 'movie.html?id=' + (movie.kinopoiskId || movie.filmId)
         }
       } catch (e) {
-        console.error('fetchRandom:', e)
+        console.error(e)
       } finally {
         this.loading = false
       }

@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="theme-color" content="#000000"/>
-  <title>NaZeleniy — Поиск фильмов</title>
+  <title>NaZeleniy — Популярное</title>
   <link rel="stylesheet" href="css/style.css"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous"/>
   <script src="js/settings.js"></script>
@@ -13,7 +13,7 @@
   <script src="js/header.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body x-data="app()" x-init="init()">
+<body x-data="app()" x-init="fetchTop()">
 
   <div class="bg-poster"
        :style="bgPoster ? 'background-image: url(' + bgPoster + ')' : ''"
@@ -57,9 +57,9 @@
       </template>
     </div>
 
-    <div class="empty-state" x-show="!loading && movies.length === 0 && query" x-transition>
+    <div class="empty-state" x-show="!loading && movies.length === 0" x-transition>
       <i class="fas fa-film"></i>
-      <p x-text="'Ничего не найдено по запросу «' + query + '»'"></p>
+      <p>Ничего не найдено</p>
     </div>
 
     <!-- Pagination -->
@@ -75,6 +75,6 @@
 
   </main>
 
-  <script>renderHeader('index')</script>
+  <script>renderHeader('top')</script>
 </body>
 </html>

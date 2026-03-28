@@ -1,13 +1,7 @@
-// Movie detail page script.
-// Reads ?id=<kinopoiskId> from the URL and fetches the movie from the API.
-// Depends on API_BASE defined in api.js.
-
-// Read movie ID from URL query: movie.html?id=123
 const movieId = new URLSearchParams(window.location.search).get('id')
 
-// ── Sidebar toggle ──────────────────────────────────────────
-const sidebar    = document.getElementById('sidebar')
-const toggleBtn  = document.getElementById('toggleBtn')
+const sidebar = document.getElementById('sidebar')
+const toggleBtn = document.getElementById('toggleBtn')
 const toggleIcon = document.getElementById('toggleIcon')
 
 toggleBtn.addEventListener('click', () => {
@@ -15,19 +9,18 @@ toggleBtn.addEventListener('click', () => {
   toggleIcon.className = isOpen ? 'fas fa-chevron-left' : 'fas fa-chevron-right'
 })
 
-// ── Render helpers ──────────────────────────────────────────
 function displayType(type) {
   switch (type) {
     case 'TV_SERIES':
     case 'MINI_SERIES': return 'Сериал'
-    case 'TV_SHOW':     return 'Шоу'
-    default:            return 'Фильм'
+    case 'TV_SHOW': return 'Шоу'
+    default: return 'Фильм'
   }
 }
 
 function ratingClass(r) {
   if (r >= 7.0) return 'rating-value high'
-  if (r < 5.0)  return 'rating-value low'
+  if (r < 5.0) return 'rating-value low'
   return 'rating-value'
 }
 
@@ -40,18 +33,26 @@ function joinList(arr, key) {
   return arr.map(x => x[key]).join(', ')
 }
 
-// ── Render ──────────────────────────────────────────────────
+function backBtn() {
+  return `<a href="/" class="back-btn" onclick="if(history.length>1){event.preventDefault();history.back()}">
+    <i class="fas fa-arrow-left"></i>
+    <span>Назад</span>
+  </a>`
+}
+
 function renderMovie(movie) {
   const title = movie.nameRu || movie.nameEn || 'Без названия'
   document.title = title + ' — NaZeleniy'
 
-  // Ratings
+  const bgEl = document.getElementById('bg-poster')
+  const bgUrl = movie.posterUrlPreview || movie.posterUrl || ''
+  if (bgEl && bgUrl) bgEl.style.backgroundImage = `url(${bgUrl})`
+
   let ratingsHtml = ''
   if (movie.ratingKinopoisk > 0) {
-    const kpUrl = `https://www.kinopoisk.ru/film/${movie.kinopoiskId}`
     ratingsHtml += `
       <div class="rating-container">
-        <a class="rating-link" href="${kpUrl}" target="_blank" rel="noopener noreferrer"
+        <a class="rating-link" href="https://www.kinopoisk.ru/film/${movie.kinopoiskId}" target="_blank" rel="noopener noreferrer"
            title="Оценок: ${movie.ratingKinopoiskVoteCount || 0}">
           <img src="/img/logo/logo_kp.svg" alt="KP" class="rating-logo-img"/>
           <span class="${ratingClass(movie.ratingKinopoisk)}">${movie.ratingKinopoisk.toFixed(1)}</span>
@@ -69,15 +70,14 @@ function renderMovie(movie) {
       </div>`
   }
 
-  // Info rows
   const rows = []
-  if (movie.type)                                                   rows.push(['Тип', displayType(movie.type)])
-  if (movie.year > 0)                                               rows.push(['Год выпуска', movie.year])
-  if (movie.nameRu)                                                 rows.push(['Название', movie.nameRu])
-  if (movie.nameEn)                                                 rows.push(['Оригинальное название', movie.nameEn])
-  if (movie.countries?.length)                                      rows.push(['Страна производства', joinList(movie.countries, 'country')])
-  if (movie.genres?.length)                                         rows.push(['Жанры', joinList(movie.genres, 'genre')])
-  if (movie.filmLength > 0)                                         rows.push(['Длительность', movie.filmLength + ' мин'])
+  if (movie.type)                                                      rows.push(['Тип', displayType(movie.type)])
+  if (movie.year > 0)                                                  rows.push(['Год выпуска', movie.year])
+  if (movie.nameRu)                                                    rows.push(['Название', movie.nameRu])
+  if (movie.nameEn)                                                    rows.push(['Оригинальное название', movie.nameEn])
+  if (movie.countries?.length)                                         rows.push(['Страна производства', joinList(movie.countries, 'country')])
+  if (movie.genres?.length)                                            rows.push(['Жанры', joinList(movie.genres, 'genre')])
+  if (movie.filmLength > 0)                                            rows.push(['Длительность', movie.filmLength + ' мин'])
   if (movie.slogan && movie.slogan !== '-' && movie.slogan !== 'null') rows.push(['Слоган', '«' + movie.slogan + '»'])
 
   const infoRowsHtml = rows.map(([k, v]) => `<li><strong>${k}:</strong> ${v}</li>`).join('\n')
@@ -86,10 +86,13 @@ function renderMovie(movie) {
     ? `<li class="rating-boxes"><div class="rating-box age"><strong>${formatAge(movie.ratingAgeLimits)}</strong></div></li>`
     : ''
 
-  const posterHtml = movie.posterUrl
+  const posterSrc = movie.posterUrlPreview || movie.posterUrl || ''
+  const posterFull = movie.posterUrl || movie.posterUrlPreview || ''
+  const posterHtml = posterSrc
     ? `<div class="movie-poster-container desktop-only">
-         <a href="${movie.posterUrl}" target="_blank" rel="noopener noreferrer">
-           <img class="movie-poster" src="${movie.posterUrl}" alt="${title}"/>
+         <a href="${posterFull}" target="_blank" rel="noopener noreferrer">
+           <img class="movie-poster" src="${posterSrc}" alt="${title}"
+                onerror="if(this.src!=='${posterFull}')this.src='${posterFull}'"/>
          </a>
        </div>`
     : ''
@@ -100,10 +103,7 @@ function renderMovie(movie) {
     : ''
 
   document.getElementById('movieContent').innerHTML = `
-    <a href="/" class="back-btn">
-      <i class="fas fa-arrow-left"></i>
-      <span>Назад</span>
-    </a>
+    ${backBtn()}
     <div class="content-header">
       <h1 class="content-title">${title}</h1>
     </div>
@@ -126,10 +126,7 @@ function renderMovie(movie) {
 
 function renderError(message) {
   document.getElementById('movieContent').innerHTML = `
-    <a href="/" class="back-btn">
-      <i class="fas fa-arrow-left"></i>
-      <span>Назад</span>
-    </a>
+    ${backBtn()}
     <div class="empty-state">
       <i class="fas fa-film"></i>
       <p>${message}</p>
@@ -137,20 +134,16 @@ function renderError(message) {
   `
 }
 
-// ── Load ────────────────────────────────────────────────────
 async function loadMovie() {
   if (!movieId) {
     renderError('ID фильма не указан')
     return
   }
-
   try {
     const r = await fetch(`${API_BASE}/api/movie/${movieId}`)
     if (!r.ok) throw new Error('Фильм не найден')
-    const movie = await r.json()
-    renderMovie(movie)
+    renderMovie(await r.json())
   } catch (e) {
-    console.error('loadMovie:', e)
     renderError(e.message || 'Ошибка загрузки фильма')
   }
 }
