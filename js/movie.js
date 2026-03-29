@@ -42,6 +42,7 @@ function backBtn() {
 
 const PLAYERS = [
   { name: 'FlixCDN',  url: (r, id) => `//player0.flixcdn.space/show/${r}/${id}?no_sharing=1` },
+  { name: 'Плеер 2',  url: (r, id) => `//player0.flixcdn.space/show/${r}/${id}?no_sharing=1` },
 ]
 
 function selectPlayer(btn, src) {
