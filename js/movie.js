@@ -40,7 +40,17 @@ function backBtn() {
   </a>`
 }
 
-function playerHtml(movie) {
+const PLAYERS = [
+  { name: 'FlixCDN',  url: (r, id) => `//player0.flixcdn.space/show/${r}/${id}?no_sharing=1` },
+]
+
+function selectPlayer(btn, src) {
+  document.querySelectorAll('.player-btn').forEach(b => b.classList.remove('active'))
+  btn.classList.add('active')
+  document.getElementById('playerFrame').src = src
+}
+
+function playerSectionHtml(movie) {
   let resource, id
   if (movie.kinopoiskId) {
     resource = 'kinopoisk'
@@ -51,11 +61,25 @@ function playerHtml(movie) {
   } else {
     return ''
   }
-  return `<div class="player-wrapper">
-    <iframe src="//player0.flixcdn.space/show/${resource}/${id}"
-      style="width:100%;height:auto;aspect-ratio:16/9"
-      frameborder="0" allowfullscreen></iframe>
-  </div>`
+
+  const btns = PLAYERS.map((p, i) =>
+    `<button class="player-btn${i === 0 ? ' active' : ''}"
+      onclick="selectPlayer(this,'${p.url(resource, id)}')">${p.name}</button>`
+  ).join('')
+
+  return `<details class="player-section">
+    <summary class="player-summary">
+      <i class="fas fa-play-circle"></i>
+      <span>Выбрать плеер</span>
+      <i class="fas fa-chevron-down player-chevron"></i>
+    </summary>
+    <div class="player-select">${btns}</div>
+    <div class="player-wrapper">
+      <iframe id="playerFrame" src="${PLAYERS[0].url(resource, id)}"
+        width="640" height="480"
+        frameborder="0" allowfullscreen></iframe>
+    </div>
+  </details>`
 }
 
 function renderMovie(movie) {
@@ -126,7 +150,6 @@ function renderMovie(movie) {
       <h1 class="content-title">${title}</h1>
     </div>
     <div class="ratings-links">${ratingsHtml}</div>
-    ${playerHtml(movie)}
     <div class="additional-info">
       <h2 class="additional-info-title">Подробнее</h2>
       <div class="info-content">
@@ -140,6 +163,7 @@ function renderMovie(movie) {
         </div>
       </div>
     </div>
+    ${playerSectionHtml(movie)}
   `
 }
 
