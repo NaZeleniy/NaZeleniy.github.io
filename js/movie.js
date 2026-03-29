@@ -40,6 +40,24 @@ function backBtn() {
   </a>`
 }
 
+function playerHtml(movie) {
+  let resource, id
+  if (movie.kinopoiskId) {
+    resource = 'kinopoisk'
+    id = movie.kinopoiskId
+  } else if (movie.imdbId) {
+    resource = 'imdb'
+    id = movie.imdbId
+  } else {
+    return ''
+  }
+  return `<div class="player-wrapper">
+    <iframe src="//player0.flixcdn.space/show/${resource}/${id}"
+      style="width:100%;height:auto;aspect-ratio:16/9"
+      frameborder="0" allowfullscreen></iframe>
+  </div>`
+}
+
 function renderMovie(movie) {
   const title = movie.nameRu || movie.nameEn || 'Без названия'
   document.title = title + ' — NaZeleniy'
@@ -108,6 +126,7 @@ function renderMovie(movie) {
       <h1 class="content-title">${title}</h1>
     </div>
     <div class="ratings-links">${ratingsHtml}</div>
+    ${playerHtml(movie)}
     <div class="additional-info">
       <h2 class="additional-info-title">Подробнее</h2>
       <div class="info-content">
