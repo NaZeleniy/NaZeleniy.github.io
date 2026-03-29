@@ -45,11 +45,30 @@ const PLAYERS = [
   { name: 'Плеер 2',  url: (r, id) => `//player0.flixcdn.space/show/${r}/${id}?no_sharing=1` },
 ]
 
-function selectPlayer(btn, src) {
-  document.querySelectorAll('.player-btn').forEach(b => b.classList.remove('active'))
-  btn.classList.add('active')
-  document.getElementById('playerFrame').src = src
+function togglePlayerDropdown() {
+  const dd = document.getElementById('playerDropdown')
+  const chevron = document.getElementById('playerDropdownChevron')
+  const open = dd.classList.toggle('open')
+  chevron.style.transform = open ? 'rotate(180deg)' : ''
 }
+
+function selectPlayer(name, src) {
+  document.getElementById('playerFrame').src = src
+  document.getElementById('playerSelectedName').textContent = name
+  document.getElementById('playerDropdown').classList.remove('open')
+  document.getElementById('playerDropdownChevron').style.transform = ''
+  document.querySelectorAll('.player-option').forEach(o => {
+    o.classList.toggle('active', o.dataset.name === name)
+  })
+}
+
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('playerSelectWrap')
+  if (wrap && !wrap.contains(e.target)) {
+    document.getElementById('playerDropdown')?.classList.remove('open')
+    document.getElementById('playerDropdownChevron').style.transform = ''
+  }
+})
 
 function playerSectionHtml(movie) {
   let resource, id
@@ -63,9 +82,9 @@ function playerSectionHtml(movie) {
     return ''
   }
 
-  const btns = PLAYERS.map((p, i) =>
-    `<button class="player-btn${i === 0 ? ' active' : ''}"
-      onclick="selectPlayer(this,'${p.url(resource, id)}')">${p.name}</button>`
+  const options = PLAYERS.map((p, i) =>
+    `<div class="player-option${i === 0 ? ' active' : ''}" data-name="${p.name}"
+      onclick="selectPlayer('${p.name}','${p.url(resource, id)}')">${p.name}</div>`
   ).join('')
 
   return `<details class="player-section">
@@ -74,7 +93,13 @@ function playerSectionHtml(movie) {
       <span>Выбрать плеер</span>
       <i class="fas fa-chevron-down player-chevron"></i>
     </summary>
-    <div class="player-select">${btns}</div>
+    <div class="player-select-wrap" id="playerSelectWrap">
+      <button class="player-select-trigger" onclick="togglePlayerDropdown()">
+        <span id="playerSelectedName">${PLAYERS[0].name}</span>
+        <i class="fas fa-chevron-down" id="playerDropdownChevron"></i>
+      </button>
+      <div class="player-dropdown" id="playerDropdown">${options}</div>
+    </div>
     <div class="player-wrapper">
       <iframe id="playerFrame" src="${PLAYERS[0].url(resource, id)}"
         width="640" height="480"
