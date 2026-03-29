@@ -1116,6 +1116,8 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
 
 .player-wrapper {
   background: #000;
+  display: flex;
+  justify-content: center;
 }
 .player-wrapper iframe {
   display: block;
