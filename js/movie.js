@@ -57,7 +57,7 @@ function playerError(frame) {
 }
 
 function selectPlayer(name, src) {
-  const frame = document.getElementById('playerFrame')
+  const frame = document.getElementById('flixcdn')
   frame.closest('.player-wrapper')?.classList.remove('error')
   frame.src = src
   document.getElementById('playerSelectedName').textContent = name
@@ -107,7 +107,7 @@ function playerSectionHtml(movie) {
       <div class="player-dropdown" id="playerDropdown">${options}</div>
     </div>
     <div class="player-wrapper">
-      <iframe id="playerFrame" data-src="${PLAYERS[0].url(resource, id)}"
+      <iframe id="flixcdn" data-src="${PLAYERS[0].url(resource, id)}"
         frameborder="0" allowfullscreen
         onerror="playerError(this)"></iframe>
       <div class="player-error">
@@ -123,9 +123,13 @@ function initPlayerLazyLoad() {
   if (!details) return
   details.addEventListener('toggle', () => {
     if (!details.open) return
-    const frame = document.getElementById('playerFrame')
+    const frame = document.getElementById('flixcdn')
     if (frame && frame.dataset.src && !frame.src.startsWith('http')) {
       frame.src = frame.dataset.src
+      if (typeof khCL === 'function') {
+        window.khF = frame
+        setTimeout(khCL, 0)
+      }
     }
   }, { once: true })
 }
