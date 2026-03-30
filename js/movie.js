@@ -58,8 +58,18 @@ function playerError(frame) {
 
 function selectPlayer(name, src) {
   const frame = document.getElementById('flixcdn')
-  frame.closest('.player-wrapper')?.classList.remove('error')
+  const wrapper = frame.closest('.player-wrapper')
+  wrapper?.classList.remove('error', 'ready')
+  wrapper?.classList.add('loading')
   frame.src = src
+  const onMessage = e => {
+    if (e.data === 'khL') {
+      wrapper?.classList.remove('loading')
+      wrapper?.classList.add('ready')
+      window.removeEventListener('message', onMessage)
+    }
+  }
+  window.addEventListener('message', onMessage)
   document.getElementById('playerSelectedName').textContent = name
   document.getElementById('playerDropdown').classList.remove('open')
   document.getElementById('playerDropdownChevron').style.transform = ''
@@ -110,6 +120,9 @@ function playerSectionHtml(movie) {
       <iframe id="flixcdn" data-src="${PLAYERS[0].url(resource, id)}"
         frameborder="0" allowfullscreen
         onerror="playerError(this)"></iframe>
+      <div class="player-loading">
+        <i class="fas fa-circle-notch fa-spin"></i>
+      </div>
       <div class="player-error">
         <i class="fas fa-exclamation-circle"></i>
         <span>Плеер не доступен, попробуйте другой</span>
@@ -124,12 +137,30 @@ function initPlayerLazyLoad() {
   details.addEventListener('toggle', () => {
     if (!details.open) return
     const frame = document.getElementById('flixcdn')
-    if (frame && frame.dataset.src && !frame.src.startsWith('http')) {
-      frame.src = frame.dataset.src
-      if (typeof khCL === 'function') {
-        window.khF = frame
-        setTimeout(khCL, 0)
-      }
+    if (!frame || !frame.dataset.src || frame.src.startsWith('http')) return
+
+    const wrapper = frame.closest('.player-wrapper')
+    wrapper.classList.add('loading')
+
+    const onSuccess = () => {
+      wrapper.classList.remove('loading')
+      wrapper.classList.add('ready')
+      clearTimeout(timer)
+      window.removeEventListener('message', onMessage)
+    }
+
+    const onMessage = e => { if (e.data === 'khL') onSuccess() }
+    window.addEventListener('message', onMessage)
+
+    const timer = setTimeout(() => {
+      window.removeEventListener('message', onMessage)
+      if (!wrapper.classList.contains('ready')) playerError(frame)
+    }, 20000)
+
+    frame.src = frame.dataset.src
+    if (typeof khCL === 'function') {
+      window.khF = frame
+      setTimeout(khCL, 0)
     }
   }, { once: true })
 }
