@@ -62,15 +62,40 @@ function selectPlayer(name, src) {
   const wrapper = frame.closest('.player-wrapper')
   wrapper?.classList.remove('error', 'ready')
   wrapper?.classList.add('loading')
-  frame.src = src
-  const onMessage = e => {
-    if (e.data === 'khL') {
+
+  if (selectPlayer._cleanup) selectPlayer._cleanup()
+
+  const onMessage = e => { if (e.data === 'khL') done(true) }
+  const timer = setTimeout(() => done(false), 3000)
+
+  function done(success) {
+    clearTimeout(timer)
+    window.removeEventListener('message', onMessage)
+    selectPlayer._cleanup = null
+    if (success) {
       wrapper?.classList.remove('loading')
       wrapper?.classList.add('ready')
-      window.removeEventListener('message', onMessage)
+    } else {
+      playerError(frame)
     }
   }
+
+  selectPlayer._cleanup = () => {
+    clearTimeout(timer)
+    window.removeEventListener('message', onMessage)
+  }
+
   window.addEventListener('message', onMessage)
+
+  if (typeof window.khS !== 'undefined') window.khS = false
+  if (typeof khCL === 'function') {
+    window.khF = frame
+    frame.src = src
+    setTimeout(khCL, 0)
+  } else {
+    frame.src = src
+  }
+
   document.getElementById('playerSelectedName').textContent = name
   document.getElementById('playerDropdown').classList.remove('open')
   document.getElementById('playerDropdownChevron').style.transform = ''
