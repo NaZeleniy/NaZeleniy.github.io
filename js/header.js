@@ -1,6 +1,16 @@
 function renderHeader(activePage) {
   _renderSidebar(activePage)
   if (activePage !== 'settings') _renderSearch(activePage)
+  _renderLiveInternet()
+}
+
+function _renderLiveInternet() {
+  new Image().src = 'https://counter.yadro.ru/hit?r'
+    + escape(document.referrer)
+    + (typeof screen === 'undefined' ? '' : ';s' + screen.width + '*' + screen.height + '*' + (screen.colorDepth ? screen.colorDepth : screen.pixelDepth))
+    + ';u' + escape(document.URL)
+    + ';h' + escape(document.title.substring(0, 150))
+    + ';' + Math.random()
 }
 
 function _renderSidebar(activePage) {
