@@ -53,6 +53,7 @@ function togglePlayerDropdown() {
 }
 
 function playerError(frame) {
+  frame.closest('.player-wrapper')?.classList.remove('loading')
   frame.closest('.player-wrapper')?.classList.add('error')
 }
 
@@ -155,7 +156,7 @@ function initPlayerLazyLoad() {
     const timer = setTimeout(() => {
       window.removeEventListener('message', onMessage)
       if (!wrapper.classList.contains('ready')) playerError(frame)
-    }, 20000)
+    }, 3000)
 
     frame.src = frame.dataset.src
     if (typeof khCL === 'function') {
