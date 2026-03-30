@@ -142,6 +142,7 @@ button {
 }
 
 .nav-link:hover,
+.nav-link:focus-visible,
 .nav-link.active {
   color: var(--accent);
   background: var(--accent-dim);
@@ -567,7 +568,7 @@ button {
   color: var(--text-muted);
   font-size: 14px;
   font-weight: 500;
-  padding: 6px 0;
+  padding: 6px 0 12px;
   width: fit-content;
   transition: color var(--transition);
 }
@@ -657,22 +658,7 @@ button {
 .average-rating.low,
 .rating-value.low       { color: #e17055 !important; }
 
-/* ── Movie page: back button ─────────────────────────────── */
-.back-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-muted);
-  font-size: 14px;
-  font-weight: 500;
-  padding: 6px 0 12px;
-  transition: color var(--transition);
-}
-.back-btn:hover { color: var(--accent); }
-
 /* ── Movie page: content wrapper ─────────────────────────── */
-.movie-info { }
-
 .content { min-height: 100vh; }
 
 .content-card { overflow: hidden; padding: 20px; color: #e0e0e0; }
@@ -993,6 +979,7 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
   }
 
   .nav-link:hover,
+  .nav-link:focus-visible,
   .nav-link.active {
     transform: none;
     border-left-color: transparent;
@@ -1009,8 +996,8 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
 
   .grid { grid-template-columns: repeat(auto-fill, minmax(156px, 1fr)); gap: 10px; }
 
-  /* movie page mobile: collapse title */
-  .content-header, .content-title { display: none; }
+  /* movie page mobile: smaller title */
+  .content-title { font-size: 1.4rem; }
   .content-card { padding: 0 2px; }
   .ratings-links { margin: 5px 0; gap: 8px; flex-wrap: wrap; }
   .rating-link { padding: 3px 6px; font-size: 14px; }
@@ -1035,6 +1022,10 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
   border: 1px solid #222;
   border-radius: 8px;
   overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .player-section { width: 100%; border-radius: 0; border-left: none; border-right: none; }
 }
 
 .player-summary {
@@ -1116,10 +1107,32 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
 
 .player-wrapper {
   background: #000;
-  display: flex;
-  justify-content: center;
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%; /* 16:9 */
 }
 .player-wrapper iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   display: block;
   border: none;
 }
+.player-wrapper.error iframe { display: none; }
+.player-error {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #aaa;
+  font-size: 15px;
+}
+.player-error i {
+  font-size: 32px;
+  color: #e74c3c;
+}
+.player-wrapper.error .player-error { display: flex; }

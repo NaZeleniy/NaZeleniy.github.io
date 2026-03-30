@@ -52,8 +52,14 @@ function togglePlayerDropdown() {
   chevron.style.transform = open ? 'rotate(180deg)' : ''
 }
 
+function playerError(frame) {
+  frame.closest('.player-wrapper')?.classList.add('error')
+}
+
 function selectPlayer(name, src) {
-  document.getElementById('playerFrame').src = src
+  const frame = document.getElementById('playerFrame')
+  frame.closest('.player-wrapper')?.classList.remove('error')
+  frame.src = src
   document.getElementById('playerSelectedName').textContent = name
   document.getElementById('playerDropdown').classList.remove('open')
   document.getElementById('playerDropdownChevron').style.transform = ''
@@ -102,8 +108,12 @@ function playerSectionHtml(movie) {
     </div>
     <div class="player-wrapper">
       <iframe id="playerFrame" src="${PLAYERS[0].url(resource, id)}"
-        width="640" height="480"
-        frameborder="0" allowfullscreen></iframe>
+        frameborder="0" allowfullscreen
+        onerror="playerError(this)"></iframe>
+      <div class="player-error">
+        <i class="fas fa-exclamation-circle"></i>
+        <span>Плеер не доступен, попробуйте другой</span>
+      </div>
     </div>
   </details>`
 }

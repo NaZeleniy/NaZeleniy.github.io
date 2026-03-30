@@ -11,6 +11,7 @@ function app() {
     _topDone: false,
     _topLoading: false,
     _searchLoading: false,
+    _prefetched: new Set(),
 
     suggestions: [],
     showSuggestions: false,
@@ -27,9 +28,9 @@ function app() {
       const id = movie.kinopoiskId || movie.filmId
       if (!id) return
       const href = 'movie.html?id=' + id
-      if (!document.head.querySelector(`link[rel="prefetch"][href="${href}"]`)) {
-        document.head.insertAdjacentHTML('beforeend', `<link rel="prefetch" href="${href}">`)
-      }
+      if (this._prefetched.has(href)) return
+      this._prefetched.add(href)
+      document.head.insertAdjacentHTML('beforeend', `<link rel="prefetch" href="${href}">`)
     },
 
     onCardEnter(movie) {
