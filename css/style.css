@@ -998,7 +998,7 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
 
   /* movie page mobile: smaller title */
   .content-title { font-size: 1.4rem; }
-  .content-card { padding: 0 2px; }
+  .content-card { padding: 0 2px 72px; }
   .ratings-links { margin: 5px 0; gap: 8px; flex-wrap: wrap; }
   .rating-link { padding: 3px 6px; font-size: 14px; }
   .rating-boxes { flex-wrap: wrap; }

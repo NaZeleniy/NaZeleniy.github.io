@@ -107,7 +107,7 @@ function playerSectionHtml(movie) {
       <div class="player-dropdown" id="playerDropdown">${options}</div>
     </div>
     <div class="player-wrapper">
-      <iframe id="playerFrame" src="${PLAYERS[0].url(resource, id)}"
+      <iframe id="playerFrame" data-src="${PLAYERS[0].url(resource, id)}"
         frameborder="0" allowfullscreen
         onerror="playerError(this)"></iframe>
       <div class="player-error">
@@ -116,6 +116,18 @@ function playerSectionHtml(movie) {
       </div>
     </div>
   </details>`
+}
+
+function initPlayerLazyLoad() {
+  const details = document.querySelector('.player-section')
+  if (!details) return
+  details.addEventListener('toggle', () => {
+    if (!details.open) return
+    const frame = document.getElementById('playerFrame')
+    if (frame && frame.dataset.src && !frame.src.startsWith('http')) {
+      frame.src = frame.dataset.src
+    }
+  }, { once: true })
 }
 
 function renderMovie(movie) {
@@ -201,6 +213,7 @@ function renderMovie(movie) {
     </div>
     ${playerSectionHtml(movie)}
   `
+  initPlayerLazyLoad()
 }
 
 function renderError(message) {
