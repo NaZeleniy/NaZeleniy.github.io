@@ -73,9 +73,7 @@ function selectVibixPlayer(type, id) {
     data-color2="#666666"
     data-color3="#999999"
     data-color4="#CCCCCC"
-    data-color5="#FFFFFF"
-    data-nopreload="true"
-    data-poster="true"></ins>`
+    data-color5="#FFFFFF"></ins>`
 
   const old = document.getElementById('rendex-sdk')
   if (old) old.remove()
