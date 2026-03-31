@@ -41,9 +41,9 @@ function backBtn() {
 }
 
 const PLAYERS = [
-  { name: 'FlixCDN',  url: (r, id) => `//player0.flixcdn.space/show/${r}/${id}?no_sharing=1` },
-  { name: 'Vibix',    vibix: true },
-  { name: 'Плеер 2',  url: (r, id) => `//player0.flixcdn.space/show/${r}/${id}?no_sharing=1` },
+  { name: 'FlixCDN',    url: (r, id) => `//player0.flixcdn.space/show/${r}/${id}?no_sharing=1` },
+  { name: 'Vibix',      vibix: true },
+  { name: 'KinoSerial', url: (r, id) => `https://tv-2-kinoserial.net/embed_auto/${id}/?token=dbe140b3c3f68769a13ee6e953f7ce96` },
 ]
 
 function togglePlayerDropdown() {
@@ -53,7 +53,10 @@ function togglePlayerDropdown() {
   chevron.style.transform = open ? 'rotate(180deg)' : ''
 }
 
-function playerSetState(state) {
+let _playerGen = 0
+
+function playerSetState(state, gen) {
+  if (gen !== undefined && gen !== _playerGen) return
   const wrapper = document.querySelector('.player-wrapper')
   wrapper.classList.remove('loading', 'ready', 'error')
   if (state) wrapper.classList.add(state)
@@ -71,11 +74,12 @@ function playerUpdateUI(name) {
 function playerError() { playerSetState('error') }
 
 function selectVibixPlayer(type, id) {
+  const gen = ++_playerGen
   const wrapper = document.querySelector('.player-wrapper')
   wrapper.classList.remove('vibix')
   document.getElementById('vibix-slot').innerHTML = ''
   wrapper.classList.add('vibix')
-  playerSetState('loading')
+  playerSetState('loading', gen)
 
   const slot = document.getElementById('vibix-slot')
   slot.innerHTML = `<ins data-publisher-id="677393820"
@@ -94,20 +98,21 @@ function selectVibixPlayer(type, id) {
   script.id = 'rendex-sdk'
   script.src = 'https://graphicslab.io/sdk/v2/rendex-sdk.min.js'
   script.onload = () => {
+    if (gen !== _playerGen) return
     const existing = slot.querySelector('iframe')
     if (existing) { waitForLoad(existing); return }
+    const noIframeTimer = setTimeout(() => { observer.disconnect(); playerSetState('error', gen) }, 5000)
     const observer = new MutationObserver(() => {
       const iframe = slot.querySelector('iframe')
-      if (iframe) { observer.disconnect(); waitForLoad(iframe) }
+      if (iframe) { observer.disconnect(); clearTimeout(noIframeTimer); waitForLoad(iframe) }
     })
     observer.observe(slot, { childList: true, subtree: true })
-    setTimeout(() => { observer.disconnect(); playerSetState('error') }, 5000)
   }
-  script.onerror = () => playerSetState('error')
+  script.onerror = () => playerSetState('error', gen)
 
   function waitForLoad(iframe) {
-    const timer = setTimeout(() => playerSetState('error'), 8000)
-    iframe.addEventListener('load', () => { clearTimeout(timer); playerSetState('ready') }, { once: true })
+    const timer = setTimeout(() => playerSetState('error', gen), 8000)
+    iframe.addEventListener('load', () => { clearTimeout(timer); playerSetState('ready', gen) }, { once: true })
   }
   document.head.appendChild(script)
 
@@ -115,13 +120,12 @@ function selectVibixPlayer(type, id) {
 }
 
 function selectPlayer(name, src) {
+  const gen = ++_playerGen
   const frame = document.getElementById('flixcdn')
   const wrapper = frame.closest('.player-wrapper')
   wrapper.classList.remove('vibix')
   document.getElementById('vibix-slot').innerHTML = ''
-  playerSetState('loading')
-
-  if (selectPlayer._cleanup) selectPlayer._cleanup()
+  playerSetState('loading', gen)
 
   const onMessage = e => { if (e.data === 'khL') done(true) }
   const timer = setTimeout(() => done(false), 3000)
@@ -129,13 +133,7 @@ function selectPlayer(name, src) {
   function done(success) {
     clearTimeout(timer)
     window.removeEventListener('message', onMessage)
-    selectPlayer._cleanup = null
-    playerSetState(success ? 'ready' : 'error')
-  }
-
-  selectPlayer._cleanup = () => {
-    clearTimeout(timer)
-    window.removeEventListener('message', onMessage)
+    playerSetState(success ? 'ready' : 'error', gen)
   }
 
   window.addEventListener('message', onMessage)
