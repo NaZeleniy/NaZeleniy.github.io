@@ -43,7 +43,7 @@ function backBtn() {
 const PLAYERS = [
   { name: 'FlixCDN',   url: (r, id) => `//player0.flixcdn.space/show/${r}/${id}?no_sharing=1` },
   { name: 'Vibix',     vibix: true },
-  { name: 'VideoSeed', url: (r, id) => `https://tv-2-kinoserial.net/embed_auto/${id}/?token=dbe140b3c3f68769a13ee6e953f7ce96`, useLoad: true },
+  { name: 'VideoSeed', url: (r, id) => `https://tv-2-kinoserial.net/embed_auto/${id}/?token=dbe140b3c3f68769a13ee6e953f7ce96`, useLoad: true, hint: 'Не доступно в вашем регионе' },
 ]
 
 function togglePlayerDropdown() {
@@ -69,6 +69,9 @@ function playerUpdateUI(name) {
   document.querySelectorAll('.player-option').forEach(o => {
     o.classList.toggle('active', o.dataset.name === name)
   })
+  const player = PLAYERS.find(p => p.name === name)
+  const hint = document.getElementById('playerHint')
+  if (hint) hint.textContent = player?.hint || ''
 }
 
 function playerError() { playerSetState('error') }
@@ -206,6 +209,7 @@ function playerSectionHtml(movie) {
         <span>Плеер не доступен, попробуйте другой</span>
       </div>
     </div>
+    <div class="player-hint" id="playerHint"></div>
   </details>`
 }
 

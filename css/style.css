@@ -1214,6 +1214,13 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
   color: #e74c3c;
 }
 .player-wrapper.error .player-error { display: flex; }
+.player-hint {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+  min-height: 24px;
+}
 .player-wrapper .vibix-slot {
   position: absolute;
   inset: 0;
