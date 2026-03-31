@@ -42,6 +42,7 @@ function backBtn() {
 
 const PLAYERS = [
   { name: 'FlixCDN',  url: (r, id) => `//player0.flixcdn.space/show/${r}/${id}?no_sharing=1` },
+  { name: 'Vibix',    vibix: true },
   { name: 'Плеер 2',  url: (r, id) => `//player0.flixcdn.space/show/${r}/${id}?no_sharing=1` },
 ]
 
@@ -57,10 +58,47 @@ function playerError(frame) {
   frame.closest('.player-wrapper')?.classList.add('error')
 }
 
+function selectVibixPlayer(type, id) {
+  const frame = document.getElementById('flixcdn')
+  const wrapper = frame.closest('.player-wrapper')
+  wrapper.classList.remove('error', 'ready', 'loading')
+  wrapper.classList.add('loading', 'vibix')
+
+  const slot = document.getElementById('vibix-slot')
+  slot.innerHTML = `<ins data-publisher-id="677393820"
+    data-type="${type}"
+    data-id="${id}"
+    data-design="2"
+    data-color1="#333333"
+    data-color2="#666666"
+    data-color3="#999999"
+    data-color4="#CCCCCC"
+    data-color5="#FFFFFF"
+    data-nopreload="true"
+    data-poster="true"></ins>`
+
+  const old = document.getElementById('rendex-sdk')
+  if (old) old.remove()
+  const script = document.createElement('script')
+  script.id = 'rendex-sdk'
+  script.src = 'https://graphicslab.io/sdk/v2/rendex-sdk.min.js'
+  script.onload = () => wrapper.classList.remove('loading')
+  script.onerror = () => { wrapper.classList.remove('loading'); wrapper.classList.add('error') }
+  document.head.appendChild(script)
+
+  document.getElementById('playerSelectedName').textContent = 'Vibix'
+  document.getElementById('playerDropdown').classList.remove('open')
+  document.getElementById('playerDropdownChevron').style.transform = ''
+  document.querySelectorAll('.player-option').forEach(o => {
+    o.classList.toggle('active', o.dataset.name === 'Vibix')
+  })
+}
+
 function selectPlayer(name, src) {
   const frame = document.getElementById('flixcdn')
   const wrapper = frame.closest('.player-wrapper')
-  wrapper?.classList.remove('error', 'ready')
+  wrapper?.classList.remove('error', 'ready', 'vibix')
+  document.getElementById('vibix-slot').innerHTML = ''
   wrapper?.classList.add('loading')
 
   if (selectPlayer._cleanup) selectPlayer._cleanup()
@@ -124,10 +162,13 @@ function playerSectionHtml(movie) {
     return ''
   }
 
-  const options = PLAYERS.map((p, i) =>
-    `<div class="player-option${i === 0 ? ' active' : ''}" data-name="${p.name}"
-      onclick="selectPlayer('${p.name}','${p.url(resource, id)}')">${p.name}</div>`
-  ).join('')
+  const vType = resource === 'kinopoisk' ? 'kp' : 'imdb'
+  const options = PLAYERS.map((p, i) => {
+    const onclick = p.vibix
+      ? `selectVibixPlayer('${vType}','${id}')`
+      : `selectPlayer('${p.name}','${p.url(resource, id)}')`
+    return `<div class="player-option${i === 0 ? ' active' : ''}" data-name="${p.name}" onclick="${onclick}">${p.name}</div>`
+  }).join('')
 
   return `<details class="player-section">
     <summary class="player-summary">
@@ -146,6 +187,7 @@ function playerSectionHtml(movie) {
       <iframe id="flixcdn" data-src="${PLAYERS[0].url(resource, id)}"
         frameborder="0" allowfullscreen
         onerror="playerError(this)"></iframe>
+      <div id="vibix-slot" class="vibix-slot"></div>
       <div class="player-loading">
         <i class="fas fa-circle-notch fa-spin"></i>
       </div>
