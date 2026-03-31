@@ -41,9 +41,9 @@ function backBtn() {
 }
 
 const PLAYERS = [
-  { name: 'FlixCDN',   url: (r, id) => `//player0.flixcdn.space/show/${r}/${id}?no_sharing=1` },
   { name: 'Vibix',     vibix: true },
   { name: 'VideoSeed', url: (r, id) => `https://tv-2-kinoserial.net/embed_auto/${id}/?token=dbe140b3c3f68769a13ee6e953f7ce96`, useLoad: true, hint: 'Не доступно в вашем регионе' },
+  { name: 'FlixCDN',   url: (r, id) => `//player0.flixcdn.space/show/${r}/${id}?no_sharing=1` },
 ]
 
 function togglePlayerDropdown() {
@@ -71,14 +71,13 @@ function playerUpdateUI(name) {
   })
   const player = PLAYERS.find(p => p.name === name)
   const hint = document.getElementById('playerHint')
-  const wrapper = document.querySelector('.player-wrapper')
   if (hint) {
     if (player?.hint) {
       hint.innerHTML = `<i class="fas fa-exclamation-circle"></i><span>${player.hint}</span>`
-      wrapper?.classList.add('has-hint')
+      hint.style.display = 'flex'
     } else {
       hint.innerHTML = ''
-      wrapper?.classList.remove('has-hint')
+      hint.style.display = 'none'
     }
   }
 }

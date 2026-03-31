@@ -1225,13 +1225,13 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
   color: #aaa;
   font-size: 15px;
   pointer-events: none;
-  z-index: 2;
+  z-index: 10;
+  background: #000;
 }
 .player-hint i {
   font-size: 32px;
   color: #e74c3c;
 }
-.player-wrapper.has-hint .player-hint { display: flex; }
 .player-wrapper .vibix-slot {
   position: absolute;
   inset: 0;
