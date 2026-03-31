@@ -399,9 +399,12 @@ button {
   color: #e0e0e0;
   font-size: 15px;
   cursor: pointer;
-  padding: 6px 10px;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: color 0.2s, border-color 0.2s;
-  line-height: 1;
 }
 .section-clear-btn:hover { color: #e74c3c; border-color: #e74c3c; }
 
