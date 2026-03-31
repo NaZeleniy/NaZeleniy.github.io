@@ -34,7 +34,7 @@ function joinList(arr, key) {
 }
 
 function backBtn() {
-  return `<a href="/" class="back-btn" onclick="if(history.length>1){event.preventDefault();history.back()}">
+  return `<a href="/" class="back-btn" onclick="if(document.referrer&&new URL(document.referrer).origin===location.origin){event.preventDefault();history.back()}">
     <i class="fas fa-arrow-left"></i>
     <span>Назад</span>
   </a>`
@@ -224,6 +224,21 @@ function playerSectionHtml(movie) {
 }
 
 
+function initPlayerLazyLoad(resource, id) {
+  const details = document.querySelector('.player-section')
+  if (!details) return
+  details.addEventListener('toggle', () => {
+    if (!details.open) return
+    const first = PLAYERS[0]
+    if (first.vibix) {
+      const vType = resource === 'kinopoisk' ? 'kp' : 'imdb'
+      selectVibixPlayer(vType, id)
+    } else {
+      selectPlayer(first.name, first.url(resource, id))
+    }
+  }, { once: true })
+}
+
 function renderMovie(movie) {
   historyAdd(movie)
   const title = movie.nameRu || movie.nameEn || 'Без названия'
@@ -308,6 +323,12 @@ function renderMovie(movie) {
     </div>
     ${playerSectionHtml(movie)}
   `
+  const { resource, id } = (() => {
+    if (movie.kinopoiskId) return { resource: 'kinopoisk', id: movie.kinopoiskId }
+    if (movie.imdbId) return { resource: 'imdb', id: movie.imdbId }
+    return {}
+  })()
+  if (id) initPlayerLazyLoad(resource, id)
 }
 
 function renderError(message) {
