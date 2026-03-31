@@ -3,6 +3,7 @@ function app() {
     query: '',
     searchType: 'top',
     movies: [],
+    searched: false,
     loading: true,
     totalPages: 1,
     currentPage: 1,
@@ -69,6 +70,7 @@ function app() {
       await this.fetchSuggestions()
       if (!this.query.trim()) {
         this.movies = []
+        this.searched = false
         this.totalPages = 1
         this.currentPage = 1
       }
@@ -140,6 +142,7 @@ function app() {
 
     async search() {
       if (this._scrollObserver) { this._scrollObserver.disconnect(); this._scrollObserver = null }
+      this.searched = true
       this.loading = true
       try {
         const q = encodeURIComponent(this.query.trim())

@@ -106,7 +106,7 @@
       </template>
     </div>
 
-    <div class="empty-state" x-show="!loading && movies.length === 0 && query" x-transition>
+    <div class="empty-state" x-show="!loading && movies.length === 0 && searched" x-transition>
       <i class="fas fa-film"></i>
       <p x-text="'Ничего не найдено по запросу «' + query + '»'"></p>
     </div>
