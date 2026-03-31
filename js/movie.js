@@ -139,6 +139,7 @@ async function selectPlayer(name, src) {
   const wrapper = frame.closest('.player-wrapper')
   wrapper.classList.remove('vibix')
   document.getElementById('vibix-slot').innerHTML = ''
+  _pendingHint = ''
   playerSetState('loading', gen)
   playerUpdateUI(name)
 
@@ -160,23 +161,23 @@ async function selectPlayer(name, src) {
   }
 
   if (player?.useLoad) {
-    const timer = setTimeout(() => done(false), 5000)
-    frame.addEventListener('load', () => done(true), { once: true })
-    function done(success) {
+    const done = success => {
       clearTimeout(timer)
       playerSetState(success ? 'ready' : 'error', gen)
     }
+    const timer = setTimeout(() => done(false), 5000)
+    frame.addEventListener('load', () => done(true), { once: true })
   } else {
     if (typeof window.khS !== 'undefined') window.khS = false
     if (typeof khCL === 'function') { window.khF = frame; setTimeout(khCL, 0) }
 
-    const onMessage = e => { if (e.data === 'khL') done(true) }
-    const timer = setTimeout(() => done(false), 3000)
-    function done(success) {
+    const done = success => {
       clearTimeout(timer)
       window.removeEventListener('message', onMessage)
       playerSetState(success ? 'ready' : 'error', gen)
     }
+    const onMessage = e => { if (e.data === 'khL') done(true) }
+    const timer = setTimeout(() => done(false), 3000)
     window.addEventListener('message', onMessage)
   }
 }
