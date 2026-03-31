@@ -32,6 +32,11 @@ function app() {
       this.history = []
     },
 
+    removeFromHistory(id) {
+      historyRemove(id)
+      this.history = historyGet()
+    },
+
     prefetch(movie) {
       const id = movie.kinopoiskId || movie.filmId
       if (!id) return

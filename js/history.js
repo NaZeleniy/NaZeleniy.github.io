@@ -25,3 +25,8 @@ function historyAdd(movie) {
 function historyClear() {
   localStorage.removeItem(HISTORY_KEY)
 }
+
+function historyRemove(id) {
+  const items = historyGet().filter(m => String(m.kinopoiskId || m.filmId) !== String(id))
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(items))
+}

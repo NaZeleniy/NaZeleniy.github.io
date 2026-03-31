@@ -53,6 +53,9 @@
               <i class="fas fa-star"></i>
               <span x-text="(movie.ratingKinopoisk || 0).toFixed(1)"></span>
             </div>
+            <button class="movie-badge-remove" @click.prevent="removeFromHistory(movie.kinopoiskId)">
+              <i class="fas fa-times"></i>
+            </button>
             <div class="movie-badge-type" x-text="movieType(movie)"></div>
             <div class="movie-info">
               <h3 class="movie-title" x-text="movie.nameRu || movie.nameEn || 'Без названия'"></h3>
