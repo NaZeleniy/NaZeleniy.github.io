@@ -209,11 +209,13 @@ function playerSectionHtml(movie) {
       <i class="fas fa-chevron-down player-chevron"></i>
     </summary>
     <div class="player-select-wrap" id="playerSelectWrap">
-      <button class="player-select-trigger" onclick="togglePlayerDropdown()">
-        <span id="playerSelectedName">Выберите плеер</span>
-        <i class="fas fa-chevron-down" id="playerDropdownChevron"></i>
-      </button>
-      <div class="player-dropdown" id="playerDropdown">${options}</div>
+      <div class="player-select-inner">
+        <button class="player-select-trigger" onclick="togglePlayerDropdown()">
+          <span id="playerSelectedName">Выберите плеер</span>
+          <i class="fas fa-chevron-down" id="playerDropdownChevron"></i>
+        </button>
+        <div class="player-dropdown" id="playerDropdown">${options}</div>
+      </div>
     </div>
     <div class="player-wrapper">
       <iframe id="flixcdn" frameborder="0" allowfullscreen></iframe>
