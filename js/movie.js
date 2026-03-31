@@ -43,7 +43,6 @@ function backBtn() {
 const PLAYERS = [
   { name: 'FlixCDN',    url: (r, id) => `//player0.flixcdn.space/show/${r}/${id}?no_sharing=1` },
   { name: 'Vibix',      vibix: true },
-  { name: 'KinoSerial', url: (r, id) => `https://tv-2-kinoserial.net/embed_auto/${id}/?token=dbe140b3c3f68769a13ee6e953f7ce96`, useLoad: true },
 ]
 
 function togglePlayerDropdown() {
@@ -127,25 +126,16 @@ function selectPlayer(name, src) {
   document.getElementById('vibix-slot').innerHTML = ''
   playerSetState('loading', gen)
 
-  const player = PLAYERS.find(p => p.name === name)
+  const onMessage = e => { if (e.data === 'khL') done(true) }
+  const timer = setTimeout(() => done(false), 3000)
 
-  if (player?.useLoad) {
-    const timer = setTimeout(() => done(false), 5000)
-    frame.addEventListener('load', () => done(true), { once: true })
-    function done(success) {
-      clearTimeout(timer)
-      playerSetState(success ? 'ready' : 'error', gen)
-    }
-  } else {
-    const onMessage = e => { if (e.data === 'khL') done(true) }
-    const timer = setTimeout(() => done(false), 3000)
-    function done(success) {
-      clearTimeout(timer)
-      window.removeEventListener('message', onMessage)
-      playerSetState(success ? 'ready' : 'error', gen)
-    }
-    window.addEventListener('message', onMessage)
+  function done(success) {
+    clearTimeout(timer)
+    window.removeEventListener('message', onMessage)
+    playerSetState(success ? 'ready' : 'error', gen)
   }
+
+  window.addEventListener('message', onMessage)
 
   if (typeof window.khS !== 'undefined') window.khS = false
   if (typeof khCL === 'function') {
