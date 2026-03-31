@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="css/style.css"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous"/>
   <script src="js/settings.js"></script>
+  <script src="js/history.js"></script>
   <script defer src="js/api.js"></script>
   <script defer src="js/app.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -24,6 +25,43 @@
   <main class="main-content">
 
     <div id="app-search"></div>
+
+    <!-- History -->
+    <div x-show="!query && !loading && history.length > 0" x-transition>
+      <div class="section-header">
+        <h2 class="section-title">История просмотров</h2>
+        <button class="section-clear-btn" @click="clearHistory()">
+          <i class="fas fa-trash-alt"></i> Очистить
+        </button>
+      </div>
+      <div class="grid">
+        <template x-for="movie in history" :key="movie.kinopoiskId">
+          <a class="movie-card" :href="'movie.html?id=' + movie.kinopoiskId"
+             @mouseenter="onCardEnter(movie)"
+             @click="sessionStorage.setItem('moviePreview', JSON.stringify(movie))">
+            <div class="movie-poster-container">
+              <img
+                class="movie-poster"
+                :src="posterUrl(movie.posterUrlPreview || movie.posterUrl)"
+                :alt="movie.nameRu || movie.nameEn || 'Постер'"
+                loading="lazy"
+                @load="$el.style.opacity = 1"
+                style="opacity:0; transition: opacity 0.6s ease-in-out"
+              />
+            </div>
+            <div class="movie-badge-rating" x-show="movie.ratingKinopoisk > 0">
+              <i class="fas fa-star"></i>
+              <span x-text="(movie.ratingKinopoisk || 0).toFixed(1)"></span>
+            </div>
+            <div class="movie-badge-type" x-text="movieType(movie)"></div>
+            <div class="movie-info">
+              <h3 class="movie-title" x-text="movie.nameRu || movie.nameEn || 'Без названия'"></h3>
+              <span class="movie-year" x-text="movie.year || ''"></span>
+            </div>
+          </a>
+        </template>
+      </div>
+    </div>
 
     <!-- Movie grid -->
     <div class="loading-spinner" x-show="loading" x-transition>

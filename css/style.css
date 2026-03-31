@@ -380,6 +380,32 @@ button {
 }
 
 /* ── Movie Grid ───────────────────────────────────────── */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 16px 0 4px;
+}
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+.section-clear-btn {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: color 0.2s;
+}
+.section-clear-btn:hover { color: #e74c3c; }
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(var(--card-min, 250px), 1fr));
@@ -1115,7 +1141,6 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
 }
 .player-option:hover { background: #222; color: #fff; }
 .player-option.active { color: #27ae60; background: #1a3d2a; }
-.player-option.unavailable { display: none; }
 
 .player-wrapper {
   background: #000;

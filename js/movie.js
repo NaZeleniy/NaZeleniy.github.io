@@ -53,20 +53,15 @@ function togglePlayerDropdown() {
 }
 
 let _playerGen = 0
-let _currentPlayerName = null
 
 function playerSetState(state, gen) {
   if (gen !== undefined && gen !== _playerGen) return
-  if (state === 'error' && _currentPlayerName) {
-    document.querySelector(`.player-option[data-name="${_currentPlayerName}"]`)?.classList.add('unavailable')
-  }
   const wrapper = document.querySelector('.player-wrapper')
   wrapper.classList.remove('loading', 'ready', 'error')
   if (state) wrapper.classList.add(state)
 }
 
 function playerUpdateUI(name) {
-  _currentPlayerName = name
   document.getElementById('playerSelectedName').textContent = name
   document.getElementById('playerDropdown').classList.remove('open')
   document.getElementById('playerDropdownChevron').style.transform = ''
@@ -211,6 +206,7 @@ function playerSectionHtml(movie) {
 
 
 function renderMovie(movie) {
+  historyAdd(movie)
   const title = movie.nameRu || movie.nameEn || 'Без названия'
   document.title = title + ' — NaZeleniy'
 

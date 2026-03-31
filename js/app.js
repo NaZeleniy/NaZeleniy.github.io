@@ -19,9 +19,17 @@ function app() {
     highlightedIndex: -1,
     _suggestAbort: null,
 
+    history: [],
+
     init() {
       this.searchType = 'name'
       this.loading = false
+      this.history = historyGet()
+    },
+
+    clearHistory() {
+      historyClear()
+      this.history = []
     },
 
     prefetch(movie) {
