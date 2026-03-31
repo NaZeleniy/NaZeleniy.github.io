@@ -394,12 +394,12 @@ button {
 }
 .section-clear-btn {
   background: none;
-  border: 1px solid #e0e0e0;
+  border: 2px solid #e0e0e0;
   border-radius: 6px;
   color: #e0e0e0;
-  font-size: 25px;
+  font-size: 15px;
   cursor: pointer;
-  padding: 5px 8px;
+  padding: 6px 10px;
   transition: color 0.2s, border-color 0.2s;
   line-height: 1;
 }
