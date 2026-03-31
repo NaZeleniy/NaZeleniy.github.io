@@ -130,7 +130,7 @@ function selectPlayer(name, src) {
   const player = PLAYERS.find(p => p.name === name)
 
   if (player?.useLoad) {
-    const timer = setTimeout(() => done(false), 10000)
+    const timer = setTimeout(() => done(false), 5000)
     frame.addEventListener('load', () => done(true), { once: true })
     function done(success) {
       clearTimeout(timer)
@@ -201,8 +201,7 @@ function playerSectionHtml(movie) {
       <div class="player-dropdown" id="playerDropdown">${options}</div>
     </div>
     <div class="player-wrapper">
-      <iframe id="flixcdn" frameborder="0" allowfullscreen
-        onerror="playerError()"></iframe>
+      <iframe id="flixcdn" frameborder="0" allowfullscreen></iframe>
       <div id="vibix-slot" class="vibix-slot"></div>
       <div class="player-loading">
         <i class="fas fa-circle-notch fa-spin"></i>
