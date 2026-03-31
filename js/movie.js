@@ -70,10 +70,8 @@ function playerUpdateUI(name) {
   document.querySelectorAll('.player-option').forEach(o => {
     o.classList.toggle('active', o.dataset.name === name)
   })
-  const player = PLAYERS.find(p => p.name === name)
 }
 
-function playerError() { playerSetState('error') }
 
 function selectVibixPlayer(type, id) {
   const gen = ++_playerGen
