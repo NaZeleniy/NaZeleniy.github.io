@@ -54,12 +54,23 @@ function togglePlayerDropdown() {
 }
 
 let _playerGen = 0
+let _pendingHint = ''
 
 function playerSetState(state, gen) {
   if (gen !== undefined && gen !== _playerGen) return
   const wrapper = document.querySelector('.player-wrapper')
   wrapper.classList.remove('loading', 'ready', 'error')
   if (state) wrapper.classList.add(state)
+  const hint = document.getElementById('playerHint')
+  if (hint) {
+    if (state === 'ready' && _pendingHint) {
+      hint.innerHTML = `<i class="fas fa-exclamation-circle"></i><span>${_pendingHint}</span>`
+      hint.style.display = 'flex'
+    } else {
+      hint.innerHTML = ''
+      hint.style.display = 'none'
+    }
+  }
 }
 
 function playerUpdateUI(name) {
@@ -70,16 +81,7 @@ function playerUpdateUI(name) {
     o.classList.toggle('active', o.dataset.name === name)
   })
   const player = PLAYERS.find(p => p.name === name)
-  const hint = document.getElementById('playerHint')
-  if (hint) {
-    if (player?.hint) {
-      hint.innerHTML = `<i class="fas fa-exclamation-circle"></i><span>${player.hint}</span>`
-      hint.style.display = 'flex'
-    } else {
-      hint.innerHTML = ''
-      hint.style.display = 'none'
-    }
-  }
+  _pendingHint = player?.hint || ''
 }
 
 function playerError() { playerSetState('error') }
