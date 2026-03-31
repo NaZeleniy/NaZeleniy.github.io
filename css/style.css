@@ -1151,6 +1151,8 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
   position: absolute;
   left: 0;
   top: 100%;
+  min-width: 100%;
+  width: max-content;
   background: #1a1a1a;
   border: 1px solid #333;
   border-top: none;
