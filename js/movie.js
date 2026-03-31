@@ -216,8 +216,8 @@ function playerSectionHtml(movie) {
         <i class="fas fa-exclamation-circle"></i>
         <span>Плеер не доступен, попробуйте другой</span>
       </div>
+      <div class="player-hint" id="playerHint"></div>
     </div>
-    <div class="player-hint" id="playerHint"></div>
   </details>`
 }
 

@@ -1226,7 +1226,6 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
   font-size: 15px;
   pointer-events: none;
   z-index: 10;
-  background: #000;
 }
 .player-hint i {
   font-size: 32px;
