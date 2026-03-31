@@ -66,15 +66,8 @@ function app() {
     },
 
     async onInput() {
-      if (this.query.trim()) {
-        this.loading = true
-      }
       await this.fetchSuggestions()
-      if (this.query.trim()) {
-        this.searchType = 'name'
-        this.currentPage = 1
-        await this.search()
-      } else {
+      if (!this.query.trim()) {
         this.movies = []
         this.totalPages = 1
         this.currentPage = 1
