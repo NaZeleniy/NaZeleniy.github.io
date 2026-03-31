@@ -53,16 +53,29 @@ function togglePlayerDropdown() {
   chevron.style.transform = open ? 'rotate(180deg)' : ''
 }
 
-function playerError(frame) {
-  frame.closest('.player-wrapper')?.classList.remove('loading')
-  frame.closest('.player-wrapper')?.classList.add('error')
+function playerSetState(state) {
+  const wrapper = document.querySelector('.player-wrapper')
+  wrapper.classList.remove('loading', 'ready', 'error')
+  if (state) wrapper.classList.add(state)
 }
 
+function playerUpdateUI(name) {
+  document.getElementById('playerSelectedName').textContent = name
+  document.getElementById('playerDropdown').classList.remove('open')
+  document.getElementById('playerDropdownChevron').style.transform = ''
+  document.querySelectorAll('.player-option').forEach(o => {
+    o.classList.toggle('active', o.dataset.name === name)
+  })
+}
+
+function playerError() { playerSetState('error') }
+
 function selectVibixPlayer(type, id) {
-  const frame = document.getElementById('flixcdn')
-  const wrapper = frame.closest('.player-wrapper')
-  wrapper.classList.remove('error', 'ready', 'loading')
-  wrapper.classList.add('loading', 'vibix')
+  const wrapper = document.querySelector('.player-wrapper')
+  wrapper.classList.remove('vibix')
+  document.getElementById('vibix-slot').innerHTML = ''
+  wrapper.classList.add('vibix')
+  playerSetState('loading')
 
   const slot = document.getElementById('vibix-slot')
   slot.innerHTML = `<ins data-publisher-id="677393820"
@@ -80,24 +93,29 @@ function selectVibixPlayer(type, id) {
   const script = document.createElement('script')
   script.id = 'rendex-sdk'
   script.src = 'https://graphicslab.io/sdk/v2/rendex-sdk.min.js'
-  script.onload = () => wrapper.classList.remove('loading')
-  script.onerror = () => { wrapper.classList.remove('loading'); wrapper.classList.add('error') }
+  script.onload = () => {
+    const timer = setTimeout(() => { observer.disconnect(); playerSetState('error') }, 5000)
+    const observer = new MutationObserver(() => {
+      if (slot.querySelector('iframe')) {
+        observer.disconnect()
+        clearTimeout(timer)
+        playerSetState('ready')
+      }
+    })
+    observer.observe(slot, { childList: true, subtree: true })
+  }
+  script.onerror = () => playerSetState('error')
   document.head.appendChild(script)
 
-  document.getElementById('playerSelectedName').textContent = 'Vibix'
-  document.getElementById('playerDropdown').classList.remove('open')
-  document.getElementById('playerDropdownChevron').style.transform = ''
-  document.querySelectorAll('.player-option').forEach(o => {
-    o.classList.toggle('active', o.dataset.name === 'Vibix')
-  })
+  playerUpdateUI('Vibix')
 }
 
 function selectPlayer(name, src) {
   const frame = document.getElementById('flixcdn')
   const wrapper = frame.closest('.player-wrapper')
-  wrapper?.classList.remove('error', 'ready', 'vibix')
+  wrapper.classList.remove('vibix')
   document.getElementById('vibix-slot').innerHTML = ''
-  wrapper?.classList.add('loading')
+  playerSetState('loading')
 
   if (selectPlayer._cleanup) selectPlayer._cleanup()
 
@@ -108,12 +126,7 @@ function selectPlayer(name, src) {
     clearTimeout(timer)
     window.removeEventListener('message', onMessage)
     selectPlayer._cleanup = null
-    if (success) {
-      wrapper?.classList.remove('loading')
-      wrapper?.classList.add('ready')
-    } else {
-      playerError(frame)
-    }
+    playerSetState(success ? 'ready' : 'error')
   }
 
   selectPlayer._cleanup = () => {
@@ -132,12 +145,7 @@ function selectPlayer(name, src) {
     frame.src = src
   }
 
-  document.getElementById('playerSelectedName').textContent = name
-  document.getElementById('playerDropdown').classList.remove('open')
-  document.getElementById('playerDropdownChevron').style.transform = ''
-  document.querySelectorAll('.player-option').forEach(o => {
-    o.classList.toggle('active', o.dataset.name === name)
-  })
+  playerUpdateUI(name)
 }
 
 document.addEventListener('click', e => {
@@ -161,30 +169,29 @@ function playerSectionHtml(movie) {
   }
 
   const vType = resource === 'kinopoisk' ? 'kp' : 'imdb'
-  const options = PLAYERS.map((p, i) => {
+  const options = PLAYERS.map(p => {
     const onclick = p.vibix
       ? `selectVibixPlayer('${vType}','${id}')`
       : `selectPlayer('${p.name}','${p.url(resource, id)}')`
-    return `<div class="player-option${i === 0 ? ' active' : ''}" data-name="${p.name}" onclick="${onclick}">${p.name}</div>`
+    return `<div class="player-option" data-name="${p.name}" onclick="${onclick}">${p.name}</div>`
   }).join('')
 
   return `<details class="player-section">
     <summary class="player-summary">
       <i class="fas fa-play-circle"></i>
-      <span>Выбрать плеер</span>
+      <span>Смотреть онлайн</span>
       <i class="fas fa-chevron-down player-chevron"></i>
     </summary>
     <div class="player-select-wrap" id="playerSelectWrap">
       <button class="player-select-trigger" onclick="togglePlayerDropdown()">
-        <span id="playerSelectedName">${PLAYERS[0].name}</span>
+        <span id="playerSelectedName">Выберите плеер</span>
         <i class="fas fa-chevron-down" id="playerDropdownChevron"></i>
       </button>
       <div class="player-dropdown" id="playerDropdown">${options}</div>
     </div>
     <div class="player-wrapper">
-      <iframe id="flixcdn" data-src="${PLAYERS[0].url(resource, id)}"
-        frameborder="0" allowfullscreen
-        onerror="playerError(this)"></iframe>
+      <iframe id="flixcdn" frameborder="0" allowfullscreen
+        onerror="playerError()"></iframe>
       <div id="vibix-slot" class="vibix-slot"></div>
       <div class="player-loading">
         <i class="fas fa-circle-notch fa-spin"></i>
@@ -197,39 +204,6 @@ function playerSectionHtml(movie) {
   </details>`
 }
 
-function initPlayerLazyLoad() {
-  const details = document.querySelector('.player-section')
-  if (!details) return
-  details.addEventListener('toggle', () => {
-    if (!details.open) return
-    const frame = document.getElementById('flixcdn')
-    if (!frame || !frame.dataset.src || frame.src.startsWith('http')) return
-
-    const wrapper = frame.closest('.player-wrapper')
-    wrapper.classList.add('loading')
-
-    const onSuccess = () => {
-      wrapper.classList.remove('loading')
-      wrapper.classList.add('ready')
-      clearTimeout(timer)
-      window.removeEventListener('message', onMessage)
-    }
-
-    const onMessage = e => { if (e.data === 'khL') onSuccess() }
-    window.addEventListener('message', onMessage)
-
-    const timer = setTimeout(() => {
-      window.removeEventListener('message', onMessage)
-      if (!wrapper.classList.contains('ready')) playerError(frame)
-    }, 3000)
-
-    frame.src = frame.dataset.src
-    if (typeof khCL === 'function') {
-      window.khF = frame
-      setTimeout(khCL, 0)
-    }
-  }, { once: true })
-}
 
 function renderMovie(movie) {
   const title = movie.nameRu || movie.nameEn || 'Без названия'
@@ -314,7 +288,6 @@ function renderMovie(movie) {
     </div>
     ${playerSectionHtml(movie)}
   `
-  initPlayerLazyLoad()
 }
 
 function renderError(message) {
