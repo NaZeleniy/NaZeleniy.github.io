@@ -41,9 +41,10 @@ function backBtn() {
 }
 
 const PLAYERS = [
-  { name: 'Vibix',     vibix: true },
-  { name: 'VideoSeed', url: (r, id) => `https://tv-2-kinoserial.net/embed_auto/${id}/?token=dbe140b3c3f68769a13ee6e953f7ce96`, useLoad: true, hint: 'Не доступно в вашем регионе' },
-  { name: 'FlixCDN',   url: (r, id) => `//player0.flixcdn.space/show/${r}/${id}?no_sharing=1` },
+  { name: 'Vibix',          vibix: true },
+  { name: 'VideoSeed',      url: (r, id) => `https://tv-2-kinoserial.net/embed_auto/${id}/?token=dbe140b3c3f68769a13ee6e953f7ce96`, useLoad: true, hint: 'Не доступно в вашем регионе' },
+  { name: 'VideoBalanser',  asyncUrl: (r, id) => `${API_BASE}/api/player/videobalanser/${id}`, kpOnly: true },
+  { name: 'FlixCDN',        url: (r, id) => `//player0.flixcdn.space/show/${r}/${id}?no_sharing=1` },
 ]
 
 function togglePlayerDropdown() {
@@ -132,16 +133,31 @@ function selectVibixPlayer(type, id) {
   playerUpdateUI('Vibix')
 }
 
-function selectPlayer(name, src) {
+async function selectPlayer(name, src) {
   const gen = ++_playerGen
   const frame = document.getElementById('flixcdn')
   const wrapper = frame.closest('.player-wrapper')
   wrapper.classList.remove('vibix')
   document.getElementById('vibix-slot').innerHTML = ''
   playerSetState('loading', gen)
+  playerUpdateUI(name)
 
   const player = PLAYERS.find(p => p.name === name)
-  frame.src = src
+
+  if (player?.asyncUrl) {
+    try {
+      const r = await fetch(player.asyncUrl('kinopoisk', src))
+      if (!r.ok) throw new Error('status ' + r.status)
+      const data = await r.json()
+      if (gen !== _playerGen) return
+      frame.src = data.src
+    } catch {
+      playerSetState('error', gen)
+      return
+    }
+  } else {
+    frame.src = src
+  }
 
   if (player?.useLoad) {
     const timer = setTimeout(() => done(false), 5000)
@@ -163,8 +179,6 @@ function selectPlayer(name, src) {
     }
     window.addEventListener('message', onMessage)
   }
-
-  playerUpdateUI(name)
 }
 
 document.addEventListener('click', e => {
@@ -188,12 +202,19 @@ function playerSectionHtml(movie) {
   }
 
   const vType = resource === 'kinopoisk' ? 'kp' : 'imdb'
-  const options = PLAYERS.map(p => {
-    const onclick = p.vibix
-      ? `selectVibixPlayer('${vType}','${id}')`
-      : `selectPlayer('${p.name}','${p.url(resource, id)}')`
-    return `<div class="player-option" data-name="${p.name}" onclick="${onclick}">${p.name}</div>`
-  }).join('')
+  const options = PLAYERS
+    .filter(p => !p.kpOnly || resource === 'kinopoisk')
+    .map(p => {
+      let onclick
+      if (p.vibix) {
+        onclick = `selectVibixPlayer('${vType}','${id}')`
+      } else if (p.asyncUrl) {
+        onclick = `selectPlayer('${p.name}','${id}')`
+      } else {
+        onclick = `selectPlayer('${p.name}','${p.url(resource, id)}')`
+      }
+      return `<div class="player-option" data-name="${p.name}" onclick="${onclick}">${p.name}</div>`
+    }).join('')
 
   return `<details class="player-section">
     <summary class="player-summary">
@@ -229,10 +250,14 @@ function initPlayerLazyLoad(resource, id) {
   if (!details) return
   details.addEventListener('toggle', () => {
     if (!details.open) return
-    const first = PLAYERS[0]
+    const available = PLAYERS.filter(p => !p.kpOnly || resource === 'kinopoisk')
+    const first = available[0]
+    if (!first) return
     if (first.vibix) {
       const vType = resource === 'kinopoisk' ? 'kp' : 'imdb'
       selectVibixPlayer(vType, id)
+    } else if (first.asyncUrl) {
+      selectPlayer(first.name, id)
     } else {
       selectPlayer(first.name, first.url(resource, id))
     }
