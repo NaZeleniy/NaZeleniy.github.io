@@ -1224,20 +1224,25 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
 .player-wrapper.error .player-error { display: flex; }
 .player-hint {
   position: absolute;
-  inset: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
   display: none;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  color: #aaa;
-  font-size: 15px;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #ccc;
+  font-size: 13px;
   pointer-events: none;
   z-index: 10;
 }
 .player-hint i {
-  font-size: 32px;
+  font-size: 15px;
   color: #e74c3c;
+  flex-shrink: 0;
 }
 .player-wrapper .vibix-slot {
   position: absolute;

@@ -42,7 +42,7 @@ function backBtn() {
 
 const PLAYERS = [
   { name: 'Vibix',          vibix: true },
-  { name: 'VideoSeed',      url: (r, id) => `https://tv-2-kinoserial.net/embed_auto/${id}/?token=dbe140b3c3f68769a13ee6e953f7ce96`, useLoad: true, hint: 'Не доступно в вашем регионе' },
+  { name: 'VideoSeed',      url: (r, id) => `https://tv-2-kinoserial.net/embed_auto/${id}/?token=dbe140b3c3f68769a13ee6e953f7ce96`, useLoad: true },
   { name: 'VideoBalanser',  asyncUrl: (r, id) => `${API_BASE}/api/player/videobalanser/${id}`, kpOnly: true, useLoad: true },
   { name: 'FlixCDN',        url: (r, id) => `//player0.flixcdn.space/show/${r}/${id}?no_sharing=1` },
 ]
@@ -55,23 +55,12 @@ function togglePlayerDropdown() {
 }
 
 let _playerGen = 0
-let _pendingHint = ''
 
 function playerSetState(state, gen) {
   if (gen !== undefined && gen !== _playerGen) return
   const wrapper = document.querySelector('.player-wrapper')
   wrapper.classList.remove('loading', 'ready', 'error')
   if (state) wrapper.classList.add(state)
-  const hint = document.getElementById('playerHint')
-  if (hint) {
-    if (state === 'ready' && _pendingHint) {
-      hint.innerHTML = `<i class="fas fa-exclamation-circle"></i><span>${_pendingHint}</span>`
-      hint.style.display = 'flex'
-    } else {
-      hint.innerHTML = ''
-      hint.style.display = 'none'
-    }
-  }
 }
 
 function playerUpdateUI(name) {
@@ -82,7 +71,6 @@ function playerUpdateUI(name) {
     o.classList.toggle('active', o.dataset.name === name)
   })
   const player = PLAYERS.find(p => p.name === name)
-  _pendingHint = player?.hint || ''
 }
 
 function playerError() { playerSetState('error') }
@@ -139,7 +127,6 @@ async function selectPlayer(name, src) {
   const wrapper = frame.closest('.player-wrapper')
   wrapper.classList.remove('vibix')
   document.getElementById('vibix-slot').innerHTML = ''
-  _pendingHint = ''
   playerSetState('loading', gen)
   playerUpdateUI(name)
 
@@ -240,7 +227,6 @@ function playerSectionHtml(movie) {
         <i class="fas fa-exclamation-circle"></i>
         <span>Плеер не доступен, попробуйте другой</span>
       </div>
-      <div class="player-hint" id="playerHint"></div>
     </div>
   </details>`
 }
