@@ -1145,6 +1145,7 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
   justify-content: center;
   color: var(--accent);
   font-size: 28px;
+  z-index: 2;
 }
 .player-wrapper.loading .player-loading { display: flex; }
 .player-wrapper.loading iframe,
@@ -1159,6 +1160,7 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
   gap: 10px;
   color: #aaa;
   font-size: 15px;
+  z-index: 2;
 }
 .player-error i {
   font-size: 32px;

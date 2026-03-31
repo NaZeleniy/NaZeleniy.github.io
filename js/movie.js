@@ -94,17 +94,21 @@ function selectVibixPlayer(type, id) {
   script.id = 'rendex-sdk'
   script.src = 'https://graphicslab.io/sdk/v2/rendex-sdk.min.js'
   script.onload = () => {
-    const timer = setTimeout(() => { observer.disconnect(); playerSetState('error') }, 5000)
+    const existing = slot.querySelector('iframe')
+    if (existing) { waitForLoad(existing); return }
     const observer = new MutationObserver(() => {
-      if (slot.querySelector('iframe')) {
-        observer.disconnect()
-        clearTimeout(timer)
-        playerSetState('ready')
-      }
+      const iframe = slot.querySelector('iframe')
+      if (iframe) { observer.disconnect(); waitForLoad(iframe) }
     })
     observer.observe(slot, { childList: true, subtree: true })
+    setTimeout(() => { observer.disconnect(); playerSetState('error') }, 5000)
   }
   script.onerror = () => playerSetState('error')
+
+  function waitForLoad(iframe) {
+    const timer = setTimeout(() => playerSetState('error'), 8000)
+    iframe.addEventListener('load', () => { clearTimeout(timer); playerSetState('ready') }, { once: true })
+  }
   document.head.appendChild(script)
 
   playerUpdateUI('Vibix')
