@@ -1150,7 +1150,7 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
   position: absolute;
   left: 16px;
   top: calc(100% - 12px);
-  min-width: calc(100% - 32px);
+  min-width: 100%;
   width: max-content;
   background: #1a1a1a;
   border: 1px solid #333;
