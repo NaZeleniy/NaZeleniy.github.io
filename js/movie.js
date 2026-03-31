@@ -43,7 +43,7 @@ function backBtn() {
 const PLAYERS = [
   { name: 'Vibix',          vibix: true },
   { name: 'VideoSeed',      url: (r, id) => `https://tv-2-kinoserial.net/embed_auto/${id}/?token=dbe140b3c3f68769a13ee6e953f7ce96`, useLoad: true, hint: 'Не доступно в вашем регионе' },
-  { name: 'VideoBalanser',  asyncUrl: (r, id) => `${API_BASE}/api/player/videobalanser/${id}`, kpOnly: true },
+  { name: 'VideoBalanser',  asyncUrl: (r, id) => `${API_BASE}/api/player/videobalanser/${id}`, kpOnly: true, useLoad: true },
   { name: 'FlixCDN',        url: (r, id) => `//player0.flixcdn.space/show/${r}/${id}?no_sharing=1` },
 ]
 
