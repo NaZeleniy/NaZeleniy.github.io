@@ -812,7 +812,7 @@ button {
 /* Description */
 .content-info { margin-top: 12px; }
 
-.content-description-text { margin: 0; white-space: pre-wrap; line-height: 1.6; }
+.content-description-text { margin: 0; white-space: pre-wrap; line-height: 1.6; max-width: 50%; }
 
 /* Age / rating boxes */
 .rating-boxes { display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
@@ -1061,6 +1061,7 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
   .grid { grid-template-columns: repeat(2, 1fr); }
   .movie-poster-container.desktop-only { display: none; }
   .info-content { flex-direction: column; }
+  .content-description-text { max-width: 100%; }
 }
 
 /* Player */
@@ -1112,16 +1113,21 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
 
 .player-select-wrap {
   position: relative;
+  display: inline-flex;
   padding: 12px 16px;
   background: #0d0d0d;
   border-bottom: 1px solid #1a1a1a;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .player-select-trigger {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: space-between;
-  width: 100%;
+  gap: 12px;
+  width: auto;
+  min-width: 160px;
   padding: 10px 14px;
   background: #1a1a1a;
   border: 1px solid #333;
@@ -1136,14 +1142,16 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
   font-size: 11px;
   color: #888;
   transition: transform 0.2s;
+  flex-shrink: 0;
 }
 
 .player-dropdown {
   display: none;
   position: absolute;
   left: 16px;
-  right: 16px;
   top: calc(100% - 12px);
+  min-width: calc(100% - 32px);
+  width: max-content;
   background: #1a1a1a;
   border: 1px solid #333;
   border-top: none;
