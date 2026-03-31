@@ -1115,6 +1115,7 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
 }
 .player-option:hover { background: #222; color: #fff; }
 .player-option.active { color: #27ae60; background: #1a3d2a; }
+.player-option.unavailable { display: none; }
 
 .player-wrapper {
   background: #000;
