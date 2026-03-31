@@ -30,8 +30,8 @@
     <div x-show="!query && !loading && history.length > 0" x-transition>
       <div class="section-header">
         <h2 class="section-title">История просмотров</h2>
-        <button class="section-clear-btn" @click="clearHistory()">
-          <i class="fas fa-trash-alt"></i> Очистить
+        <button class="section-clear-btn" @click="clearHistory()" title="Очистить историю">
+          <i class="fas fa-trash-alt"></i>
         </button>
       </div>
       <div class="grid">

@@ -383,26 +383,27 @@ button {
 .section-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin: 16px 0 4px;
+  justify-content: center;
+  margin: 24px 0 8px;
+  position: relative;
 }
 .section-title {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 26px;
+  font-weight: 700;
   color: #e0e0e0;
+  text-align: center;
 }
 .section-clear-btn {
   background: none;
   border: none;
-  color: #666;
-  font-size: 13px;
+  color: #555;
+  font-size: 16px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 8px;
+  padding: 6px;
   border-radius: 4px;
   transition: color 0.2s;
+  position: absolute;
+  right: 0;
 }
 .section-clear-btn:hover { color: #e74c3c; }
 
