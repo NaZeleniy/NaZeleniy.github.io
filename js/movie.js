@@ -71,7 +71,16 @@ function playerUpdateUI(name) {
   })
   const player = PLAYERS.find(p => p.name === name)
   const hint = document.getElementById('playerHint')
-  if (hint) hint.textContent = player?.hint || ''
+  const wrapper = document.querySelector('.player-wrapper')
+  if (hint) {
+    if (player?.hint) {
+      hint.innerHTML = `<i class="fas fa-exclamation-circle"></i><span>${player.hint}</span>`
+      wrapper?.classList.add('has-hint')
+    } else {
+      hint.innerHTML = ''
+      wrapper?.classList.remove('has-hint')
+    }
+  }
 }
 
 function playerError() { playerSetState('error') }
