@@ -25,6 +25,10 @@ function app() {
       this.searchType = 'name'
       this.loading = false
       this.history = historyGet()
+      if (this.history.length > 0) {
+        const first = this.history[0]
+        this.bgPoster = posterUrl(first.posterUrlPreview || first.posterUrl)
+      }
     },
 
     clearHistory() {
@@ -223,6 +227,10 @@ function app() {
         this.movies = []
       } finally {
         this.loading = false
+      }
+      if (this.movies.length > 0) {
+        const first = this.movies[0]
+        this.bgPoster = posterUrl(first.posterUrlPreview || first.posterUrl)
       }
       setTimeout(() => this.initTopScroll(), 0)
     },

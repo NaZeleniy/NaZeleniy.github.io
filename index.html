@@ -27,7 +27,7 @@
     <div id="app-search"></div>
 
     <!-- History -->
-    <div x-show="!query && !loading && history.length > 0" x-transition>
+    <div x-cloak x-show="!query && !loading && history.length > 0" x-transition>
       <div class="section-header">
         <h2 class="section-title">История просмотров</h2>
         <button class="section-clear-btn" @click="clearHistory()" title="Очистить историю">
