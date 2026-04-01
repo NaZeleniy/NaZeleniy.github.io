@@ -330,10 +330,11 @@ function renderMovie(movie) {
             ${infoRowsHtml}
             ${ageHtml}
           </ul>
-          ${descHtml}
         </div>
       </div>
     </div>
+    <div id="cast-section"></div>
+    ${descHtml}
     ${playerSectionHtml(movie)}
   `
   const { resource, id } = (() => {
@@ -342,6 +343,55 @@ function renderMovie(movie) {
     return {}
   })()
   if (id) initPlayerLazyLoad(resource, id)
+}
+
+async function loadStaff() {
+  const section = document.getElementById('cast-section')
+  if (!section || !movieId) return
+  try {
+    const r = await fetch(`${API_BASE}/api/staff/${movieId}`)
+    if (!r.ok) return
+    const staff = await r.json()
+
+    const directors = staff.filter(p => p.professionKey === 'DIRECTOR')
+    const actors    = staff.filter(p => p.professionKey === 'ACTOR').slice(0, 20)
+    if (!directors.length && !actors.length) return
+
+    const renderPerson = p => {
+      const name  = p.nameRu || p.nameEn || ''
+      const role  = p.description || ''
+      const photo = p.posterUrl ? posterUrl(p.posterUrl) : ''
+      return `
+        <div class="cast-item">
+          <div class="cast-name-wrap">
+            <span class="cast-name">${name}</span>
+            ${role ? `<span class="cast-role">${role}</span>` : ''}
+          </div>
+          <div class="cast-card">
+            ${photo ? `<img class="cast-card-photo" src="${photo}" alt="${name}" loading="lazy" onerror="this.style.display='none'"/>` : ''}
+            <div class="cast-card-body">
+              <div class="cast-card-name">${name}</div>
+              ${p.nameEn && p.nameEn !== name ? `<div class="cast-card-name-en">${p.nameEn}</div>` : ''}
+              ${role ? `<div class="cast-card-role">${role}</div>` : ''}
+            </div>
+          </div>
+        </div>`
+    }
+
+    let html = '<div class="cast-section">'
+    if (directors.length) html += `
+      <div class="cast-group">
+        <div class="cast-group-title">Режиссёр${directors.length > 1 ? 'ы' : ''}</div>
+        <div class="cast-list">${directors.map(renderPerson).join('')}</div>
+      </div>`
+    if (actors.length) html += `
+      <div class="cast-group">
+        <div class="cast-group-title">В ролях</div>
+        <div class="cast-list">${actors.map(renderPerson).join('')}</div>
+      </div>`
+    html += '</div>'
+    section.innerHTML = html
+  } catch {}
 }
 
 function renderError(message) {
@@ -372,6 +422,7 @@ async function loadMovie() {
     const r = await fetch(`${API_BASE}/api/movie/${movieId}`)
     if (!r.ok) throw new Error('Фильм не найден')
     renderMovie(await r.json())
+    loadStaff()
   } catch (e) {
     if (!document.getElementById('movieContent').children.length) {
       renderError(e.message || 'Ошибка загрузки фильма')
