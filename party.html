@@ -31,6 +31,10 @@
           <i class="fas fa-users"></i>
           <span id="partyViewerCount">1</span>
         </span>
+        <span class="party-username" id="partyUsername" style="display:none">
+          <i class="fas fa-user"></i>
+          <span id="partyUsernameText"></span>
+        </span>
       </div>
       <button class="party-copy-btn" id="copyBtn" onclick="copyLink()">
         <i class="fas fa-link"></i>
@@ -45,6 +49,9 @@
           <i class="fas fa-circle-notch fa-spin"></i>
         </div>
         <div id="vibix-slot"></div>
+        <div class="party-viewer-overlay" id="partyViewerOverlay">
+          <span><i class="fas fa-lock"></i> Управляет ведущий</span>
+        </div>
       </div>
 
       <div class="party-chat">

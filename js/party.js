@@ -1,6 +1,7 @@
 const params  = new URLSearchParams(window.location.search)
 const movieId = params.get('id')
 let   roomId  = params.get('room')
+const isHost  = !roomId  // создатель комнаты — тот кто пришёл без ?room=
 
 if (!movieId) {
   document.getElementById('partyTitle').textContent = 'ID фильма не указан'
@@ -64,6 +65,9 @@ function onIframe(iframe) {
   iframe.id = 'vibix-frame'
   iframe.addEventListener('load', () => {
     document.getElementById('partyLoading').style.display = 'none'
+    if (!isHost) {
+      document.getElementById('partyViewerOverlay').classList.add('active')
+    }
     startWatchParty()
   }, { once: true })
 }
@@ -83,37 +87,52 @@ function watchWidget() {
 
     // Статус подключения
     const statusEl = widget.querySelector('#wp-status')
+    const updateStatus = () => {
+      const connected = statusEl?.classList.contains('connected')
+      const dot = document.getElementById('partyStatus')
+      const text = document.getElementById('partyStatusText')
+      if (dot) dot.classList.toggle('connected', !!connected)
+      if (text) text.textContent = connected ? 'Подключено' : 'Подключение...'
+    }
     if (statusEl) {
-      const updateStatus = () => {
-        const connected = statusEl.classList.contains('connected')
-        const dot = document.getElementById('partyStatus')
-        const text = document.getElementById('partyStatusText')
-        if (dot) dot.classList.toggle('connected', connected)
-        if (text) text.textContent = connected ? 'Подключено' : 'Подключение...'
-      }
       updateStatus()
-      new MutationObserver(updateStatus).observe(statusEl, { attributes: true })
+      new MutationObserver(updateStatus).observe(statusEl, { attributes: true, attributeFilter: ['class'] })
     }
 
     // Счётчик зрителей
     const countEl = widget.querySelector('#wp-viewer-count')
+    const updateCount = () => {
+      const el = document.getElementById('partyViewerCount')
+      if (el && countEl) el.textContent = countEl.textContent.trim()
+    }
     if (countEl) {
-      const updateCount = () => {
-        const el = document.getElementById('partyViewerCount')
-        if (el) el.textContent = countEl.textContent
-      }
       updateCount()
-      new MutationObserver(updateCount).observe(countEl, { childList: true })
+      new MutationObserver(updateCount).observe(countEl, { childList: true, characterData: true, subtree: true })
     }
 
     // Сообщения чата
     const chatEl = widget.querySelector('#wp-chat-messages')
     if (chatEl) {
-      // Копируем существующие сообщения
       syncMessages(chatEl)
-      // Наблюдаем за новыми
       new MutationObserver(() => syncMessages(chatEl)).observe(chatEl, { childList: true, subtree: true })
     }
+
+    // Ник пользователя
+    const usernameEl = widget.querySelector('#wp-username-display')
+    if (usernameEl) {
+      const updateUsername = () => {
+        const raw = usernameEl.textContent.trim()
+        const name = raw.replace(/^Ваше имя:\s*/i, '')
+        const el = document.getElementById('partyUsernameText')
+        const wrap = document.getElementById('partyUsername')
+        if (el && name) { el.textContent = name; wrap.style.display = '' }
+      }
+      updateUsername()
+      new MutationObserver(updateUsername).observe(usernameEl, { childList: true, characterData: true, subtree: true })
+    }
+
+    // Запасной polling — на случай если MutationObserver пропустил обновление
+    setInterval(() => { updateStatus(); updateCount() }, 2000)
 
   }, 200)
 }

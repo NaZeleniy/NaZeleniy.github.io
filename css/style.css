@@ -1618,6 +1618,7 @@ a.movie-poster-side img {
 .party-status i { font-size: 8px; color: #555; }
 .party-status.connected i { color: #4caf50; }
 .party-viewers { display: flex; align-items: center; gap: 6px; }
+.party-username { display: flex; align-items: center; gap: 6px; color: var(--accent); }
 
 .party-copy-btn {
   display: inline-flex;
@@ -1669,6 +1670,28 @@ a.movie-poster-side img {
   font-size: 2rem;
   color: var(--text-muted);
   z-index: 1;
+}
+
+.party-viewer-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  cursor: not-allowed;
+}
+.party-viewer-overlay.active { display: block; }
+.party-viewer-overlay span {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.6);
+  color: #aaa;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .party-chat {
