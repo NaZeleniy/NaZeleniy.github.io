@@ -362,14 +362,12 @@ async function loadStaff() {
         <div class="cast-item" data-staff-id="${p.staffId}">
           <div class="cast-name-wrap">
             <span class="cast-name">${name}</span>
-            ${role ? `<span class="cast-role">${role}</span>` : ''}
           </div>
           <div class="cast-card">
             ${photo ? `<img class="cast-card-photo" src="${photo}" alt="${name}" loading="lazy" onerror="this.style.display='none'"/>` : ''}
             <div class="cast-card-body">
               <div class="cast-card-name">${name}</div>
               ${p.nameEn && p.nameEn !== name ? `<div class="cast-card-name-en">${p.nameEn}</div>` : ''}
-              ${role ? `<div class="cast-card-role">${role}</div>` : ''}
               <div class="cast-card-extra"></div>
             </div>
           </div>

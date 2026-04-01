@@ -812,7 +812,7 @@ button {
 /* Description */
 .content-info { margin-top: 12px; }
 
-.content-description-text { margin: 0; white-space: pre-wrap; line-height: 1.6; max-width: 70ch; }
+.content-description-text { margin: 0; white-space: pre-wrap; line-height: 1.6; max-width: calc(100% - 200px); }
 
 /* Age / rating boxes */
 .rating-boxes { display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
@@ -1285,6 +1285,15 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
 
 .cast-item {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.cast-item:not(:last-child)::after {
+  content: ',';
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-left: 1px;
 }
 
 .cast-name-wrap {
@@ -1297,18 +1306,12 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
 .cast-name {
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--accent-light);
   white-space: nowrap;
   line-height: 1.3;
   text-decoration: underline;
-  text-decoration-color: transparent;
-  text-underline-offset: 3px;
-  transition: color var(--transition), text-decoration-color var(--transition);
-}
-
-.cast-item:hover .cast-name {
-  color: var(--accent-light);
   text-decoration-color: var(--accent-light);
+  text-underline-offset: 3px;
 }
 
 .cast-role {
