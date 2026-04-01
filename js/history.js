@@ -13,6 +13,7 @@ function historyAdd(movie) {
     kinopoiskId: movie.kinopoiskId || movie.filmId,
     nameRu: movie.nameRu,
     nameEn: movie.nameEn,
+    nameOriginal: movie.nameOriginal,
     year: movie.year,
     type: movie.type,
     ratingKinopoisk: movie.ratingKinopoisk,

@@ -55,6 +55,58 @@ function togglePlayerDropdown() {
 }
 
 let _playerGen = 0
+let _watchParty = null
+let _vibixType = null
+let _vibixId = null
+
+function watchPartyStop() {
+  if (_watchParty) {
+    try { _watchParty.destroy?.() } catch {}
+    _watchParty = null
+  }
+  const btn = document.getElementById('watchPartyBtn')
+  if (btn) btn.classList.remove('active')
+  const copyBtn = document.getElementById('watchPartyCopyBtn')
+  if (copyBtn) copyBtn.style.display = 'none'
+}
+
+function watchPartyJoin() {
+  if (typeof WatchParty === 'undefined') return
+  const roomId = new URLSearchParams(window.location.search).get('room')
+  if (!roomId) return
+  _watchParty = new WatchParty({ iframe: '#vibix-frame', roomId, debug: false })
+  const btn = document.getElementById('watchPartyBtn')
+  if (btn) btn.classList.add('active')
+  const copyBtn = document.getElementById('watchPartyCopyBtn')
+  if (copyBtn) copyBtn.style.display = ''
+}
+
+function copyPartyLink() {
+  navigator.clipboard.writeText(window.location.href).then(() => {
+    const text = document.getElementById('watchPartyCopyText')
+    if (!text) return
+    text.textContent = 'Скопировано!'
+    setTimeout(() => { text.textContent = 'Скопировать ссылку' }, 2000)
+  })
+}
+
+function toggleWatchParty() {
+  if (_watchParty) {
+    watchPartyStop()
+    return
+  }
+  if (!_vibixType || !_vibixId) return
+
+  // Генерируем roomId и ставим ?id= + ?room= в URL ДО инициализации WatchParty
+  const roomId = 'room-' + Math.random().toString(36).slice(2, 12)
+  const p = new URLSearchParams(window.location.search)
+  p.set('id', movieId)
+  p.set('room', roomId)
+  history.replaceState(null, '', '?' + p.toString())
+
+  // Перезапускаем Vibix с data-sync, WatchParty стартует после загрузки
+  selectVibixPlayer(_vibixType, _vibixId, true)
+}
 
 function playerSetState(state, gen) {
   if (gen !== undefined && gen !== _playerGen) return
@@ -73,7 +125,9 @@ function playerUpdateUI(name) {
 }
 
 
-function selectVibixPlayer(type, id) {
+function selectVibixPlayer(type, id, withSync = false) {
+  _vibixType = type
+  _vibixId = id
   const gen = ++_playerGen
   const wrapper = document.querySelector('.player-wrapper')
   wrapper.classList.remove('vibix')
@@ -82,10 +136,13 @@ function selectVibixPlayer(type, id) {
   playerSetState('loading', gen)
 
   const slot = document.getElementById('vibix-slot')
+  const hasRoom = new URLSearchParams(window.location.search).get('room')
+  const syncAttr = (withSync || hasRoom) ? 'data-sync="true"' : ''
   slot.innerHTML = `<ins data-publisher-id="677393820"
     data-type="${type}"
     data-id="${id}"
     data-design="2"
+    ${syncAttr}
     data-color1="#333333"
     data-color2="#666666"
     data-color3="#999999"
@@ -111,15 +168,22 @@ function selectVibixPlayer(type, id) {
   script.onerror = () => playerSetState('error', gen)
 
   function waitForLoad(iframe) {
+    iframe.id = 'vibix-frame'
     const timer = setTimeout(() => playerSetState('error', gen), 8000)
-    iframe.addEventListener('load', () => { clearTimeout(timer); playerSetState('ready', gen) }, { once: true })
+    iframe.addEventListener('load', () => {
+      clearTimeout(timer)
+      playerSetState('ready', gen)
+      if (withSync || hasRoom) watchPartyJoin()
+    }, { once: true })
   }
   document.head.appendChild(script)
 
+  watchPartyStop()
   playerUpdateUI('Vibix')
 }
 
 async function selectPlayer(name, src) {
+  watchPartyStop()
   const gen = ++_playerGen
   const frame = document.getElementById('flixcdn')
   const wrapper = frame.closest('.player-wrapper')
@@ -217,6 +281,14 @@ function playerSectionHtml(movie) {
         </button>
         <div class="player-dropdown" id="playerDropdown">${options}</div>
       </div>
+      <button class="watch-party-btn" id="watchPartyBtn" onclick="toggleWatchParty()" title="Совместный просмотр">
+        <i class="fas fa-users"></i>
+        <span>Смотреть вместе</span>
+      </button>
+      <button class="watch-party-btn watch-party-copy" id="watchPartyCopyBtn" onclick="copyPartyLink()" style="display:none" title="Скопировать ссылку на комнату">
+        <i class="fas fa-link"></i>
+        <span id="watchPartyCopyText">Скопировать ссылку</span>
+      </button>
     </div>
     <div class="player-wrapper">
       <iframe id="flixcdn" frameborder="0" allowfullscreen></iframe>

@@ -27,7 +27,7 @@ function app() {
     init() {
       this.searchType = 'name'
       this.loading = false
-      this.history = historyGet().filter(hasPoster)
+      this.history = (typeof historyGet === 'function' ? historyGet() : []).filter(hasPoster)
       if (this.history.length > 0) {
         const first = this.history[0]
         this.bgPoster = posterUrl(first.posterUrlPreview || first.posterUrl)
@@ -41,7 +41,7 @@ function app() {
 
     removeFromHistory(id) {
       historyRemove(id)
-      this.history = historyGet().filter(hasPoster)
+      this.history = (typeof historyGet === 'function' ? historyGet() : []).filter(hasPoster)
     },
 
     prefetch(movie) {
@@ -56,6 +56,11 @@ function app() {
     onCardEnter(movie) {
       this.bgPoster = posterUrl(movie.posterUrlPreview || movie.posterUrl)
       this.prefetch(movie)
+    },
+
+    origTitle(movie) {
+      const orig = movie.nameEn || movie.nameOriginal || ''
+      return (orig && orig !== movie.nameRu) ? orig : ''
     },
 
     movieType(movie) {

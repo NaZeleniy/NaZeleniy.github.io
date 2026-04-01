@@ -66,6 +66,7 @@
             <div class="movie-badge-type" x-text="movieType(movie)"></div>
             <div class="movie-info">
               <h3 class="movie-title" x-text="movie.nameRu || movie.nameEn || 'Без названия'"></h3>
+              <span class="movie-original-title" x-show="origTitle(movie)" x-text="origTitle(movie)"></span>
               <span class="movie-year" x-text="movie.year || ''"></span>
             </div>
           </a>
@@ -100,6 +101,7 @@
           <div class="movie-badge-type" x-text="movieType(movie)"></div>
           <div class="movie-info">
             <h3 class="movie-title" x-text="movie.nameRu || movie.nameEn || 'Без названия'"></h3>
+            <span class="movie-original-title" x-show="origTitle(movie)" x-text="origTitle(movie)"></span>
             <span class="movie-year" x-text="movie.year || ''"></span>
           </div>
         </a>
