@@ -323,7 +323,6 @@ function renderMovie(movie) {
         ${posterHtml}
       </div>
       <div class="movie-layout-main">
-        <h2 class="additional-info-title">Подробнее</h2>
         <ul class="info-list">
           ${infoRowsHtml}
           ${ageHtml}
