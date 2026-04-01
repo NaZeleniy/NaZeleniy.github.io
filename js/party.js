@@ -1,7 +1,18 @@
 const params  = new URLSearchParams(window.location.search)
 const movieId = params.get('id')
 let   roomId  = params.get('room')
-const isHost  = !roomId  // создатель комнаты — тот кто пришёл без ?room=
+
+// Если комнаты нет — мы создатель, запомним это в localStorage
+if (!roomId) {
+  roomId = 'room-' + Math.random().toString(36).slice(2, 12)
+  localStorage.setItem('party_host_' + roomId, '1')
+  const p = new URLSearchParams(window.location.search)
+  p.set('room', roomId)
+  history.replaceState(null, '', '?' + p.toString())
+}
+
+// Хост — тот у кого в localStorage есть флаг для этой комнаты
+const isHost = localStorage.getItem('party_host_' + roomId) === '1'
 
 if (!movieId) {
   document.getElementById('partyTitle').textContent = 'ID фильма не указан'
@@ -11,14 +22,6 @@ if (!movieId) {
 }
 
 async function init() {
-  if (!roomId) {
-    roomId = 'room-' + Math.random().toString(36).slice(2, 12)
-    const p = new URLSearchParams(window.location.search)
-    p.set('room', roomId)
-    history.replaceState(null, '', '?' + p.toString())
-  }
-
-  document.getElementById('backBtn').href = 'movie.html?id=' + movieId
 
   try {
     const r = await fetch(`${API_BASE}/api/movie/${movieId}`)
