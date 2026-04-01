@@ -1291,25 +1291,24 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
   display: flex;
   flex-direction: column;
   gap: 1px;
-  padding: 5px 12px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 20px;
   cursor: default;
-  transition: border-color var(--transition), background var(--transition);
-}
-
-.cast-item:hover .cast-name-wrap {
-  border-color: var(--accent);
-  background: var(--accent-dim);
 }
 
 .cast-name {
   font-size: 13px;
   font-weight: 500;
-  color: var(--text);
+  color: var(--text-secondary);
   white-space: nowrap;
   line-height: 1.3;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  transition: color var(--transition), text-decoration-color var(--transition);
+}
+
+.cast-item:hover .cast-name {
+  color: var(--accent-light);
+  text-decoration-color: var(--accent-light);
 }
 
 .cast-role {
@@ -1328,13 +1327,13 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
   bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
-  width: 210px;
+  width: 260px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 10px;
+  padding: 12px;
   display: flex;
-  gap: 10px;
+  gap: 12px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s ease;
