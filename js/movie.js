@@ -171,7 +171,8 @@ document.addEventListener('click', e => {
   const wrap = document.getElementById('playerSelectWrap')
   if (wrap && !wrap.contains(e.target)) {
     document.getElementById('playerDropdown')?.classList.remove('open')
-    document.getElementById('playerDropdownChevron').style.transform = ''
+    const chevron = document.getElementById('playerDropdownChevron')
+    if (chevron) chevron.style.transform = ''
   }
 })
 
@@ -275,7 +276,7 @@ function renderMovie(movie) {
   if (movie.ratingImdb > 0) {
     ratingsHtml += `
       <div class="rating-container">
-        <a class="rating-link" href="#" title="Оценок: ${movie.ratingImdbVoteCount || 0}">
+        <a class="rating-link" href="https://www.imdb.com/title/${movie.imdbId}" target="_blank" rel="noopener noreferrer" title="Оценок: ${movie.ratingImdbVoteCount || 0}">
           <img src="/img/logo/logo_imdb.svg" alt="IMDb" class="rating-logo-img"/>
           <span class="${ratingClass(movie.ratingImdb)}">${movie.ratingImdb.toFixed(1)}</span>
         </a>

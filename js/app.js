@@ -278,18 +278,5 @@ function app() {
       }
     },
 
-    async prevPage() {
-      if (this.currentPage > 1) {
-        this.currentPage--
-        await this.search()
-      }
-    },
-
-    async nextPage() {
-      if (this.currentPage < this.totalPages) {
-        this.currentPage++
-        await this.search()
-      }
-    },
   }
 }
