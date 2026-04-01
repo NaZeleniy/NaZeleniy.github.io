@@ -1445,3 +1445,10 @@ a.movie-poster-side img {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.cast-card-spinner {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  display: block;
+}

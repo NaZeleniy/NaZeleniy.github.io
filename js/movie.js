@@ -354,35 +354,12 @@ async function loadStaff() {
     const actors    = staff.filter(p => p.professionKey === 'ACTOR').slice(0, 10)
     if (!directors.length && !actors.length) return
 
-    const allPeople = [...directors, ...actors]
-    const detailResults = await Promise.all(
-      allPeople.map(p =>
-        fetch(`${API_BASE}/api/person/${p.staffId}`)
-          .then(r => r.ok ? r.json() : null)
-          .catch(() => null)
-      )
-    )
-    const details = {}
-    allPeople.forEach((p, i) => { if (detailResults[i]) details[p.staffId] = detailResults[i] })
-
     const renderPerson = p => {
-      const d     = details[p.staffId]
       const name  = p.nameRu || p.nameEn || ''
       const role  = p.description || ''
       const photo = p.posterUrl ? posterUrl(p.posterUrl) : ''
-
-      let metaHtml = ''
-      if (d?.birthday) {
-        const [y, m, day] = d.birthday.split('-')
-        const age = d.age ? ` (${d.age})` : ''
-        metaHtml += `<div class="cast-card-meta">${day}.${m}.${y}${age}</div>`
-      }
-      if (d?.birthplace) {
-        metaHtml += `<div class="cast-card-meta cast-card-birthplace">${d.birthplace}</div>`
-      }
-
       return `
-        <div class="cast-item">
+        <div class="cast-item" data-staff-id="${p.staffId}">
           <div class="cast-name-wrap">
             <span class="cast-name">${name}</span>
             ${role ? `<span class="cast-role">${role}</span>` : ''}
@@ -393,7 +370,7 @@ async function loadStaff() {
               <div class="cast-card-name">${name}</div>
               ${p.nameEn && p.nameEn !== name ? `<div class="cast-card-name-en">${p.nameEn}</div>` : ''}
               ${role ? `<div class="cast-card-role">${role}</div>` : ''}
-              ${metaHtml}
+              <div class="cast-card-extra"></div>
             </div>
           </div>
         </div>`
@@ -412,6 +389,34 @@ async function loadStaff() {
       </div>`
     html += '</div>'
     section.innerHTML = html
+
+    const fetched = new Set()
+    section.querySelectorAll('.cast-item[data-staff-id]').forEach(item => {
+      item.addEventListener('mouseenter', async () => {
+        const id = item.dataset.staffId
+        if (fetched.has(id)) return
+        fetched.add(id)
+        const extra = item.querySelector('.cast-card-extra')
+        extra.innerHTML = '<i class="fas fa-circle-notch fa-spin cast-card-spinner"></i>'
+        try {
+          const r = await fetch(`${API_BASE}/api/person/${id}`)
+          if (!r.ok) throw new Error()
+          const d = await r.json()
+          let metaHtml = ''
+          if (d.birthday) {
+            const [y, m, day] = d.birthday.split('-')
+            const age = d.age ? ` (${d.age})` : ''
+            metaHtml += `<div class="cast-card-meta">${day}.${m}.${y}${age}</div>`
+          }
+          if (d.birthplace) {
+            metaHtml += `<div class="cast-card-meta cast-card-birthplace">${d.birthplace}</div>`
+          }
+          extra.innerHTML = metaHtml
+        } catch {
+          extra.innerHTML = ''
+        }
+      }, { once: false })
+    })
   } catch {}
 }
 
