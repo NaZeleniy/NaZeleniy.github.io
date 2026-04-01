@@ -1330,13 +1330,13 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
   bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
-  width: 260px;
+  width: 320px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 12px;
+  padding: 14px;
   display: flex;
-  gap: 12px;
+  gap: 14px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s ease;
@@ -1349,8 +1349,8 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
 }
 
 .cast-card-photo {
-  width: 52px;
-  height: 70px;
+  width: 64px;
+  height: 86px;
   object-fit: cover;
   border-radius: 6px;
   flex-shrink: 0;
@@ -1444,8 +1444,9 @@ a.movie-poster-side img {
 
 .cast-card-birthplace {
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .cast-card-spinner {
