@@ -30,9 +30,6 @@ async function init() {
       document.title = title + ' — Совместный просмотр'
       document.getElementById('partyTitle').textContent = title
 
-      const bgEl = document.getElementById('bg-poster')
-      const bgUrl = posterUrl(movie.posterUrlPreview || movie.posterUrl)
-      if (bgEl && bgUrl) bgEl.style.backgroundImage = `url(${bgUrl})`
     }
   } catch {}
 
