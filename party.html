@@ -8,6 +8,9 @@
   <link rel="icon" type="image/png" href="img/icons/favicon.png"/>
   <link rel="stylesheet" href="css/style.css"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous"/>
+  <style>
+    .watch-party-ui { display: none !important; }
+  </style>
 </head>
 <body>
 
@@ -19,17 +22,45 @@
         <span>К фильму</span>
       </a>
       <div class="party-title" id="partyTitle">Совместный просмотр</div>
+      <div class="party-meta">
+        <span class="party-status" id="partyStatus">
+          <i class="fas fa-circle"></i>
+          <span id="partyStatusText">Подключение...</span>
+        </span>
+        <span class="party-viewers">
+          <i class="fas fa-users"></i>
+          <span id="partyViewerCount">1</span>
+        </span>
+      </div>
       <button class="party-copy-btn" id="copyBtn" onclick="copyLink()">
         <i class="fas fa-link"></i>
         <span id="copyBtnText">Скопировать ссылку</span>
       </button>
     </div>
 
-    <div class="party-player-wrap">
-      <div class="party-loading" id="partyLoading">
-        <i class="fas fa-circle-notch fa-spin"></i>
+    <div class="party-main">
+
+      <div class="party-player-wrap">
+        <div class="party-loading" id="partyLoading">
+          <i class="fas fa-circle-notch fa-spin"></i>
+        </div>
+        <div id="vibix-slot"></div>
       </div>
-      <div id="vibix-slot"></div>
+
+      <div class="party-chat">
+        <div class="party-chat-messages" id="partyChatMessages">
+          <div class="party-chat-system">Добро пожаловать в совместный просмотр!</div>
+        </div>
+        <div class="party-chat-input-wrap">
+          <input class="party-chat-input" id="partyChatInput" type="text"
+                 placeholder="Написать сообщение..." maxlength="200"
+                 onkeydown="if(event.key==='Enter') sendMessage()"/>
+          <button class="party-chat-send" onclick="sendMessage()">
+            <i class="fas fa-paper-plane"></i>
+          </button>
+        </div>
+      </div>
+
     </div>
 
   </div>

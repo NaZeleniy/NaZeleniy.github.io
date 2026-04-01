@@ -10,7 +10,6 @@ if (!movieId) {
 }
 
 async function init() {
-  // Если комнаты нет — генерируем и обновляем URL
   if (!roomId) {
     roomId = 'room-' + Math.random().toString(36).slice(2, 12)
     const p = new URLSearchParams(window.location.search)
@@ -18,10 +17,8 @@ async function init() {
     history.replaceState(null, '', '?' + p.toString())
   }
 
-  // Обновляем ссылку «К фильму»
   document.getElementById('backBtn').href = 'movie.html?id=' + movieId
 
-  // Загружаем данные фильма для заголовка и фона
   try {
     const r = await fetch(`${API_BASE}/api/movie/${movieId}`)
     if (r.ok) {
@@ -29,7 +26,6 @@ async function init() {
       const title = movie.nameRu || movie.nameEn || 'Без названия'
       document.title = title + ' — Совместный просмотр'
       document.getElementById('partyTitle').textContent = title
-
     }
   } catch {}
 
@@ -38,7 +34,6 @@ async function init() {
 
 function startVibix() {
   const slot = document.getElementById('vibix-slot')
-
   slot.innerHTML = `<ins
     data-publisher-id="677393820"
     data-type="kp"
@@ -75,11 +70,82 @@ function onIframe(iframe) {
 
 function startWatchParty() {
   if (typeof WatchParty === 'undefined') return
-  new WatchParty({
-    iframe: '#vibix-frame',
-    roomId: roomId,
-    debug: false
+  new WatchParty({ iframe: '#vibix-frame', roomId, debug: false })
+  watchWidget()
+}
+
+// Наблюдаем за виджетом и синхронизируем данные в наш UI
+function watchWidget() {
+  const poll = setInterval(() => {
+    const widget = document.querySelector('.watch-party-ui')
+    if (!widget) return
+    clearInterval(poll)
+
+    // Статус подключения
+    const statusEl = widget.querySelector('#wp-status')
+    if (statusEl) {
+      const updateStatus = () => {
+        const connected = statusEl.classList.contains('connected')
+        const dot = document.getElementById('partyStatus')
+        const text = document.getElementById('partyStatusText')
+        if (dot) dot.classList.toggle('connected', connected)
+        if (text) text.textContent = connected ? 'Подключено' : 'Подключение...'
+      }
+      updateStatus()
+      new MutationObserver(updateStatus).observe(statusEl, { attributes: true })
+    }
+
+    // Счётчик зрителей
+    const countEl = widget.querySelector('#wp-viewer-count')
+    if (countEl) {
+      const updateCount = () => {
+        const el = document.getElementById('partyViewerCount')
+        if (el) el.textContent = countEl.textContent
+      }
+      updateCount()
+      new MutationObserver(updateCount).observe(countEl, { childList: true })
+    }
+
+    // Сообщения чата
+    const chatEl = widget.querySelector('#wp-chat-messages')
+    if (chatEl) {
+      // Копируем существующие сообщения
+      syncMessages(chatEl)
+      // Наблюдаем за новыми
+      new MutationObserver(() => syncMessages(chatEl)).observe(chatEl, { childList: true, subtree: true })
+    }
+
+  }, 200)
+}
+
+function syncMessages(sourceEl) {
+  const target = document.getElementById('partyChatMessages')
+  if (!target) return
+  target.innerHTML = ''
+  sourceEl.querySelectorAll('.wp-chat-message').forEach(msg => {
+    const div = document.createElement('div')
+    div.className = msg.classList.contains('system') ? 'party-chat-system' : 'party-chat-msg'
+    if (msg.classList.contains('system')) {
+      div.textContent = msg.textContent.trim()
+    } else {
+      const user = msg.querySelector('.wp-chat-username')
+      const text = msg.querySelector('.wp-chat-text')
+      div.innerHTML = `<span class="party-chat-user">${user?.textContent || ''}</span> <span>${text?.textContent || ''}</span>`
+    }
+    target.appendChild(div)
   })
+  target.scrollTop = target.scrollHeight
+}
+
+function sendMessage() {
+  const input = document.getElementById('partyChatInput')
+  const wpInput = document.querySelector('#wp-chat-input')
+  const wpSend = document.querySelector('#wp-chat-send')
+  if (!input || !wpInput || !wpSend || !input.value.trim()) return
+  wpInput.value = input.value
+  wpInput.dispatchEvent(new Event('input', { bubbles: true }))
+  wpSend.click()
+  input.value = ''
 }
 
 function copyLink() {
