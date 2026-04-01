@@ -284,11 +284,10 @@ function renderMovie(movie) {
   }
 
   const rows = []
-  if (movie.type)                                                      rows.push(['Тип', displayType(movie.type)])
   if (movie.year > 0)                                                  rows.push(['Год выпуска', movie.year])
   if (movie.nameRu)                                                    rows.push(['Название', movie.nameRu])
   if (movie.nameEn)                                                    rows.push(['Оригинальное название', movie.nameEn])
-  if (movie.countries?.length)                                         rows.push(['Страна производства', joinList(movie.countries, 'country')])
+  if (movie.countries?.length)                                         rows.push(['Страна', joinList(movie.countries, 'country')])
   if (movie.genres?.length)                                            rows.push(['Жанры', joinList(movie.genres, 'genre')])
   if (movie.filmLength > 0)                                            rows.push(['Длительность', movie.filmLength + ' мин'])
   if (movie.slogan && movie.slogan !== '-' && movie.slogan !== 'null') rows.push(['Слоган', '«' + movie.slogan + '»'])
@@ -302,12 +301,10 @@ function renderMovie(movie) {
   const posterSrc = posterUrl(movie.posterUrlPreview || movie.posterUrl)
   const posterFull = posterUrl(movie.posterUrl || movie.posterUrlPreview)
   const posterHtml = posterSrc
-    ? `<div class="movie-poster-container desktop-only">
-         <a href="${posterFull}" target="_blank" rel="noopener noreferrer">
-           <img class="movie-poster" src="${posterSrc}" alt="${title}"
-                onerror="if(this.src!=='${posterFull}')this.src='${posterFull}'"/>
-         </a>
-       </div>`
+    ? `<a class="movie-poster-side" href="${posterFull}" target="_blank" rel="noopener noreferrer">
+         <img class="movie-poster" src="${posterSrc}" alt="${title}"
+              onerror="if(this.src!=='${posterFull}')this.src='${posterFull}'"/>
+       </a>`
     : ''
 
   const desc = movie.description || movie.shortDescription || ''
@@ -321,21 +318,21 @@ function renderMovie(movie) {
       <h1 class="content-title">${title}</h1>
     </div>
     <div class="ratings-links">${ratingsHtml}</div>
-    <div class="additional-info">
-      <h2 class="additional-info-title">Подробнее</h2>
-      <div class="info-content">
+    <div class="movie-layout">
+      <div class="movie-layout-poster">
         ${posterHtml}
-        <div class="details-container">
-          <ul class="info-list">
-            ${infoRowsHtml}
-            ${ageHtml}
-          </ul>
-        </div>
+      </div>
+      <div class="movie-layout-main">
+        <h2 class="additional-info-title">Подробнее</h2>
+        <ul class="info-list">
+          ${infoRowsHtml}
+          ${ageHtml}
+        </ul>
+        <div id="cast-section"></div>
+        ${descHtml}
+        ${playerSectionHtml(movie)}
       </div>
     </div>
-    <div id="cast-section"></div>
-    ${descHtml}
-    ${playerSectionHtml(movie)}
   `
   const { resource, id } = (() => {
     if (movie.kinopoiskId) return { resource: 'kinopoisk', id: movie.kinopoiskId }
@@ -353,8 +350,8 @@ async function loadStaff() {
     if (!r.ok) return
     const staff = await r.json()
 
-    const directors = staff.filter(p => p.professionKey === 'DIRECTOR')
-    const actors    = staff.filter(p => p.professionKey === 'ACTOR').slice(0, 20)
+    const directors = staff.filter(p => p.professionKey === 'DIRECTOR').slice(0, 4)
+    const actors    = staff.filter(p => p.professionKey === 'ACTOR').slice(0, 10)
     if (!directors.length && !actors.length) return
 
     const renderPerson = p => {
