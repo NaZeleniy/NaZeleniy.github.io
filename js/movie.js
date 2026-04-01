@@ -284,9 +284,8 @@ function renderMovie(movie) {
   }
 
   const rows = []
+  if (movie.nameOriginal && movie.nameOriginal !== movie.nameRu)       rows.push(['Оригинальное название', movie.nameOriginal])
   if (movie.year > 0)                                                  rows.push(['Год выпуска', movie.year])
-  if (movie.nameRu)                                                    rows.push(['Название', movie.nameRu])
-  if (movie.nameEn)                                                    rows.push(['Оригинальное название', movie.nameEn])
   if (movie.countries?.length)                                         rows.push(['Страна', joinList(movie.countries, 'country')])
   if (movie.genres?.length)                                            rows.push(['Жанры', joinList(movie.genres, 'genre')])
   if (movie.filmLength > 0)                                            rows.push(['Длительность', movie.filmLength + ' мин'])
@@ -332,6 +331,8 @@ function renderMovie(movie) {
       </div>
     </div>
     ${playerSectionHtml(movie)}
+    <div id="sequels-section"></div>
+    <div id="similars-section"></div>
   `
   const { resource, id } = (() => {
     if (movie.kinopoiskId) return { resource: 'kinopoisk', id: movie.kinopoiskId }
@@ -356,7 +357,7 @@ async function loadStaff() {
     const renderPerson = p => {
       const name  = p.nameRu || p.nameEn || ''
       const role  = p.description || ''
-      const photo = p.posterUrl ? posterUrl(p.posterUrl) : ''
+      const photo = p.posterUrl || ''
       return `
         <div class="cast-item" data-staff-id="${p.staffId}">
           <div class="cast-name-wrap">
@@ -417,6 +418,77 @@ async function loadStaff() {
   } catch {}
 }
 
+async function loadSequels() {
+  const section = document.getElementById('sequels-section')
+  if (!section || !movieId) return
+  try {
+    const r = await fetch(`${API_BASE}/api/sequels/${movieId}`)
+    if (!r.ok) { section.innerHTML = ''; return }
+    const items = await r.json()
+    if (!items?.length) { section.innerHTML = ''; return }
+
+    const typeLabel = { SEQUEL: 'Сиквел', PREQUEL: 'Приквел', REMAKE: 'Ремейк' }
+
+    const cards = items.filter(m => m.posterUrlPreview || m.posterUrl).map(m => {
+      const id    = m.filmId
+      const name  = m.nameRu || m.nameEn || m.nameOriginal || 'Без названия'
+      const thumb = posterUrl(m.posterUrlPreview || m.posterUrl)
+      const meta  = typeLabel[m.relationType] || m.relationType || ''
+      return `
+        <a class="similar-card" href="movie.html?id=${id}">
+          <div class="similar-poster-wrap">
+            ${thumb ? `<img src="${thumb}" alt="${name}" loading="lazy" onerror="this.closest('.similar-card').style.display='none'"/>` : ''}
+          </div>
+          <div class="similar-info">
+            <div class="similar-title">${name}</div>
+            ${meta ? `<div class="similar-meta">${meta}</div>` : ''}
+          </div>
+        </a>`
+    }).join('')
+
+    section.innerHTML = `
+      <div class="similars-section">
+        <div class="cast-group-title">Сиквелы и Приквелы</div>
+        <div class="similars-list">${cards}</div>
+      </div>`
+  } catch { section.innerHTML = '' }
+}
+
+async function loadSimilars() {
+  const section = document.getElementById('similars-section')
+  if (!section || !movieId) return
+  section.innerHTML = `<div class="similars-loading"><i class="fas fa-circle-notch fa-spin"></i></div>`
+  try {
+    const r = await fetch(`${API_BASE}/api/similars/${movieId}`)
+    if (!r.ok) { section.innerHTML = ''; return }
+    const items = await r.json()
+    if (!items?.length) { section.innerHTML = ''; return }
+
+    const cards = items.filter(m => m.posterUrlPreview || m.posterUrl).map(m => {
+      const id    = m.filmId
+      const name  = m.nameRu || m.nameEn || m.nameOriginal || 'Без названия'
+      const thumb = posterUrl(m.posterUrlPreview || m.posterUrl)
+      const meta  = [m.year, m.nameEn && m.nameEn !== m.nameRu ? m.nameEn : null].filter(Boolean).join(' · ')
+      return `
+        <a class="similar-card" href="movie.html?id=${id}">
+          <div class="similar-poster-wrap">
+            ${thumb ? `<img src="${thumb}" alt="${name}" loading="lazy" onerror="this.closest('.similar-card').style.display='none'"/>` : ''}
+          </div>
+          <div class="similar-info">
+            <div class="similar-title">${name}</div>
+            ${meta ? `<div class="similar-meta">${meta}</div>` : ''}
+          </div>
+        </a>`
+    }).join('')
+
+    section.innerHTML = `
+      <div class="similars-section">
+        <div class="cast-group-title">Похожие</div>
+        <div class="similars-list">${cards}</div>
+      </div>`
+  } catch { section.innerHTML = '' }
+}
+
 function renderError(message) {
   document.getElementById('movieContent').innerHTML = `
     ${backBtn()}
@@ -445,12 +517,15 @@ async function loadMovie() {
     const r = await fetch(`${API_BASE}/api/movie/${movieId}`)
     if (!r.ok) throw new Error('Фильм не найден')
     renderMovie(await r.json())
-    loadStaff()
   } catch (e) {
     if (!document.getElementById('movieContent').children.length) {
       renderError(e.message || 'Ошибка загрузки фильма')
     }
   }
+
+  if (document.getElementById('cast-section')) loadStaff()
+  if (document.getElementById('sequels-section')) loadSequels()
+  if (document.getElementById('similars-section')) loadSimilars()
 }
 
 loadMovie()
