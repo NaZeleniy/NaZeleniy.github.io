@@ -1432,3 +1432,16 @@ a.movie-poster-side img {
     display: none;
   }
 }
+
+.cast-card-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  line-height: 1.3;
+}
+
+.cast-card-birthplace {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
