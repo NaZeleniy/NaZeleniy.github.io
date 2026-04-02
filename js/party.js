@@ -120,7 +120,7 @@ function handleServerMessage(data) {
       isHost = data.isHost
       if (!isHost) {
         document.getElementById('partyViewerOverlay').classList.add('active')
-        wsSend({ type: 'request_sync' })
+        document.getElementById('partyJoinOverlay').classList.add('active')
       }
       break
 
@@ -222,7 +222,6 @@ window.addEventListener('message', e => {
   if (ev === 'ready' || ev === 'sync_ready') {
     playerReady = true
     document.getElementById('partyLoading').style.display = 'none'
-    if (!isHost) wsSend({ type: 'request_sync' })
     return
   }
 
@@ -267,6 +266,11 @@ async function init() {
 
   startVibix()
   connect()
+
+  document.getElementById('partyJoinBtn').addEventListener('click', () => {
+    document.getElementById('partyJoinOverlay').classList.remove('active')
+    wsSend({ type: 'request_sync' })
+  })
 }
 
 function startVibix() {
