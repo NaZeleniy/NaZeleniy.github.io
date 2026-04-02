@@ -2,17 +2,12 @@ const params  = new URLSearchParams(window.location.search)
 const movieId = params.get('id')
 let   roomId  = params.get('room')
 
-// Если комнаты нет — мы создатель, запомним это в localStorage
 if (!roomId) {
   roomId = 'room-' + Math.random().toString(36).slice(2, 12)
-  localStorage.setItem('party_host_' + roomId, '1')
   const p = new URLSearchParams(window.location.search)
   p.set('room', roomId)
   history.replaceState(null, '', '?' + p.toString())
 }
-
-// Хост — тот у кого в localStorage есть флаг для этой комнаты
-const isHost = localStorage.getItem('party_host_' + roomId) === '1'
 
 if (!movieId) {
   document.getElementById('partyTitle').textContent = 'ID фильма не указан'
@@ -21,8 +16,202 @@ if (!movieId) {
   init()
 }
 
-async function init() {
+// ── Username ─────────────────────────────────────────────────
 
+function generateUsername() {
+  const adj = ['Быстрый','Умный','Смелый','Весёлый','Крутой','Ловкий','Мудрый','Ржачный','Пушистый','Дерзкий']
+  const noun = ['Зритель','Попкорн','Кот','Пёс','Пельмень','Дракон','Ниндзя','Пират','Бублик','Енот']
+  return adj[Math.floor(Math.random() * adj.length)] + ' ' +
+         noun[Math.floor(Math.random() * noun.length)] + ' ' +
+         Math.floor(1000 + Math.random() * 9000)
+}
+
+const username = generateUsername()
+
+// ── UI helpers ───────────────────────────────────────────────
+
+function setStatus(connected) {
+  document.getElementById('partyStatus').classList.toggle('connected', connected)
+  document.getElementById('partyStatusText').textContent = connected ? 'Подключено' : 'Подключение...'
+}
+
+function setViewerCount(n) {
+  document.getElementById('partyViewerCount').textContent = n
+}
+
+function addChatMessage(user, text, isSystem) {
+  const box = document.getElementById('partyChatMessages')
+  const div = document.createElement('div')
+  if (isSystem) {
+    div.className = 'party-chat-system'
+    div.textContent = text
+  } else {
+    div.className = 'party-chat-msg'
+    div.innerHTML = `<span class="party-chat-user">${escHtml(user)}</span> <span>${escHtml(text)}</span>`
+  }
+  box.appendChild(div)
+  box.scrollTop = box.scrollHeight
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+}
+
+// ── WebSocket sync ───────────────────────────────────────────
+
+let ws = null
+let isHost = false
+let playerReady = false
+let currentTime = 0
+let isPlaying = false
+let reconnectTimer = null
+const SYNC_THRESHOLD = 2  // секунды
+
+const wsUrl = (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host + '/ws/party?room=' + roomId
+
+function connect() {
+  ws = new WebSocket(wsUrl)
+
+  ws.onopen = () => {
+    setStatus(true)
+    clearTimeout(reconnectTimer)
+    ws.send(JSON.stringify({ type: 'join', username }))
+
+    const usernameEl = document.getElementById('partyUsernameText')
+    const usernameWrap = document.getElementById('partyUsername')
+    if (usernameEl) { usernameEl.textContent = username; usernameWrap.style.display = '' }
+  }
+
+  ws.onmessage = e => {
+    let data
+    try { data = JSON.parse(e.data) } catch { return }
+    handleServerMessage(data)
+  }
+
+  ws.onclose = () => {
+    setStatus(false)
+    reconnectTimer = setTimeout(connect, 3000)
+  }
+
+  ws.onerror = () => ws.close()
+}
+
+function wsSend(data) {
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(data))
+}
+
+function handleServerMessage(data) {
+  switch (data.type) {
+    case 'role_assigned':
+      isHost = data.isHost
+      if (!isHost) {
+        document.getElementById('partyViewerOverlay').classList.add('active')
+        wsSend({ type: 'request_sync' })
+      }
+      break
+
+    case 'role_changed':
+      isHost = data.isHost
+      if (isHost) {
+        document.getElementById('partyViewerOverlay').classList.remove('active')
+        addChatMessage('', 'Вы стали ведущим', true)
+      }
+      break
+
+    case 'sync':
+      if (!isHost) applySync(data)
+      break
+
+    case 'state':
+      if (!isHost) applyState(data)
+      break
+
+    case 'viewers':
+      setViewerCount(data.count)
+      break
+
+    case 'chat':
+      addChatMessage(data.username, data.message, data.isSystem)
+      break
+
+    case 'request_sync':
+      if (isHost) wsSend({ type: 'state', time: currentTime, playing: isPlaying })
+      break
+  }
+}
+
+function applySync(data) {
+  if (!playerReady) return
+  switch (data.event) {
+    case 'play':
+    case 'started':
+      sendPlayerCommand('play')
+      break
+    case 'pause':
+      sendPlayerCommand('pause')
+      break
+    case 'seek':
+      if (Math.abs(currentTime - data.time) > SYNC_THRESHOLD)
+        sendPlayerCommand('seek', data.time)
+      break
+    case 'timeupdate':
+      if (isPlaying && Math.abs(currentTime - data.time) > SYNC_THRESHOLD)
+        sendPlayerCommand('seek', data.time)
+      break
+    case 'file':
+      if (data.playlistId != null) sendPlayerCommand('find', data.playlistId)
+      else if (data.file) sendPlayerCommand('file', data.file)
+      break
+  }
+}
+
+function applyState(data) {
+  if (!playerReady) return
+  if (Math.abs(currentTime - data.time) > SYNC_THRESHOLD)
+    sendPlayerCommand('seek', data.time)
+  if (data.playing && !isPlaying) sendPlayerCommand('play')
+  else if (!data.playing && isPlaying) sendPlayerCommand('pause')
+}
+
+// ── Player commands ──────────────────────────────────────────
+
+function sendPlayerCommand(command, value) {
+  const frame = document.getElementById('vibix-frame')
+  if (!frame || !frame.contentWindow) return
+  frame.contentWindow.postMessage({ type: 'playerCommand', command, value, timestamp: Date.now() }, '*')
+}
+
+// ── Player events ────────────────────────────────────────────
+
+window.addEventListener('message', e => {
+  const data = e.data
+  if (!data || data.type !== 'playerEvent') return
+
+  const ev = data.event
+
+  if (ev === 'ready' || ev === 'sync_ready') {
+    playerReady = true
+    document.getElementById('partyLoading').style.display = 'none'
+    if (!isHost) wsSend({ type: 'request_sync' })
+    return
+  }
+
+  if (data.time !== undefined) currentTime = data.time
+
+  if (ev === 'play' || ev === 'started') isPlaying = true
+  if (ev === 'pause') isPlaying = false
+
+  if (!isHost) return
+
+  const syncEvents = ['play', 'pause', 'seek', 'timeupdate', 'started', 'file']
+  if (!syncEvents.includes(ev)) return
+
+  wsSend({ type: 'sync', event: ev, time: data.time, playlistId: data.playlistId ?? null, file: data.file ?? null })
+})
+
+// ── Vibix player ─────────────────────────────────────────────
+
+async function init() {
   try {
     const r = await fetch(`${API_BASE}/api/movie/${movieId}`)
     if (r.ok) {
@@ -34,6 +223,7 @@ async function init() {
   } catch {}
 
   startVibix()
+  connect()
 }
 
 function startVibix() {
@@ -66,109 +256,20 @@ function startVibix() {
 
 function onIframe(iframe) {
   iframe.id = 'vibix-frame'
-  iframe.addEventListener('load', () => {
-    document.getElementById('partyLoading').style.display = 'none'
-    if (!isHost) {
-      document.getElementById('partyViewerOverlay').classList.add('active')
-    }
-    startWatchParty()
-  }, { once: true })
 }
 
-function startWatchParty() {
-  if (typeof WatchParty === 'undefined') return
-  new WatchParty({ iframe: '#vibix-frame', roomId, debug: false })
-  watchWidget()
-}
-
-// Наблюдаем за виджетом и синхронизируем данные в наш UI
-function watchWidget() {
-  const poll = setInterval(() => {
-    const widget = document.querySelector('.watch-party-ui')
-    if (!widget) return
-    clearInterval(poll)
-
-    // Статус подключения
-    const statusEl = widget.querySelector('#wp-status')
-    const updateStatus = () => {
-      const connected = statusEl?.classList.contains('connected')
-      const dot = document.getElementById('partyStatus')
-      const text = document.getElementById('partyStatusText')
-      if (dot) dot.classList.toggle('connected', !!connected)
-      if (text) text.textContent = connected ? 'Подключено' : 'Подключение...'
-    }
-    if (statusEl) {
-      updateStatus()
-      new MutationObserver(updateStatus).observe(statusEl, { attributes: true, attributeFilter: ['class'] })
-    }
-
-    // Счётчик зрителей
-    const countEl = widget.querySelector('#wp-viewer-count')
-    const updateCount = () => {
-      const el = document.getElementById('partyViewerCount')
-      if (el && countEl) el.textContent = countEl.textContent.trim()
-    }
-    if (countEl) {
-      updateCount()
-      new MutationObserver(updateCount).observe(countEl, { childList: true, characterData: true, subtree: true })
-    }
-
-    // Сообщения чата
-    const chatEl = widget.querySelector('#wp-chat-messages')
-    if (chatEl) {
-      syncMessages(chatEl)
-      new MutationObserver(() => syncMessages(chatEl)).observe(chatEl, { childList: true, subtree: true })
-    }
-
-    // Ник пользователя
-    const usernameEl = widget.querySelector('#wp-username-display')
-    if (usernameEl) {
-      const updateUsername = () => {
-        const raw = usernameEl.textContent.trim()
-        const name = raw.replace(/^Ваше имя:\s*/i, '')
-        const el = document.getElementById('partyUsernameText')
-        const wrap = document.getElementById('partyUsername')
-        if (el && name) { el.textContent = name; wrap.style.display = '' }
-      }
-      updateUsername()
-      new MutationObserver(updateUsername).observe(usernameEl, { childList: true, characterData: true, subtree: true })
-    }
-
-    // Запасной polling — на случай если MutationObserver пропустил обновление
-    setInterval(() => { updateStatus(); updateCount() }, 2000)
-
-  }, 200)
-}
-
-function syncMessages(sourceEl) {
-  const target = document.getElementById('partyChatMessages')
-  if (!target) return
-  target.innerHTML = ''
-  sourceEl.querySelectorAll('.wp-chat-message').forEach(msg => {
-    const div = document.createElement('div')
-    div.className = msg.classList.contains('system') ? 'party-chat-system' : 'party-chat-msg'
-    if (msg.classList.contains('system')) {
-      div.textContent = msg.textContent.trim()
-    } else {
-      const user = msg.querySelector('.wp-chat-username')
-      const text = msg.querySelector('.wp-chat-text')
-      div.innerHTML = `<span class="party-chat-user">${user?.textContent || ''}</span> <span>${text?.textContent || ''}</span>`
-    }
-    target.appendChild(div)
-  })
-  target.scrollTop = target.scrollHeight
-}
+// ── Chat ─────────────────────────────────────────────────────
 
 function sendMessage() {
   const input = document.getElementById('partyChatInput')
-  const wpInput = document.querySelector('#wp-chat-input')
-  const wpSend = document.querySelector('#wp-chat-send')
-  if (!input || !wpInput || !wpSend || !input.value.trim()) return
-  wpInput.value = input.value
-  wpInput.dispatchEvent(new Event('input', { bubbles: true }))
-  wpSend.click()
+  if (!input || !input.value.trim()) return
+  const text = input.value.trim()
+  wsSend({ type: 'chat', message: text })
+  addChatMessage(username, text, false)
   input.value = ''
 }
+
+// ── Copy link ─────────────────────────────────────────────────
 
 function copyLink() {
   const url = location.origin + location.pathname + '?id=' + movieId + '&room=' + roomId

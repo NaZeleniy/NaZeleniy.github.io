@@ -8,58 +8,6 @@
   <link rel="icon" type="image/png" href="img/icons/favicon.png"/>
   <link rel="stylesheet" href="css/style.css"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous"/>
-  <style>
-    .watch-party-ui { display: none !important; }
-  </style>
-  <script>
-    function _dump(data) {
-      try { return JSON.stringify(data) } catch { return String(data) }
-    }
-
-    // ── postMessage logger ───────────────────────────────────
-    window.addEventListener('message', e => {
-      console.log('[postMessage IN]', e.origin, _dump(e.data))
-    })
-
-    const _origPostMessage = window.postMessage.bind(window)
-    window.postMessage = function(data, ...args) {
-      console.log('[postMessage OUT → window]', _dump(data))
-      return _origPostMessage(data, ...args)
-    }
-
-    // ── WebSocket logger ─────────────────────────────────────
-    const _OrigWS = window.WebSocket
-    window.WebSocket = function(url, ...args) {
-      const ws = new _OrigWS(url, ...args)
-      console.log('[WS OPEN]', url)
-      ws.addEventListener('message', e => console.log('[WS IN]', url, _dump(e.data)))
-      const _origSend = ws.send.bind(ws)
-      ws.send = function(data) {
-        console.log('[WS OUT]', url, _dump(data))
-        return _origSend(data)
-      }
-      ws.addEventListener('close', () => console.log('[WS CLOSE]', url))
-      return ws
-    }
-    Object.assign(window.WebSocket, _OrigWS)
-
-    // ── iframe postMessage OUT (патчим после загрузки DOM) ───
-    document.addEventListener('DOMContentLoaded', () => {
-      new MutationObserver(() => {
-        document.querySelectorAll('iframe').forEach(f => {
-          if (f._pmPatched) return
-          f._pmPatched = true
-          try {
-            const orig = f.contentWindow.postMessage.bind(f.contentWindow)
-            f.contentWindow.postMessage = function(data, ...args) {
-              console.log('[postMessage OUT → iframe]', f.id || f.src, _dump(data))
-              return orig(data, ...args)
-            }
-          } catch {}
-        })
-      }).observe(document.body, { subtree: true, childList: true })
-    })
-  </script>
 </head>
 <body>
 
@@ -120,6 +68,5 @@
   <script src="js/settings.js"></script>
   <script defer src="js/api.js"></script>
   <script defer src="js/party.js"></script>
-  <script src="https://sync.videoframe2.com/sync-lib.js"></script>
 </body>
 </html>
