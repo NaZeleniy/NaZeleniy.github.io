@@ -197,7 +197,8 @@ function applySync(data) {
     case 'audiotrack_changed':
       if (data.audioTrack != null && data.audioTrack !== currentAudioTrack) {
         currentAudioTrack = data.audioTrack
-        sendPlayerCommand('audiotrack', data.audioTrack)
+        const idx = Array.isArray(data.audioTracks) ? data.audioTracks.indexOf(data.audioTrack) : -1
+        sendPlayerCommand('audiotrack', idx >= 0 ? idx : data.audioTrack)
       }
       break
   }
@@ -212,7 +213,8 @@ function applyState(data) {
   } else if (data.file && !data.playlistId) sendPlayerCommand('file', data.file)
   if (data.audioTrack != null && data.audioTrack !== currentAudioTrack) {
     currentAudioTrack = data.audioTrack
-    sendPlayerCommand('audiotrack', data.audioTrack)
+    const idx = Array.isArray(data.audioTracks) ? data.audioTracks.indexOf(data.audioTrack) : -1
+    sendPlayerCommand('audiotrack', idx >= 0 ? idx : data.audioTrack)
   }
   const compensated = (data.time ?? 0) + latency
   if (Math.abs(currentTime - compensated) > SYNC_THRESHOLD)
@@ -269,7 +271,7 @@ window.addEventListener('message', e => {
     currentAudioTrack = data.audioTrack
   }
 
-  wsSend({ type: 'sync', event: ev, time: data.time, playlistId: data.playlistId ?? null, file: data.file ?? null, audioTrack: data.audioTrack ?? null })
+  wsSend({ type: 'sync', event: ev, time: data.time, playlistId: data.playlistId ?? null, file: data.file ?? null, audioTrack: data.audioTrack ?? null, audioTracks: data.audioTracks ?? null })
 })
 
 // ── Vibix player ─────────────────────────────────────────────
