@@ -160,7 +160,9 @@ function applySync(data) {
   switch (data.event) {
     case 'play':
     case 'started':
+    case 'start':
       sendPlayerCommand('play')
+      isPlaying = true
       if (Math.abs(currentTime - compensated) > SYNC_THRESHOLD)
         sendPlayerCommand('seek', compensated)
       break
@@ -169,6 +171,7 @@ function applySync(data) {
       break
     case 'seek':
       sendPlayerCommand('seek', compensated)
+      isPlaying = true
       break
     case 'timeupdate':
       if (isPlaying && Math.abs(currentTime - compensated) > SYNC_THRESHOLD)
@@ -186,8 +189,8 @@ function applyState(data) {
   const compensated = (data.time ?? 0) + latency
   if (Math.abs(currentTime - compensated) > SYNC_THRESHOLD)
     sendPlayerCommand('seek', compensated)
-  if (data.playing && !isPlaying) sendPlayerCommand('play')
-  else if (!data.playing && isPlaying) sendPlayerCommand('pause')
+  if (data.playing && !isPlaying) { sendPlayerCommand('play'); isPlaying = true }
+  else if (!data.playing && isPlaying) { sendPlayerCommand('pause'); isPlaying = false }
 }
 
 // ── Player commands ──────────────────────────────────────────
@@ -215,13 +218,15 @@ window.addEventListener('message', e => {
 
   if (data.time !== undefined) currentTime = data.time
 
-  if (ev === 'play' || ev === 'started') isPlaying = true
-  if (ev === 'pause') isPlaying = false
+  if (ev === 'play' || ev === 'started' || ev === 'start') isPlaying = true
+  if (ev === 'pause' || ev === 'end') isPlaying = false
 
   if (!isHost) return
 
-  const syncEvents = ['play', 'pause', 'seek', 'timeupdate', 'started', 'file']
+  const syncEvents = ['play', 'pause', 'seek', 'timeupdate', 'started', 'start', 'file']
   if (!syncEvents.includes(ev)) return
+
+  if (ev === 'seek' || ev === 'play' || ev === 'started') lastTimeupdateSent = 0
 
   if (ev === 'timeupdate') {
     const now = Date.now()
