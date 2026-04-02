@@ -8,6 +8,7 @@ function _renderSidebar(activePage) {
     { href: '/',             icon: 'fa-home', label: 'Главная',    page: 'index'    },
     { href: 'top.html',      icon: 'fa-fire', label: 'Популярное', page: 'top'      },
     { href: 'settings.html', icon: 'fa-cog',  label: 'Настройки',  page: 'settings' },
+    { href: 'faq.html',      icon: 'fa-circle-question', label: 'FAQ',        page: 'faq'      },
   ]
 
   const linksHtml = links.map(l => `
