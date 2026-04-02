@@ -67,7 +67,9 @@ let isPlaying = false
 let reconnectTimer = null
 let latency = 0           // половина RTT в секундах
 let lastTimeupdateSent = 0
+let lastSyncAt = 0        // время последнего принудительного seek
 const SYNC_THRESHOLD = 1  // секунды
+const SYNC_COOLDOWN = 3000  // мс между принудительными seek
 const TIMEUPDATE_INTERVAL = 5000  // мс между отправками timeupdate
 
 const wsHost = window.location.hostname.endsWith('github.io') ? 'nazeleniy.mooo.com' : location.host
@@ -174,8 +176,12 @@ function applySync(data) {
       isPlaying = true
       break
     case 'timeupdate':
-      if (isPlaying && Math.abs(currentTime - compensated) > SYNC_THRESHOLD)
-        sendPlayerCommand('seek', compensated)
+      if (isPlaying && Math.abs(currentTime - compensated) > SYNC_THRESHOLD) {
+        if (Date.now() - lastSyncAt > SYNC_COOLDOWN) {
+          lastSyncAt = Date.now()
+          sendPlayerCommand('seek', compensated)
+        }
+      }
       break
     case 'file':
       if (data.playlistId != null) sendPlayerCommand('find', data.playlistId)
