@@ -308,12 +308,10 @@ function renderMovie(movie) {
 
   const posterSrc = posterUrl(movie.posterUrlPreview || movie.posterUrl)
   const posterFull = posterUrl(movie.posterUrl || movie.posterUrlPreview)
-  const posterHtml = posterSrc
-    ? `<a class="movie-poster-side" href="${posterFull}" target="_blank" rel="noopener noreferrer">
-         <img class="movie-poster" src="${posterSrc}" alt="${title}"
-              onerror="if(this.src!=='${posterFull}')this.src='${posterFull}'"/>
-       </a>`
-    : ''
+  const posterHtml = `<a class="movie-poster-side" href="${posterFull}" target="_blank" rel="noopener noreferrer">
+       <img class="movie-poster" src="${posterSrc}" alt="${title}"
+            onerror="this.onerror=null;this.src=(this.src!=='${posterFull}'?'${posterFull}':'/img/placeholder.svg')"/>
+     </a>`
 
   const desc = movie.description || movie.shortDescription || ''
   const descHtml = desc
@@ -438,7 +436,7 @@ async function loadSequels() {
 
     const typeLabel = { SEQUEL: 'Сиквел', PREQUEL: 'Приквел', REMAKE: 'Ремейк' }
 
-    const cards = items.filter(m => m.posterUrlPreview || m.posterUrl).map(m => {
+    const cards = items.map(m => {
       const id    = m.filmId
       const name  = m.nameRu || m.nameEn || m.nameOriginal || 'Без названия'
       const thumb = posterUrl(m.posterUrlPreview || m.posterUrl)
@@ -446,7 +444,7 @@ async function loadSequels() {
       return `
         <a class="similar-card" href="movie.html?id=${id}">
           <div class="similar-poster-wrap">
-            ${thumb ? `<img src="${thumb}" alt="${name}" loading="lazy" onerror="this.closest('.similar-card').style.display='none'"/>` : ''}
+            <img src="${thumb}" alt="${name}" loading="lazy" onerror="this.src='/img/placeholder.svg'"/>
           </div>
           <div class="similar-info">
             <div class="similar-title">${name}</div>
@@ -473,7 +471,7 @@ async function loadSimilars() {
     const items = await r.json()
     if (!items?.length) { section.innerHTML = ''; return }
 
-    const cards = items.filter(m => m.posterUrlPreview || m.posterUrl).map(m => {
+    const cards = items.map(m => {
       const id    = m.filmId
       const name  = m.nameRu || m.nameEn || m.nameOriginal || 'Без названия'
       const thumb = posterUrl(m.posterUrlPreview || m.posterUrl)
@@ -481,7 +479,7 @@ async function loadSimilars() {
       return `
         <a class="similar-card" href="movie.html?id=${id}">
           <div class="similar-poster-wrap">
-            ${thumb ? `<img src="${thumb}" alt="${name}" loading="lazy" onerror="this.closest('.similar-card').style.display='none'"/>` : ''}
+            <img src="${thumb}" alt="${name}" loading="lazy" onerror="this.src='/img/placeholder.svg'"/>
           </div>
           <div class="similar-info">
             <div class="similar-title">${name}</div>
