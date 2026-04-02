@@ -271,6 +271,15 @@ function renderMovie(movie) {
   const title = movie.nameRu || movie.nameEn || 'Без названия'
   document.title = title + ' — NaZeleniy'
 
+  const desc = (movie.description || movie.shortDescription || '').slice(0, 200)
+  const ogImage = posterUrl(movie.posterUrl || movie.posterUrlPreview)
+  const ogUrl = 'https://nazeleniy.github.io/movie.html?id=' + (movie.kinopoiskId || movie.filmId || '')
+  document.querySelector('meta[name="description"]')?.setAttribute('content', desc)
+  document.querySelector('meta[property="og:title"]')?.setAttribute('content', title)
+  document.querySelector('meta[property="og:description"]')?.setAttribute('content', desc)
+  document.querySelector('meta[property="og:image"]')?.setAttribute('content', ogImage)
+  document.querySelector('meta[property="og:url"]')?.setAttribute('content', ogUrl)
+
   const bgEl = document.getElementById('bg-poster')
   const bgUrl = posterUrl(movie.posterUrlPreview || movie.posterUrl)
   if (bgEl && bgUrl) bgEl.style.backgroundImage = `url(${bgUrl})`

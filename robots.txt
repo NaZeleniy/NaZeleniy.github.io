@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://nazeleniy.github.io/sitemap.xml
