@@ -310,7 +310,8 @@ function renderMovie(movie) {
   const posterFull = posterUrl(movie.posterUrl || movie.posterUrlPreview)
   const posterHtml = `<a class="movie-poster-side" href="${posterFull}" target="_blank" rel="noopener noreferrer">
        <img class="movie-poster" src="${posterSrc}" alt="${title}"
-            onerror="this.onerror=null;this.src=(this.src!=='${posterFull}'?'${posterFull}':'/img/placeholder.svg')"/>
+            onload="this.classList.add('loaded')"
+            onerror="this.classList.add('loaded');this.onerror=null;this.src=(this.src!=='${posterFull}'?'${posterFull}':'/img/placeholder.svg')"/>
      </a>`
 
   const desc = movie.description || movie.shortDescription || ''
