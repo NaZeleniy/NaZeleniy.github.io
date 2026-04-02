@@ -209,7 +209,9 @@ function applyState(data) {
 function sendPlayerCommand(command, value) {
   const frame = document.getElementById('vibix-frame')
   if (!frame || !frame.contentWindow) return
-  frame.contentWindow.postMessage({ type: 'playerCommand', command, value, timestamp: Date.now() }, '*')
+  const msg = { type: 'playerCommand', command, value, timestamp: Date.now() }
+  console.log('[playerCommand]', JSON.stringify(msg))
+  frame.contentWindow.postMessage(msg, '*')
 }
 
 // ── Player events ────────────────────────────────────────────
