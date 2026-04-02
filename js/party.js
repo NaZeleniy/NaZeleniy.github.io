@@ -70,6 +70,7 @@ let lastTimeupdateSent = 0
 let lastSyncAt = 0        // время последнего принудительного seek
 let currentPlaylistId = null
 let currentFile = null
+let currentAudioTrack = null
 const SYNC_THRESHOLD = 1  // секунды
 const SYNC_COOLDOWN = 3000  // мс между принудительными seek
 const TIMEUPDATE_INTERVAL = 5000  // мс между отправками timeupdate
@@ -133,7 +134,6 @@ function handleServerMessage(data) {
       break
 
     case 'sync':
-      console.log('[sync received]', JSON.stringify(data))
       if (!isHost) applySync(data)
       break
 
@@ -150,7 +150,7 @@ function handleServerMessage(data) {
       break
 
     case 'request_sync':
-      if (isHost) wsSend({ type: 'state', time: currentTime, playing: isPlaying, playlistId: currentPlaylistId, file: currentFile })
+      if (isHost) wsSend({ type: 'state', time: currentTime, playing: isPlaying, playlistId: currentPlaylistId, file: currentFile, audioTrack: currentAudioTrack })
       break
 
     case 'pong':
@@ -165,7 +165,6 @@ function applySync(data) {
 
   // Смена озвучки/плейлиста — проверяем на любом событии
   if (data.playlistId != null && data.playlistId !== currentPlaylistId) {
-    console.log('[dubbing change]', currentPlaylistId, '→', data.playlistId)
     currentPlaylistId = data.playlistId
     const fileObj = data.file || { playlistId: data.playlistId, fileId: null, playlistIndex: null }
     sendPlayerCommand('file', fileObj)
@@ -195,6 +194,12 @@ function applySync(data) {
         }
       }
       break
+    case 'audiotrack_changed':
+      if (data.audioTrack != null && data.audioTrack !== currentAudioTrack) {
+        currentAudioTrack = data.audioTrack
+        sendPlayerCommand('audiotrack', data.audioTrack)
+      }
+      break
   }
 }
 
@@ -205,6 +210,10 @@ function applyState(data) {
     const fileObj = data.file || { playlistId: data.playlistId, fileId: null, playlistIndex: null }
     sendPlayerCommand('file', fileObj)
   } else if (data.file && !data.playlistId) sendPlayerCommand('file', data.file)
+  if (data.audioTrack != null && data.audioTrack !== currentAudioTrack) {
+    currentAudioTrack = data.audioTrack
+    sendPlayerCommand('audiotrack', data.audioTrack)
+  }
   const compensated = (data.time ?? 0) + latency
   if (Math.abs(currentTime - compensated) > SYNC_THRESHOLD)
     sendPlayerCommand('seek', compensated)
@@ -217,9 +226,7 @@ function applyState(data) {
 function sendPlayerCommand(command, value) {
   const frame = document.getElementById('vibix-frame')
   if (!frame || !frame.contentWindow) return
-  const msg = { type: 'playerCommand', command, value, timestamp: Date.now() }
-  console.log('[playerCommand]', JSON.stringify(msg))
-  frame.contentWindow.postMessage(msg, '*')
+  frame.contentWindow.postMessage({ type: 'playerCommand', command, value, timestamp: Date.now() }, '*')
 }
 
 // ── Player events ────────────────────────────────────────────
@@ -227,8 +234,6 @@ function sendPlayerCommand(command, value) {
 window.addEventListener('message', e => {
   const data = e.data
   if (!data || data.type !== 'playerEvent') return
-
-  console.log('[playerEvent]', JSON.stringify(data))
 
   const ev = data.event
 
@@ -245,7 +250,7 @@ window.addEventListener('message', e => {
 
   if (!isHost) return
 
-  const syncEvents = ['play', 'pause', 'seek', 'timeupdate', 'started', 'start', 'file', 'playlist_changed']
+  const syncEvents = ['play', 'pause', 'seek', 'timeupdate', 'started', 'start', 'file', 'playlist_changed', 'audiotrack_changed']
   if (!syncEvents.includes(ev)) return
 
   if (ev === 'seek' || ev === 'play' || ev === 'started') lastTimeupdateSent = 0
@@ -260,8 +265,11 @@ window.addEventListener('message', e => {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (data.file != null) currentFile = data.file
   }
+  if (ev === 'audiotrack_changed' && data.audioTrack != null) {
+    currentAudioTrack = data.audioTrack
+  }
 
-  wsSend({ type: 'sync', event: ev, time: data.time, playlistId: data.playlistId ?? null, file: data.file ?? null })
+  wsSend({ type: 'sync', event: ev, time: data.time, playlistId: data.playlistId ?? null, file: data.file ?? null, audioTrack: data.audioTrack ?? null })
 })
 
 // ── Vibix player ─────────────────────────────────────────────
