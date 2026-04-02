@@ -26,26 +26,7 @@
 
   <div class="bg-poster visible" id="bg-poster"></div>
 
-  <!-- ── Sidebar ─────────────────────────────────────────── -->
-  <aside class="side-panel" id="sidebar">
-    <button class="toggle-btn" id="toggleBtn">
-      <i class="fas fa-chevron-right" id="toggleIcon"></i>
-    </button>
-    <nav class="nav-links">
-      <a href="/" class="nav-link" title="Главная">
-        <i class="fas fa-home"></i>
-        <span class="nav-text">Главная</span>
-      </a>
-      <a href="top.html" class="nav-link" title="Популярное">
-        <i class="fas fa-fire"></i>
-        <span class="nav-text">Популярное</span>
-      </a>
-      <a href="settings.html" class="nav-link" title="Настройки">
-        <i class="fas fa-cog"></i>
-        <span class="nav-text">Настройки</span>
-      </a>
-    </nav>
-  </aside>
+  <div id="app-sidebar"></div>
 
   <!-- ── Movie content (filled by movie.js) ─────────────── -->
   <div class="movie-info">
@@ -63,6 +44,8 @@
   <script defer src="js/api.js?v=20260402"></script>
   <script defer src="js/movie.js?v=20260402"></script>
   <script src="js/actualize.js?v=20260402"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <script src="js/header.js?v=20260402"></script>
+  <script>renderHeader('movie')</script>
 </body>
 </html>

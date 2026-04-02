@@ -4,9 +4,8 @@ let   roomId  = params.get('room')
 
 if (!roomId) {
   roomId = 'room-' + Math.random().toString(36).slice(2, 12)
-  const p = new URLSearchParams(window.location.search)
-  p.set('room', roomId)
-  history.replaceState(null, '', '?' + p.toString())
+  params.set('room', roomId)
+  history.replaceState(null, '', '?' + params.toString())
   localStorage.setItem('nz_host_room_' + roomId, '1')
 }
 
@@ -68,6 +67,7 @@ let playerReady = false
 let currentTime = 0
 let isPlaying = false
 let reconnectTimer = null
+let pingTimer = null
 let latency = 0           // половина RTT в секундах
 let lastTimeupdateSent = 0
 let lastSyncAt = 0        // время последнего принудительного seek
@@ -103,6 +103,7 @@ function connect() {
 
   ws.onclose = () => {
     setStatus(false)
+    clearTimeout(pingTimer)
     reconnectTimer = setTimeout(connect, 3000)
   }
 
@@ -115,7 +116,7 @@ function wsSend(data) {
 
 function wsPing() {
   wsSend({ type: 'ping', ts: Date.now() })
-  setTimeout(wsPing, 10000)
+  pingTimer = setTimeout(wsPing, 10000)
 }
 
 function handleServerMessage(data) {

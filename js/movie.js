@@ -1,23 +1,5 @@
 const movieId = new URLSearchParams(window.location.search).get('id')
 
-const sidebar = document.getElementById('sidebar')
-const toggleBtn = document.getElementById('toggleBtn')
-const toggleIcon = document.getElementById('toggleIcon')
-
-toggleBtn.addEventListener('click', () => {
-  const isOpen = sidebar.classList.toggle('open')
-  toggleIcon.className = isOpen ? 'fas fa-chevron-left' : 'fas fa-chevron-right'
-})
-
-function displayType(type) {
-  switch (type) {
-    case 'TV_SERIES':
-    case 'MINI_SERIES': return 'Сериал'
-    case 'TV_SHOW': return 'Шоу'
-    default: return 'Фильм'
-  }
-}
-
 function ratingClass(r) {
   if (r >= 7.0) return 'rating-value high'
   if (r < 5.0) return 'rating-value low'
@@ -435,7 +417,7 @@ async function loadStaff() {
         } catch {
           extra.innerHTML = ''
         }
-      }, { once: false })
+      }, { once: true })
     })
   } catch {}
 }
@@ -545,9 +527,9 @@ async function loadMovie() {
     }
   }
 
-  if (document.getElementById('cast-section')) loadStaff()
-  if (document.getElementById('sequels-section')) loadSequels()
-  if (document.getElementById('similars-section')) loadSimilars()
+  loadStaff()
+  loadSequels()
+  loadSimilars()
 }
 
 loadMovie()
