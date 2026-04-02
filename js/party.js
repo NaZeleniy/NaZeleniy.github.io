@@ -133,6 +133,7 @@ function handleServerMessage(data) {
       break
 
     case 'sync':
+      console.log('[sync received]', JSON.stringify(data))
       if (!isHost) applySync(data)
       break
 
