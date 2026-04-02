@@ -1677,7 +1677,7 @@ a.movie-poster-side img {
   position: absolute;
   inset: 0;
   z-index: 10;
-  cursor: not-allowed;
+  pointer-events: none;
 }
 .party-viewer-overlay.active { display: block; }
 .party-viewer-overlay span {

@@ -121,12 +121,10 @@ function selectVibixPlayer(type, id) {
   }
   document.head.appendChild(script)
 
-  watchPartyStop()
   playerUpdateUI('Vibix')
 }
 
 async function selectPlayer(name, src) {
-  watchPartyStop()
   const gen = ++_playerGen
   const frame = document.getElementById('flixcdn')
   const wrapper = frame.closest('.player-wrapper')
