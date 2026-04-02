@@ -68,6 +68,8 @@ let reconnectTimer = null
 let latency = 0           // половина RTT в секундах
 let lastTimeupdateSent = 0
 let lastSyncAt = 0        // время последнего принудительного seek
+let currentPlaylistId = null
+let currentFile = null
 const SYNC_THRESHOLD = 1  // секунды
 const SYNC_COOLDOWN = 3000  // мс между принудительными seek
 const TIMEUPDATE_INTERVAL = 5000  // мс между отправками timeupdate
@@ -147,7 +149,7 @@ function handleServerMessage(data) {
       break
 
     case 'request_sync':
-      if (isHost) wsSend({ type: 'state', time: currentTime, playing: isPlaying })
+      if (isHost) wsSend({ type: 'state', time: currentTime, playing: isPlaying, playlistId: currentPlaylistId, file: currentFile })
       break
 
     case 'pong':
@@ -192,6 +194,8 @@ function applySync(data) {
 
 function applyState(data) {
   if (!playerReady) return
+  if (data.playlistId != null) sendPlayerCommand('find', data.playlistId)
+  else if (data.file) sendPlayerCommand('file', data.file)
   const compensated = (data.time ?? 0) + latency
   if (Math.abs(currentTime - compensated) > SYNC_THRESHOLD)
     sendPlayerCommand('seek', compensated)
@@ -238,6 +242,11 @@ window.addEventListener('message', e => {
     const now = Date.now()
     if (now - lastTimeupdateSent < TIMEUPDATE_INTERVAL) return
     lastTimeupdateSent = now
+  }
+
+  if (ev === 'file') {
+    if (data.playlistId != null) currentPlaylistId = data.playlistId
+    if (data.file != null) currentFile = data.file
   }
 
   wsSend({ type: 'sync', event: ev, time: data.time, playlistId: data.playlistId ?? null, file: data.file ?? null })
