@@ -208,7 +208,12 @@ function playerSectionHtml(movie) {
       return `<div class="player-option" data-name="${p.name}" onclick="${onclick}">${p.name}</div>`
     }).join('')
 
-  return `<details class="player-section">
+  return `${localStorage.getItem('nz_hide_coming_soon') ? '' : `<div class="player-coming-soon" id="player-coming-soon">
+    <i class="fas fa-info-circle"></i>
+    <span>Планируется добавление новых плееров в будущем</span>
+    <button class="player-coming-soon-close" onclick="localStorage.setItem('nz_hide_coming_soon','1');document.getElementById('player-coming-soon').remove()" title="Закрыть"><i class="fas fa-times"></i></button>
+  </div>`}
+  <details class="player-section">
     <summary class="player-summary">
       <i class="fas fa-play-circle"></i>
       <span>Смотреть онлайн</span>

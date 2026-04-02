@@ -1080,6 +1080,37 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
 }
 
 /* Player */
+.player-coming-soon {
+  width: 70%;
+  margin: 16px auto 0;
+  padding: 8px 14px;
+  background: rgba(255, 220, 80, 0.08);
+  border: 1px solid rgba(255, 220, 80, 0.3);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.player-coming-soon i { color: rgba(255, 220, 80, 0.8); flex-shrink: 0; }
+.player-coming-soon span { flex: 1; }
+.player-coming-soon-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px 4px;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+}
+.player-coming-soon-close:hover { opacity: 1; }
+
+@media (max-width: 900px) {
+  .player-coming-soon { width: 100%; border-radius: 0; border-left: none; border-right: none; }
+}
+
 .player-section {
   width: 70%;
   margin: 16px auto 0;
