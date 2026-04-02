@@ -165,6 +165,7 @@ function applySync(data) {
 
   // Смена озвучки/плейлиста — проверяем на любом событии
   if (data.playlistId != null && data.playlistId !== currentPlaylistId) {
+    console.log('[dubbing change]', currentPlaylistId, '→', data.playlistId)
     currentPlaylistId = data.playlistId
     const fileObj = data.file || { playlistId: data.playlistId, fileId: null, playlistIndex: null }
     sendPlayerCommand('file', fileObj)
