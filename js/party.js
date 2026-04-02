@@ -186,6 +186,7 @@ function applySync(data) {
       }
       break
     case 'file':
+    case 'playlist_changed':
       if (data.playlistId != null) sendPlayerCommand('find', data.playlistId)
       else if (data.file) sendPlayerCommand('file', data.file)
       break
@@ -232,7 +233,7 @@ window.addEventListener('message', e => {
 
   if (!isHost) return
 
-  const syncEvents = ['play', 'pause', 'seek', 'timeupdate', 'started', 'start', 'file']
+  const syncEvents = ['play', 'pause', 'seek', 'timeupdate', 'started', 'start', 'file', 'playlist_changed']
   if (!syncEvents.includes(ev)) return
 
   if (ev === 'seek' || ev === 'play' || ev === 'started') lastTimeupdateSent = 0
@@ -243,7 +244,7 @@ window.addEventListener('message', e => {
     lastTimeupdateSent = now
   }
 
-  if (ev === 'file') {
+  if (ev === 'file' || ev === 'playlist_changed') {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (data.file != null) currentFile = data.file
   }
