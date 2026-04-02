@@ -7,7 +7,10 @@ if (!roomId) {
   const p = new URLSearchParams(window.location.search)
   p.set('room', roomId)
   history.replaceState(null, '', '?' + p.toString())
+  localStorage.setItem('nz_host_room_' + roomId, '1')
 }
+
+const isCreator = localStorage.getItem('nz_host_room_' + roomId) === '1'
 
 if (!movieId) {
   document.getElementById('partyTitle').textContent = 'ID фильма не указан'
@@ -84,7 +87,7 @@ function connect() {
   ws.onopen = () => {
     setStatus(true)
     clearTimeout(reconnectTimer)
-    ws.send(JSON.stringify({ type: 'join', username }))
+    ws.send(JSON.stringify({ type: 'join', username, isCreator }))
     wsPing()
 
     const usernameEl = document.getElementById('partyUsernameText')
