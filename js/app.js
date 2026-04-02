@@ -26,7 +26,8 @@ function app() {
     init() {
       this.searchType = 'name'
       this.loading = false
-      this.history = (typeof historyGet === 'function' ? historyGet() : [])      if (this.history.length > 0) {
+      this.history = typeof historyGet === 'function' ? historyGet() : []
+      if (this.history.length > 0) {
         const first = this.history[0]
         this.bgPoster = posterUrl(first.posterUrlPreview || first.posterUrl)
       }
@@ -39,7 +40,8 @@ function app() {
 
     removeFromHistory(id) {
       historyRemove(id)
-      this.history = (typeof historyGet === 'function' ? historyGet() : [])    },
+      this.history = typeof historyGet === 'function' ? historyGet() : []
+    },
 
     prefetch(movie) {
       const id = movie.kinopoiskId || movie.filmId
@@ -99,7 +101,7 @@ function app() {
         })
         if (!r.ok) throw new Error('status ' + r.status)
         const data = await r.json()
-        this.suggestions = (data.movies || []).filter(hasPoster).slice(0, 7)
+        this.suggestions = (data.movies || []).slice(0, 7)
         this.showSuggestions = this.suggestions.length > 0
       } catch (e) {
         if (e.name !== 'AbortError') console.error(e)
