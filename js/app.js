@@ -190,7 +190,7 @@ function app() {
           const data = await r.json()
           const next = data.movies || []
           this.prefetchPosters(next)
-          this.movies = [...this.movies, ...next]
+          this.movies.push(...next)
         } catch {
           this.currentPage = this.totalPages
         } finally {
@@ -279,7 +279,7 @@ function app() {
             this._topDone = true
           } else {
             this.prefetchPosters(next)
-            this.movies = [...this.movies, ...next]
+            this.movies.push(...next)
           }
         } catch {
           this._topDone = true
