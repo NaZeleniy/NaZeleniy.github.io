@@ -49,9 +49,9 @@
               :src="posterUrl(movie.posterUrlPreview || movie.posterUrl)"
               :alt="movie.nameRu || movie.nameEn || 'Постер'"
               loading="lazy"
-              @load="$el.style.opacity = 1"
-              @error="$el.src='/img/placeholder.svg'; $el.style.opacity = 1; $el.style.transition = 'none'"
-              :style="(movie.posterUrlPreview || movie.posterUrl) ? 'opacity:0; transition: opacity 0.6s ease-in-out' : ''"
+              @load="$el.classList.add('loaded')"
+              @error="$el.src='/img/placeholder.svg'; $el.classList.add('loaded')"
+              :class="!(movie.posterUrlPreview || movie.posterUrl) && 'loaded'"
             />
           </div>
           <div class="movie-badge-rating" x-show="movie.ratingKinopoisk > 0">
