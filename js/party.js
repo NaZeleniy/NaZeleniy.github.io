@@ -65,7 +65,10 @@ let playerReady = false
 let currentTime = 0
 let isPlaying = false
 let reconnectTimer = null
-const SYNC_THRESHOLD = 2  // секунды
+let latency = 0           // половина RTT в секундах
+let lastTimeupdateSent = 0
+const SYNC_THRESHOLD = 1  // секунды
+const TIMEUPDATE_INTERVAL = 5000  // мс между отправками timeupdate
 
 const wsHost = window.location.hostname.endsWith('github.io') ? 'nazeleniy.mooo.com' : location.host
 const wsUrl = (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + wsHost + '/ws/party?room=' + roomId
@@ -77,6 +80,7 @@ function connect() {
     setStatus(true)
     clearTimeout(reconnectTimer)
     ws.send(JSON.stringify({ type: 'join', username }))
+    wsPing()
 
     const usernameEl = document.getElementById('partyUsernameText')
     const usernameWrap = document.getElementById('partyUsername')
@@ -99,6 +103,11 @@ function connect() {
 
 function wsSend(data) {
   if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(data))
+}
+
+function wsPing() {
+  wsSend({ type: 'ping', ts: Date.now() })
+  setTimeout(wsPing, 10000)
 }
 
 function handleServerMessage(data) {
@@ -138,26 +147,32 @@ function handleServerMessage(data) {
     case 'request_sync':
       if (isHost) wsSend({ type: 'state', time: currentTime, playing: isPlaying })
       break
+
+    case 'pong':
+      if (data.ts) latency = (Date.now() - data.ts) / 2 / 1000
+      break
   }
 }
 
 function applySync(data) {
   if (!playerReady) return
+  const compensated = (data.time ?? 0) + latency
   switch (data.event) {
     case 'play':
     case 'started':
       sendPlayerCommand('play')
+      if (Math.abs(currentTime - compensated) > SYNC_THRESHOLD)
+        sendPlayerCommand('seek', compensated)
       break
     case 'pause':
       sendPlayerCommand('pause')
       break
     case 'seek':
-      if (Math.abs(currentTime - data.time) > SYNC_THRESHOLD)
-        sendPlayerCommand('seek', data.time)
+      sendPlayerCommand('seek', compensated)
       break
     case 'timeupdate':
-      if (isPlaying && Math.abs(currentTime - data.time) > SYNC_THRESHOLD)
-        sendPlayerCommand('seek', data.time)
+      if (isPlaying && Math.abs(currentTime - compensated) > SYNC_THRESHOLD)
+        sendPlayerCommand('seek', compensated)
       break
     case 'file':
       if (data.playlistId != null) sendPlayerCommand('find', data.playlistId)
@@ -168,8 +183,9 @@ function applySync(data) {
 
 function applyState(data) {
   if (!playerReady) return
-  if (Math.abs(currentTime - data.time) > SYNC_THRESHOLD)
-    sendPlayerCommand('seek', data.time)
+  const compensated = (data.time ?? 0) + latency
+  if (Math.abs(currentTime - compensated) > SYNC_THRESHOLD)
+    sendPlayerCommand('seek', compensated)
   if (data.playing && !isPlaying) sendPlayerCommand('play')
   else if (!data.playing && isPlaying) sendPlayerCommand('pause')
 }
@@ -206,6 +222,12 @@ window.addEventListener('message', e => {
 
   const syncEvents = ['play', 'pause', 'seek', 'timeupdate', 'started', 'file']
   if (!syncEvents.includes(ev)) return
+
+  if (ev === 'timeupdate') {
+    const now = Date.now()
+    if (now - lastTimeupdateSent < TIMEUPDATE_INTERVAL) return
+    lastTimeupdateSent = now
+  }
 
   wsSend({ type: 'sync', event: ev, time: data.time, playlistId: data.playlistId ?? null, file: data.file ?? null })
 })
