@@ -162,6 +162,13 @@ function handleServerMessage(data) {
 function applySync(data) {
   if (!playerReady) return
   const compensated = (data.time ?? 0) + latency
+
+  // Смена озвучки/плейлиста — проверяем на любом событии
+  if (data.playlistId != null && data.playlistId !== currentPlaylistId) {
+    currentPlaylistId = data.playlistId
+    sendPlayerCommand('playlist', data.playlistId)
+  }
+
   switch (data.event) {
     case 'play':
     case 'started':
@@ -186,18 +193,15 @@ function applySync(data) {
         }
       }
       break
-    case 'file':
-    case 'playlist_changed':
-      if (data.playlistId != null) sendPlayerCommand('playlist', data.playlistId)
-      else if (data.file) sendPlayerCommand('file', data.file)
-      break
   }
 }
 
 function applyState(data) {
   if (!playerReady) return
-  if (data.playlistId != null) sendPlayerCommand('playlist', data.playlistId)
-  else if (data.file) sendPlayerCommand('file', data.file)
+  if (data.playlistId != null && data.playlistId !== currentPlaylistId) {
+    currentPlaylistId = data.playlistId
+    sendPlayerCommand('playlist', data.playlistId)
+  } else if (data.file && !data.playlistId) sendPlayerCommand('file', data.file)
   const compensated = (data.time ?? 0) + latency
   if (Math.abs(currentTime - compensated) > SYNC_THRESHOLD)
     sendPlayerCommand('seek', compensated)
