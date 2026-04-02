@@ -1832,15 +1832,6 @@ a.movie-poster-side img {
 
 /* ── TV / Large screen (1400px+) ─────────────────────────── */
 @media (min-width: 1400px) {
-  html { font-size: 18px; }
-
-  .grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
-
-  .nav-link { font-size: 1rem; padding: 14px; }
-  .nav-link i { font-size: 22px; }
-
-  .section-title { font-size: 1.8rem; }
-
   .movie-card:focus-visible {
     outline: 4px solid var(--accent);
     outline-offset: 4px;
