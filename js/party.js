@@ -67,7 +67,8 @@ let isPlaying = false
 let reconnectTimer = null
 const SYNC_THRESHOLD = 2  // секунды
 
-const wsUrl = (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host + '/ws/party?room=' + roomId
+const wsHost = window.location.hostname.endsWith('github.io') ? 'nazeleniy.mooo.com' : location.host
+const wsUrl = (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + wsHost + '/ws/party?room=' + roomId
 
 function connect() {
   ws = new WebSocket(wsUrl)
