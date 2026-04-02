@@ -187,7 +187,7 @@ function applySync(data) {
       break
     case 'file':
     case 'playlist_changed':
-      if (data.playlistId != null) sendPlayerCommand('find', data.playlistId)
+      if (data.playlistId != null) sendPlayerCommand('playlist', data.playlistId)
       else if (data.file) sendPlayerCommand('file', data.file)
       break
   }
@@ -195,7 +195,7 @@ function applySync(data) {
 
 function applyState(data) {
   if (!playerReady) return
-  if (data.playlistId != null) sendPlayerCommand('find', data.playlistId)
+  if (data.playlistId != null) sendPlayerCommand('playlist', data.playlistId)
   else if (data.file) sendPlayerCommand('file', data.file)
   const compensated = (data.time ?? 0) + latency
   if (Math.abs(currentTime - compensated) > SYNC_THRESHOLD)
