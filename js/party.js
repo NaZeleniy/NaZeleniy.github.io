@@ -126,6 +126,8 @@ function handleServerMessage(data) {
       if (!isHost) {
         document.getElementById('partyViewerOverlay').classList.add('active')
         document.getElementById('partyJoinOverlay').classList.add('active')
+      } else {
+        startPlayer()
       }
       break
 
@@ -310,11 +312,8 @@ async function startPlayer() {
     const frame = document.getElementById('vibix-frame')
     const h = Math.round(document.querySelector('.party-player-wrap').offsetHeight)
     frame.srcdoc = vibixSrcdoc(vibix.url, h)
-    frame.addEventListener('load', function onLoad() {
-      frame.removeEventListener('load', onLoad)
-      document.getElementById('partyLoading').style.display = 'none'
-      playerReady = true
-    })
+    document.getElementById('partyLoading').style.display = 'none'
+    playerReady = true
   } catch (e) {
     document.getElementById('partyLoading').innerHTML =
       `<i class="fas fa-exclamation-circle"></i><span>${e.message || 'Ошибка загрузки плеера'}</span>`
