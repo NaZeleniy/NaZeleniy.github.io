@@ -61,12 +61,23 @@ function selectPlayer(name, url, type) {
     const timer = setTimeout(() => done(false), 3000)
     window.addEventListener('message', onMsg)
   } else {
-    const done = success => {
-      clearTimeout(timer)
-      playerSetState(success ? 'ready' : 'error', gen)
+    let attempts = 0
+    const maxAttempts = 6
+    const onLoad = () => {
+      clearInterval(interval)
+      frame.removeEventListener('load', onLoad)
+      playerSetState('ready', gen)
     }
-    const timer = setTimeout(() => done(false), 20000)
-    frame.addEventListener('load', () => done(true), { once: true })
+    const interval = setInterval(() => {
+      if (++attempts >= maxAttempts) {
+        clearInterval(interval)
+        frame.removeEventListener('load', onLoad)
+        playerSetState('error', gen)
+        return
+      }
+      frame.src = frame.src
+    }, 5000)
+    frame.addEventListener('load', onLoad)
   }
 }
 
