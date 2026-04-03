@@ -82,7 +82,7 @@ document.addEventListener('click', e => {
 
 function playerSectionHtml(movie) {
   const id = movie.kinopoiskId || movie.imdbId
-  if (!id) return ''
+  if (!id || !movie.players?.length) return ''
 
   const hasVibix = (movie.players || []).some(p => p.name === 'Vibix')
   const partyBtn = hasVibix ? `
