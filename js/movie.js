@@ -84,6 +84,13 @@ function playerSectionHtml(movie) {
   const id = movie.kinopoiskId || movie.imdbId
   if (!id) return ''
 
+  const hasVibix = (movie.players || []).some(p => p.name === 'Vibix')
+  const partyBtn = hasVibix ? `
+      <a class="watch-party-btn" href="party.html?id=${id}" target="_blank" title="Совместный просмотр">
+        <i class="fas fa-users"></i>
+        <span>Смотреть вместе</span>
+      </a>` : ''
+
   return `${localStorage.getItem('nz_hide_coming_soon') ? '' : `<div class="player-coming-soon" id="player-coming-soon">
     <i class="fas fa-info-circle"></i>
     <span>Планируется добавление новых плееров в будущем</span>
@@ -103,10 +110,7 @@ function playerSectionHtml(movie) {
         </button>
         <div class="player-dropdown" id="playerDropdown"></div>
       </div>
-      <a class="watch-party-btn" href="party.html?id=${id}" target="_blank" title="Совместный просмотр">
-        <i class="fas fa-users"></i>
-        <span>Смотреть вместе</span>
-      </a>
+      ${partyBtn}
     </div>
     <div class="player-wrapper">
       <iframe id="player-frame" frameborder="0" allowfullscreen sandbox="${PLAYER_SANDBOX}"></iframe>

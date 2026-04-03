@@ -291,7 +291,7 @@ async function init() {
     }
   } catch {}
 
-  startVibix()
+  startPlayer()
   connect()
 
   document.getElementById('partyJoinBtn').addEventListener('click', () => {
@@ -300,36 +300,18 @@ async function init() {
   })
 }
 
-function startVibix() {
-  const slot = document.getElementById('vibix-slot')
-  slot.innerHTML = `<ins
-    data-publisher-id="677393820"
-    data-type="kp"
-    data-id="${movieId}"
-    data-design="2"
-    data-sync="true"
-    data-color1="#333333"
-    data-color2="#666666"
-    data-color3="#999999"
-    data-color4="#CCCCCC"
-    data-color5="#FFFFFF"></ins>`
-
-  const script = document.createElement('script')
-  script.src = 'https://graphicslab.io/sdk/v2/rendex-sdk.min.js'
-  script.onload = () => {
-    const existing = slot.querySelector('iframe')
-    if (existing) { onIframe(existing); return }
-    const observer = new MutationObserver(() => {
-      const iframe = slot.querySelector('iframe')
-      if (iframe) { observer.disconnect(); onIframe(iframe) }
-    })
-    observer.observe(slot, { childList: true, subtree: true })
+async function startPlayer() {
+  try {
+    const r = await fetch(`${API_BASE}/api/movie/${movieId}`)
+    if (!r.ok) throw new Error()
+    const movie = await r.json()
+    const vibix = (movie.players || []).find(p => p.name === 'Vibix')
+    if (!vibix) throw new Error('Vibix недоступен')
+    document.getElementById('vibix-frame').src = vibix.url
+  } catch (e) {
+    document.getElementById('partyLoading').innerHTML =
+      `<i class="fas fa-exclamation-circle"></i><span>${e.message || 'Ошибка загрузки плеера'}</span>`
   }
-  document.head.appendChild(script)
-}
-
-function onIframe(iframe) {
-  iframe.id = 'vibix-frame'
 }
 
 // ── Chat ─────────────────────────────────────────────────────
