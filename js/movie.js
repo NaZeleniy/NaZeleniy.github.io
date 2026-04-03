@@ -23,10 +23,10 @@ function backBtn() {
 }
 
 const PLAYERS = [
+  { name: 'Turbo',          url: (r, id) => `https://de985d56.obrut.show/embed/yYjM/kinopoisk/${id}`, kpOnly: true, useLoad: true },
   { name: 'Vibix',          vibix: true },
   { name: 'VideoSeed',      url: (r, id) => `https://tv-2-kinoserial.net/embed_auto/${id}/?token=dbe140b3c3f68769a13ee6e953f7ce96`, useLoad: true },
   { name: 'VideoBalanser',  asyncUrl: (r, id) => `${API_BASE}/api/player/videobalanser/${id}`, kpOnly: true, useLoad: true },
-  { name: 'Turbo',          url: (r, id) => `https://de985d56.obrut.show/embed/yYjM/kinopoisk/${id}`, kpOnly: true, useLoad: true, helperUrl: 'https://s1obrut.github.io/helper.js' },
   { name: 'FlixCDN',        url: (r, id) => `//player0.flixcdn.space/show/${r}/${id}?no_sharing=1` },
 ]
 
@@ -88,7 +88,7 @@ function selectVibixPlayer(type, id) {
     if (gen !== _playerGen) return
     const existing = slot.querySelector('iframe')
     if (existing) { waitForLoad(existing); return }
-    const noIframeTimer = setTimeout(() => { observer.disconnect(); playerSetState('error', gen) }, 5000)
+    const noIframeTimer = setTimeout(() => { observer.disconnect(); playerSetState('error', gen) }, 15000)
     const observer = new MutationObserver(() => {
       const iframe = slot.querySelector('iframe')
       if (iframe) { observer.disconnect(); clearTimeout(noIframeTimer); waitForLoad(iframe) }
@@ -99,7 +99,7 @@ function selectVibixPlayer(type, id) {
 
   function waitForLoad(iframe) {
     iframe.id = 'vibix-frame'
-    const timer = setTimeout(() => playerSetState('error', gen), 8000)
+    const timer = setTimeout(() => playerSetState('error', gen), 20000)
     iframe.addEventListener('load', () => { clearTimeout(timer); playerSetState('ready', gen) }, { once: true })
   }
   document.head.appendChild(script)
@@ -107,16 +107,6 @@ function selectVibixPlayer(type, id) {
   playerUpdateUI('Vibix')
 }
 
-function loadHelperScript(url) {
-  return new Promise(resolve => {
-    if ([...document.scripts].some(s => s.src.indexOf(url) !== -1)) { resolve(); return }
-    const s = document.createElement('script')
-    s.async = true
-    s.src = url + '?' + Math.floor(Date.now() / 3e5)
-    s.onload = s.onerror = resolve
-    document.head.appendChild(s)
-  })
-}
 
 async function selectPlayer(name, src) {
   const gen = ++_playerGen
@@ -128,9 +118,6 @@ async function selectPlayer(name, src) {
   playerUpdateUI(name)
 
   const player = PLAYERS.find(p => p.name === name)
-
-  if (player?.helperUrl) await loadHelperScript(player.helperUrl)
-  if (gen !== _playerGen) return
 
   if (player?.asyncUrl) {
     try {
@@ -152,7 +139,7 @@ async function selectPlayer(name, src) {
       clearTimeout(timer)
       playerSetState(success ? 'ready' : 'error', gen)
     }
-    const timer = setTimeout(() => done(false), 5000)
+    const timer = setTimeout(() => done(false), 20000)
     frame.addEventListener('load', () => done(true), { once: true })
   } else {
     if (typeof window.khS !== 'undefined') window.khS = false
