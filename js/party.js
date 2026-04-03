@@ -307,7 +307,19 @@ async function startPlayer() {
     const movie = await r.json()
     const vibix = (movie.players || []).find(p => p.name === 'Vibix')
     if (!vibix) throw new Error('Vibix недоступен')
-    document.getElementById('vibix-frame').src = vibix.url
+    const frame = document.getElementById('vibix-frame')
+    frame.srcdoc = `<!DOCTYPE html><html><head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#000}
+ins{display:block!important;width:100%!important;height:100%!important}
+ins iframe{position:fixed!important;inset:0!important;width:100%!important;height:100%!important}
+</style>
+<script src="https://graphicslab.io/sdk/v2/rendex-sdk.min.js"></script>
+</head><body>
+<ins data-publisher-id="677393820" data-type="kp" data-id="${vibix.url}" data-design="2" data-color1="#333333" data-color2="#666666" data-color3="#999999" data-color4="#CCCCCC" data-color5="#FFFFFF"></ins>
+</body></html>`
   } catch (e) {
     document.getElementById('partyLoading').innerHTML =
       `<i class="fas fa-exclamation-circle"></i><span>${e.message || 'Ошибка загрузки плеера'}</span>`
