@@ -282,6 +282,8 @@ window.addEventListener('message', e => {
 
 // ── Vibix player ─────────────────────────────────────────────
 
+let _vibixScriptLoaded = false
+
 async function init() {
   try {
     const r = await fetch(`${API_BASE}/api/movie/${movieId}`)
@@ -309,11 +311,41 @@ async function startPlayer() {
     const movie = await r.json()
     const vibix = (movie.players || []).find(p => p.name === 'Vibix')
     if (!vibix) throw new Error('Vibix недоступен')
-    const frame = document.getElementById('vibix-frame')
-    const h = Math.round(document.querySelector('.party-player-wrap').offsetHeight)
-    frame.srcdoc = vibixSrcdoc(vibix.url, h)
-    document.getElementById('partyLoading').style.display = 'none'
-    playerReady = true
+
+    const slot = document.getElementById('vibix-slot')
+    slot.innerHTML = `<ins data-publisher-id="677393820" data-type="kp" data-id="${vibix.url}" data-design="2" data-sync="true" data-color1="#333333" data-color2="#666666" data-color3="#999999" data-color4="#CCCCCC" data-color5="#FFFFFF"></ins>`
+
+    const waitForIframe = () => new Promise(resolve => {
+      const existing = slot.querySelector('iframe')
+      if (existing) { resolve(existing); return }
+      const obs = new MutationObserver(() => {
+        const f = slot.querySelector('iframe')
+        if (f) { obs.disconnect(); resolve(f) }
+      })
+      obs.observe(slot, { childList: true, subtree: true })
+    })
+
+    if (_vibixScriptLoaded) {
+      const frame = await waitForIframe()
+      frame.id = 'vibix-frame'
+      document.getElementById('partyLoading').style.display = 'none'
+      playerReady = true
+    } else {
+      const script = document.createElement('script')
+      script.src = 'https://graphicslab.io/sdk/v2/rendex-sdk.min.js'
+      script.onload = async () => {
+        _vibixScriptLoaded = true
+        const frame = await waitForIframe()
+        frame.id = 'vibix-frame'
+        document.getElementById('partyLoading').style.display = 'none'
+        playerReady = true
+      }
+      script.onerror = () => {
+        document.getElementById('partyLoading').innerHTML =
+          '<i class="fas fa-exclamation-circle"></i><span>Ошибка загрузки плеера</span>'
+      }
+      document.head.appendChild(script)
+    }
   } catch (e) {
     document.getElementById('partyLoading').innerHTML =
       `<i class="fas fa-exclamation-circle"></i><span>${e.message || 'Ошибка загрузки плеера'}</span>`

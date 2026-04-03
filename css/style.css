@@ -1688,11 +1688,17 @@ a.movie-poster-side img {
   min-height: 0;
 }
 
-.party-player-wrap #vibix-frame {
+.party-player-wrap #vibix-slot {
+  width: 100%;
+  height: 100%;
+}
+
+.party-player-wrap #vibix-slot ins,
+.party-player-wrap #vibix-slot iframe {
+  display: block;
   width: 100%;
   height: 100%;
   border: none;
-  display: block;
 }
 
 .party-loading {
