@@ -49,23 +49,13 @@ function selectPlayer(name, url, type) {
   playerUpdateUI(name)
 
   if (type === 'vibix') {
+    const h = Math.round(document.querySelector('.player-wrapper').offsetHeight)
     frame.srcdoc = `<!DOCTYPE html><html><head>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;overflow:hidden;background:#000}
-ins{display:block!important;width:100%!important;height:100%!important}
-</style>
-</head><body>
-<ins data-publisher-id="677393820" data-type="kp" data-id="${url}" data-design="2" data-color1="#333333" data-color2="#666666" data-color3="#999999" data-color4="#CCCCCC" data-color5="#FFFFFF"></ins>
-<script>
-new MutationObserver(function(){
-  document.querySelectorAll('iframe').forEach(function(f){
-    f.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;border:none';
-  });
-}).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['style','height','width']});
-</script>
+<style>*{margin:0;padding:0}body{background:#000}</style>
 <script src="https://graphicslab.io/sdk/v2/rendex-sdk.min.js"></script>
+</head><body>
+<ins data-publisher-id="677393820" data-type="kp" data-id="${url}" data-design="2" data-height="${h}" data-color1="#333333" data-color2="#666666" data-color3="#999999" data-color4="#CCCCCC" data-color5="#FFFFFF"></ins>
 </body></html>`
     const onLoad = () => {
       frame.removeEventListener('load', onLoad)
