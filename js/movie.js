@@ -15,12 +15,6 @@ function joinList(arr, key) {
   return arr.map(x => x[key]).join(', ')
 }
 
-function backBtn() {
-  return `<a href="/" class="back-btn" onclick="if(document.referrer&&new URL(document.referrer).origin===location.origin){event.preventDefault();history.back()}">
-    <i class="fas fa-arrow-left"></i>
-    <span>Назад</span>
-  </a>`
-}
 
 const PLAYER_SANDBOX = 'allow-scripts allow-same-origin allow-presentation allow-fullscreen'
 
@@ -321,7 +315,6 @@ function renderMovie(movie) {
     : ''
 
   document.getElementById('movieContent').innerHTML = `
-    ${backBtn()}
     <div class="content-header">
       <h1 class="content-title">${title}</h1>
     </div>
@@ -500,7 +493,6 @@ async function loadSimilars() {
 
 function renderError(message) {
   document.getElementById('movieContent').innerHTML = `
-    ${backBtn()}
     <div class="empty-state">
       <i class="fas fa-film"></i>
       <p>${message}</p>
