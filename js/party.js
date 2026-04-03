@@ -291,11 +291,11 @@ async function init() {
     }
   } catch {}
 
-  startPlayer()
   connect()
 
   document.getElementById('partyJoinBtn').addEventListener('click', () => {
     document.getElementById('partyJoinOverlay').classList.remove('active')
+    startPlayer()
     wsSend({ type: 'request_sync' })
   })
 }
