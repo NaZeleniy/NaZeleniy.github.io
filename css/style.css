@@ -1688,9 +1688,7 @@ a.movie-poster-side img {
   min-height: 0;
 }
 
-.party-player-wrap #vibix-slot,
-.party-player-wrap #vibix-slot ins,
-.party-player-wrap #vibix-slot iframe {
+.party-player-wrap #vibix-frame {
   width: 100%;
   height: 100%;
   border: none;
