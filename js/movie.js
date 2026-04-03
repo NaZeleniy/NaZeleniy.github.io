@@ -16,7 +16,6 @@ function joinList(arr, key) {
 }
 
 
-const PLAYER_SANDBOX = 'allow-scripts allow-same-origin allow-presentation'
 
 function togglePlayerDropdown() {
   const dd = document.getElementById('playerDropdown')
@@ -48,11 +47,6 @@ function selectPlayer(name, url, type) {
   const frame = document.getElementById('player-frame')
   playerSetState('loading', gen)
   playerUpdateUI(name)
-  if (type === 'flixcdn') {
-    frame.removeAttribute('sandbox')
-  } else {
-    frame.setAttribute('sandbox', PLAYER_SANDBOX)
-  }
   frame.src = url
 
   if (type === 'flixcdn') {
@@ -118,7 +112,7 @@ function playerSectionHtml(movie) {
       ${partyBtn}
     </div>
     <div class="player-wrapper">
-      <iframe id="player-frame" frameborder="0" allowfullscreen sandbox="${PLAYER_SANDBOX}"></iframe>
+      <iframe id="player-frame" frameborder="0" allowfullscreen></iframe>
       <div class="player-loading">
         <i class="fas fa-circle-notch fa-spin"></i>
       </div>
