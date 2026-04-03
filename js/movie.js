@@ -22,6 +22,8 @@ function backBtn() {
   </a>`
 }
 
+const PLAYER_SANDBOX = 'allow-scripts allow-same-origin allow-presentation allow-fullscreen'
+
 const PLAYERS = [
   { name: 'Turbo',          url: (r, id) => `https://de985d56.obrut.show/embed/yYjM/kinopoisk/${id}`, kpOnly: true, useLoad: true },
   { name: 'Vibix',          vibix: true },
@@ -99,6 +101,7 @@ function selectVibixPlayer(type, id) {
 
   function waitForLoad(iframe) {
     iframe.id = 'vibix-frame'
+    iframe.sandbox = PLAYER_SANDBOX
     const timer = setTimeout(() => playerSetState('error', gen), 20000)
     iframe.addEventListener('load', () => { clearTimeout(timer); playerSetState('ready', gen) }, { once: true })
   }
@@ -217,7 +220,7 @@ function playerSectionHtml(movie) {
       </a>
     </div>
     <div class="player-wrapper">
-      <iframe id="flixcdn" frameborder="0" allowfullscreen></iframe>
+      <iframe id="flixcdn" frameborder="0" allowfullscreen sandbox="${PLAYER_SANDBOX}"></iframe>
       <div id="vibix-slot" class="vibix-slot"></div>
       <div class="player-loading">
         <i class="fas fa-circle-notch fa-spin"></i>
