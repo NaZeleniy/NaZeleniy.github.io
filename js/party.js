@@ -295,9 +295,9 @@ async function init() {
 
   connect()
 
-  document.getElementById('partyJoinBtn').addEventListener('click', () => {
+  document.getElementById('partyJoinBtn').addEventListener('click', async () => {
     document.getElementById('partyJoinOverlay').classList.remove('active')
-    startPlayer()
+    await startPlayer()
     wsSend({ type: 'request_sync' })
   })
 }
