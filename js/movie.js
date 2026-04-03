@@ -47,6 +47,33 @@ function selectPlayer(name, url, type) {
   const frame = document.getElementById('player-frame')
   playerSetState('loading', gen)
   playerUpdateUI(name)
+
+  if (type === 'vibix') {
+    frame.style.display = 'none'
+    frame.src = ''
+    let wrap = document.getElementById('vibix-sdk-wrap')
+    if (!wrap) {
+      wrap = document.createElement('div')
+      wrap.id = 'vibix-sdk-wrap'
+      wrap.style.cssText = 'position:absolute;inset:0;width:100%;height:100%'
+      frame.parentNode.insertBefore(wrap, frame)
+    }
+    wrap.style.display = 'block'
+    wrap.innerHTML = `<ins data-publisher-id="677393820" data-type="kp" data-id="${url}" data-design="2" data-color1="#333333" data-color2="#666666" data-color3="#999999" data-color4="#CCCCCC" data-color5="#FFFFFF" style="display:block;width:100%;height:100%"></ins>`
+    const old = document.getElementById('vibix-sdk-script')
+    if (old) old.remove()
+    const s = document.createElement('script')
+    s.id = 'vibix-sdk-script'
+    s.src = 'https://graphicslab.io/sdk/v2/rendex-sdk.min.js'
+    s.onload = () => playerSetState('ready', gen)
+    s.onerror = () => playerSetState('error', gen)
+    document.head.appendChild(s)
+    return
+  }
+
+  const sdkWrap = document.getElementById('vibix-sdk-wrap')
+  if (sdkWrap) sdkWrap.style.display = 'none'
+  frame.style.display = ''
   frame.src = url
 
   if (type === 'flixcdn') {
