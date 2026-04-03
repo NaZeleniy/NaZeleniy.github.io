@@ -27,9 +27,11 @@ function _renderSidebar(activePage) {
 }
 
 function _renderSearch(activePage) {
+  const el = document.getElementById('app-search')
+  if (!el) return
   const isTop = activePage === 'top'
 
-  document.getElementById('app-search').outerHTML = `
+  el.outerHTML = `
     <section class="search-section">
       <div class="search-container">
 

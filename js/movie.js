@@ -26,7 +26,7 @@ const PLAYERS = [
   { name: 'Vibix',          vibix: true },
   { name: 'VideoSeed',      url: (r, id) => `https://tv-2-kinoserial.net/embed_auto/${id}/?token=dbe140b3c3f68769a13ee6e953f7ce96`, useLoad: true },
   { name: 'VideoBalanser',  asyncUrl: (r, id) => `${API_BASE}/api/player/videobalanser/${id}`, kpOnly: true, useLoad: true },
-  { name: 'Turbo',          url: (r, id) => `https://de985d56.obrut.show/embed/yYjM/kinopoisk/${id}`, kpOnly: true, useLoad: true },
+  { name: 'Turbo',          url: (r, id) => `https://de985d56.obrut.show/embed/yYjM/kinopoisk/${id}`, kpOnly: true, useLoad: true, helperUrl: 'https://s1obrut.github.io/helper.js' },
   { name: 'FlixCDN',        url: (r, id) => `//player0.flixcdn.space/show/${r}/${id}?no_sharing=1` },
 ]
 
@@ -107,6 +107,17 @@ function selectVibixPlayer(type, id) {
   playerUpdateUI('Vibix')
 }
 
+function loadHelperScript(url) {
+  return new Promise(resolve => {
+    if ([...document.scripts].some(s => s.src.indexOf(url) !== -1)) { resolve(); return }
+    const s = document.createElement('script')
+    s.async = true
+    s.src = url + '?' + Math.floor(Date.now() / 3e5)
+    s.onload = s.onerror = resolve
+    document.head.appendChild(s)
+  })
+}
+
 async function selectPlayer(name, src) {
   const gen = ++_playerGen
   const frame = document.getElementById('flixcdn')
@@ -117,6 +128,9 @@ async function selectPlayer(name, src) {
   playerUpdateUI(name)
 
   const player = PLAYERS.find(p => p.name === name)
+
+  if (player?.helperUrl) await loadHelperScript(player.helperUrl)
+  if (gen !== _playerGen) return
 
   if (player?.asyncUrl) {
     try {
