@@ -16,7 +16,7 @@ function joinList(arr, key) {
 }
 
 
-const PLAYER_SANDBOX = 'allow-scripts allow-same-origin allow-presentation allow-fullscreen'
+const PLAYER_SANDBOX = 'allow-scripts allow-same-origin allow-presentation'
 
 function togglePlayerDropdown() {
   const dd = document.getElementById('playerDropdown')
@@ -48,6 +48,11 @@ function selectPlayer(name, url, type) {
   const frame = document.getElementById('player-frame')
   playerSetState('loading', gen)
   playerUpdateUI(name)
+  if (type === 'flixcdn') {
+    frame.removeAttribute('sandbox')
+  } else {
+    frame.setAttribute('sandbox', PLAYER_SANDBOX)
+  }
   frame.src = url
 
   if (type === 'flixcdn') {
