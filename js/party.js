@@ -165,13 +165,22 @@ function handleServerMessage(data) {
   }
 }
 
+function sameFile(a, b) {
+  if (!a && !b) return true
+  if (!a || !b) return false
+  return a.fileId === b.fileId && a.playlistIndex === b.playlistIndex && a.playlistId === b.playlistId
+}
+
 function applySync(data) {
   if (!playerReady) return
   const compensated = (data.time ?? 0) + latency
 
-  // Смена озвучки/плейлиста — проверяем на любом событии
-  if (data.playlistId != null && data.playlistId !== currentPlaylistId) {
-    currentPlaylistId = data.playlistId
+  // Смена серии/сезона/озвучки — проверяем изменение playlistId ИЛИ самого файла
+  const playlistChanged = data.playlistId != null && data.playlistId !== currentPlaylistId
+  const fileChanged = data.file != null && !sameFile(data.file, currentFile)
+  if (playlistChanged || fileChanged) {
+    if (data.playlistId != null) currentPlaylistId = data.playlistId
+    if (data.file != null) currentFile = data.file
     const fileObj = data.file || { playlistId: data.playlistId, fileId: null, playlistIndex: null }
     sendPlayerCommand('file', fileObj)
   }
@@ -212,8 +221,11 @@ function applySync(data) {
 
 function applyState(data) {
   if (!playerReady) return
-  if (data.playlistId != null && data.playlistId !== currentPlaylistId) {
-    currentPlaylistId = data.playlistId
+  const playlistChanged = data.playlistId != null && data.playlistId !== currentPlaylistId
+  const fileChanged = data.file != null && !sameFile(data.file, currentFile)
+  if (playlistChanged || fileChanged) {
+    if (data.playlistId != null) currentPlaylistId = data.playlistId
+    if (data.file != null) currentFile = data.file
     const fileObj = data.file || { playlistId: data.playlistId, fileId: null, playlistIndex: null }
     sendPlayerCommand('file', fileObj)
   } else if (data.file && !data.playlistId) sendPlayerCommand('file', data.file)
