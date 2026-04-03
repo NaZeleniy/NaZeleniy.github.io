@@ -16,5 +16,14 @@ function vibixSrcdoc(kpId, height) {
 <script src="https://graphicslab.io/sdk/v2/rendex-sdk.min.js"></script>
 </head><body>
 <ins data-publisher-id="677393820" data-type="kp" data-id="${kpId}" data-design="2" data-height="${height}" data-color1="#333333" data-color2="#666666" data-color3="#999999" data-color4="#CCCCCC" data-color5="#FFFFFF"></ins>
+<script>
+window.addEventListener('message',function(e){
+  if(e.source===window.parent){
+    document.querySelectorAll('iframe').forEach(function(f){f.contentWindow.postMessage(e.data,'*');});
+  } else {
+    window.parent.postMessage(e.data,'*');
+  }
+});
+<\/script>
 </body></html>`
 }
