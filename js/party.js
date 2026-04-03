@@ -173,6 +173,7 @@ function sameFile(a, b) {
 
 function applySync(data) {
   if (!playerReady) return
+  console.log('[party] applySync', JSON.stringify(data))
   const compensated = (data.time ?? 0) + latency
 
   // Смена серии/сезона/озвучки — проверяем изменение playlistId ИЛИ самого файла
@@ -246,6 +247,7 @@ function applyState(data) {
 function sendPlayerCommand(command, value) {
   const frame = document.getElementById('vibix-frame')
   if (!frame || !frame.contentWindow) return
+  console.log('[party] sendPlayerCommand', command, JSON.stringify(value))
   frame.contentWindow.postMessage({ type: 'playerCommand', command, value, timestamp: Date.now() }, '*')
 }
 
@@ -254,6 +256,8 @@ function sendPlayerCommand(command, value) {
 window.addEventListener('message', e => {
   const data = e.data
   if (!data || data.type !== 'playerEvent') return
+
+  console.log('[party] playerEvent', JSON.stringify(data))
 
   const ev = data.event
 
