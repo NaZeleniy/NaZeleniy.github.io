@@ -233,7 +233,7 @@ function applySync(data) {
         if (buffered) flushBufferedPlayback(buffered)
       }, 1500)
     }
-    sendPlayerCommand('file', fileObj || { playlistId: data.playlistId, fileId: null, playlistIndex: null })
+    sendFileCommand(fileObj || { playlistId: data.playlistId, fileId: null, playlistIndex: null })
     return
   }
 
@@ -290,7 +290,7 @@ function applyState(data) {
   if (playlistChanged || fileChanged) {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (fileObj) currentFile = fileObj
-    sendPlayerCommand('file', fileObj || { playlistId: data.playlistId, fileId: null, playlistIndex: null })
+    sendFileCommand(fileObj || { playlistId: data.playlistId, fileId: null, playlistIndex: null })
   } else if (fileObj && !data.playlistId) sendPlayerCommand('file', fileObj)
   if (data.audioTrack != null && data.audioTrack !== currentAudioTrack) {
     currentAudioTrack = data.audioTrack
@@ -314,6 +314,20 @@ function sendPlayerCommand(command, value) {
   }
   console.log('[party] sendPlayerCommand', command, JSON.stringify(value))
   frame.contentWindow.postMessage({ type: 'playerCommand', command, value, timestamp: Date.now() }, '*')
+}
+
+function sendFileCommand(fileObj) {
+  const variants = []
+  if (fileObj) variants.push(fileObj)
+  if (fileObj?.playlistId) variants.push({ playlistId: fileObj.playlistId })
+  if (fileObj?.playlistId) variants.push(fileObj.playlistId)
+
+  variants.forEach((variant, index) => {
+    setTimeout(() => {
+      console.log('[party][viewer] sendFile variant', index + 1, JSON.stringify(variant))
+      sendPlayerCommand('file', variant)
+    }, index * 250)
+  })
 }
 
 function flushBufferedPlayback(buffered) {
