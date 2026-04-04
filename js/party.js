@@ -33,6 +33,9 @@ const USE_NATIVE_WATCH_PARTY = true
 let nativeParty = null
 let watchPartyPrototypePatched = false
 const NATIVE_ONLY_EVENTS = new Set(['file', 'playlist_changed'])
+const NATIVE_OUTGOING_EVENTS = new Set(['file', 'playlist_changed'])
+
+window.__nzCanWatchPartyPublish = () => !!isHost
 
 // ── UI helpers ───────────────────────────────────────────────
 
@@ -136,6 +139,7 @@ function handleServerMessage(data) {
         document.getElementById('partyViewerOverlay').classList.remove('active')
         document.getElementById('partyJoinOverlay').classList.remove('active')
       }
+      syncNativePartyRole()
       break
 
     case 'role_changed':
@@ -508,12 +512,43 @@ function onIframe(iframe) {
   initNativeWatchParty()
 }
 
+function syncNativePartyRole() {
+  if (!nativeParty) return
+  nativeParty.isHost = !!isHost
+  nativeParty.roleAssigned = true
+  if (!nativeParty.state || typeof nativeParty.state !== 'object') nativeParty.state = {}
+  nativeParty.state.isHost = !!isHost
+  console.log('[party] native role synced', JSON.stringify({ isHost }))
+}
+
 function patchWatchPartyPrototype() {
   if (!USE_NATIVE_WATCH_PARTY || watchPartyPrototypePatched || typeof WatchParty !== 'function') return
 
   const proto = WatchParty.prototype
   for (const name of ['createUI', 'setupUIHandlers', 'makeDraggable', 'updateRoleUI', 'showNotification']) {
     if (typeof proto[name] === 'function') proto[name] = function() {}
+  }
+
+  if (typeof proto.handlePlayerEvent === 'function') {
+    const originalHandlePlayerEvent = proto.handlePlayerEvent
+    proto.handlePlayerEvent = function(eventData) {
+      const eventName = eventData?.event || null
+      if (!window.__nzCanWatchPartyPublish()) {
+        this.isHost = false
+        this.roleAssigned = true
+        if (eventName) this.log?.('Viewer event skipped', eventName)
+        return
+      }
+      if (eventName && !NATIVE_OUTGOING_EVENTS.has(eventName)) {
+        this.isHost = true
+        this.roleAssigned = true
+        this.log?.('Native outgoing event skipped', eventName)
+        return
+      }
+      this.isHost = true
+      this.roleAssigned = true
+      return originalHandlePlayerEvent.call(this, eventData)
+    }
   }
 
   watchPartyPrototypePatched = true
@@ -589,6 +624,7 @@ function initNativeWatchParty() {
     debug: true,
   })
   exposeNativeWatchPartyDebug(nativeParty)
+  syncNativePartyRole()
   hideNativeWatchPartyWidget()
   console.log('[party] native WatchParty initialized', JSON.stringify({ roomId, username }))
 }
