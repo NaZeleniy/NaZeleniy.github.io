@@ -138,11 +138,17 @@ function handleServerMessage(data) {
       break
 
     case 'sync':
-      if (!isHost) applySync(data)
+      if (!isHost) {
+        console.log('[party][viewer] ws sync', JSON.stringify(data))
+        applySync(data)
+      }
       break
 
     case 'state':
-      if (!isHost) applyState(data)
+      if (!isHost) {
+        console.log('[party][viewer] ws state', JSON.stringify(data))
+        applyState(data)
+      }
       break
 
     case 'viewers':
@@ -200,12 +206,17 @@ function sameFile(a, b) {
 
 
 function applySync(data) {
-  if (!playerReady) return
+  if (!playerReady) {
+    console.log('[party][viewer] applySync skipped: player not ready', JSON.stringify(data))
+    return
+  }
   const compensated = (data.time ?? 0) + latency
   const fileObj = normalizeFileData(data)
   const fileEvent = data.event === 'file' || data.event === 'playlist_changed'
   const playlistChanged = data.playlistId != null && data.playlistId !== currentPlaylistId
   const fileChanged = fileObj && !sameFile(fileObj, currentFile)
+
+  console.log('[party][viewer] applySync normalized', JSON.stringify({ event: data.event, playlistId: data.playlistId ?? null, file: data.file ?? null, normalizedFile: fileObj, playlistChanged, fileChanged, currentPlaylistId, currentFile }))
 
   if (fileEvent || playlistChanged || fileChanged) {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
@@ -248,10 +259,15 @@ function applySync(data) {
 }
 
 function applyState(data) {
-  if (!playerReady) return
+  if (!playerReady) {
+    console.log('[party][viewer] applyState skipped: player not ready', JSON.stringify(data))
+    return
+  }
   const fileObj = normalizeFileData(data)
   const playlistChanged = data.playlistId != null && data.playlistId !== currentPlaylistId
   const fileChanged = fileObj && !sameFile(fileObj, currentFile)
+
+  console.log('[party][viewer] applyState normalized', JSON.stringify({ playlistId: data.playlistId ?? null, file: data.file ?? null, normalizedFile: fileObj, playlistChanged, fileChanged, currentPlaylistId, currentFile }))
   if (playlistChanged || fileChanged) {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (fileObj) currentFile = fileObj
@@ -273,7 +289,11 @@ function applyState(data) {
 
 function sendPlayerCommand(command, value) {
   const frame = document.getElementById('vibix-frame')
-  if (!frame || !frame.contentWindow) return
+  if (!frame || !frame.contentWindow) {
+    console.log('[party] sendPlayerCommand skipped: no frame', command, JSON.stringify(value))
+    return
+  }
+  console.log('[party] sendPlayerCommand', command, JSON.stringify(value))
   frame.contentWindow.postMessage({ type: 'playerCommand', command, value, timestamp: Date.now() }, '*')
 }
 
