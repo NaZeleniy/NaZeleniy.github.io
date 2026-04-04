@@ -75,7 +75,7 @@ let currentPlaylistId = null
 let currentFile = null
 let currentAudioTrack = null
 // Ожидаем смены эпизода: file команда отправляется на sync_ready после перезагрузки iframe
-let pendingFile = null    // { playlistId, fileCommandValue, time, playing }
+let pendingFile = null    // { playlistId, fileCommandValue, time, playing, fallbackTimer }
 const SYNC_THRESHOLD = 1  // секунды
 const SYNC_COOLDOWN = 3000  // мс между принудительными seek
 const TIMEUPDATE_INTERVAL = 5000  // мс между отправками timeupdate
@@ -189,9 +189,23 @@ function applySync(data) {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (data.file != null) currentFile = data.file
     currentAudioTrack = null
+
     const fileCommandValue = buildFileCommandValue(data.file, data.playlistId)
-    const targetId = fileCommandValue?.playlistId
-    if (targetId) reloadPlayerForEpisode(targetId, fileCommandValue, data.time ?? 0, true)
+    if (fileCommandValue) {
+      clearPendingFile()
+      pendingFile = {
+        playlistId: fileCommandValue.playlistId,
+        fileCommandValue,
+        time: data.time ?? 0,
+        playing: true,
+        fallbackTimer: setTimeout(() => {
+          if (!pendingFile || pendingFile.fileCommandValue !== fileCommandValue) return
+          showEpisodeNotification(data.playlistInfo?.title)
+          clearPendingFile(false)
+        }, 1500)
+      }
+      sendPlayerCommand('file', fileCommandValue)
+    }
     return
   }
 
@@ -263,39 +277,27 @@ function sendPlayerCommand(command, value) {
   frame.contentWindow.postMessage({ type: 'playerCommand', command, value, timestamp: Date.now() }, '*')
 }
 
-// ── Episode reload: перезагружаем iframe и шлём file на sync_ready ──
+// Episode change tracking
 
-function reloadPlayerForEpisode(playlistId, fileCommandValue, seekTime, playing) {
-  const frame = document.getElementById('vibix-frame')
-  if (!frame) return
-
-  console.log('[party] reloadPlayerForEpisode', playlistId)
-  playerReady = false
-  pendingFile = { playlistId, fileCommandValue, time: seekTime ?? 0, playing: !!playing }
-
-  try {
-    const url = new URL(frame.src)
-    url.searchParams.set('nc', Date.now())
-    frame.src = url.toString()
-  } catch(e) {
-    console.warn('[party] reloadPlayerForEpisode failed:', e.message)
-    playerReady = true
-    pendingFile = null
-  }
-
-  // Фолбэк: если через 6с плеер не переключился — восстанавливаем состояние
-  setTimeout(() => {
-    if (!pendingFile) return
-    console.warn('[party] episode reload timeout')
-    const { time, playing: p } = pendingFile
-    pendingFile = null
-    playerReady = true
-    if (time > SYNC_THRESHOLD) sendPlayerCommand('seek', time + latency)
-    if (p) sendPlayerCommand('play')
-  }, 6000)
+function clearPendingFile(resetReady = true) {
+  if (!pendingFile) return
+  if (pendingFile.fallbackTimer) clearTimeout(pendingFile.fallbackTimer)
+  pendingFile = null
+  if (resetReady) playerReady = true
 }
 
-// ── Player events ────────────────────────────────────────────
+function showEpisodeNotification(title) {
+  const notif = document.getElementById('partyEpisodeNotif')
+  if (!notif) return
+  notif.textContent = title
+    ? 'Host changed: ' + title + ' - select this episode in the player'
+    : 'Host changed season or episode - select it in the player'
+  notif.style.display = 'block'
+  clearTimeout(notif._t)
+  notif._t = setTimeout(() => { notif.style.display = 'none' }, 7000)
+}
+
+// Player events
 
 window.addEventListener('message', e => {
   const data = e.data
@@ -306,24 +308,12 @@ window.addEventListener('message', e => {
   if (ev === 'sync_ready') {
     playerReady = true
     document.getElementById('partyLoading').style.display = 'none'
-    // Отправляем file команду именно в момент sync_ready — плеер ещё инициализируется
-    if (!isHost && pendingFile) {
-      console.log('[party] sync_ready: sending file command for', pendingFile.playlistId)
-      if (pendingFile.fileCommandValue) sendPlayerCommand('file', pendingFile.fileCommandValue)
-    }
     return
   }
 
   if (ev === 'ready') {
     playerReady = true
     document.getElementById('partyLoading').style.display = 'none'
-    // Если после ready эпизод всё ещё не переключился — применяем seek/play
-    if (!isHost && pendingFile) {
-      const { time, playing } = pendingFile
-      pendingFile = null
-      if (time > SYNC_THRESHOLD) sendPlayerCommand('seek', time + latency)
-      if (playing) sendPlayerCommand('play')
-    }
     return
   }
 
@@ -332,12 +322,12 @@ window.addEventListener('message', e => {
   if (ev === 'play' || ev === 'started' || ev === 'start') isPlaying = true
   if (ev === 'pause' || ev === 'end') isPlaying = false
 
-  // Viewer: плеер подтвердил смену эпизода
+  // Viewer: player confirmed episode change
   if (!isHost && pendingFile && (ev === 'playlist_changed' || ev === 'file')) {
     const newId = data.playlistId ?? data.file?.playlistId
     if (newId === pendingFile.playlistId) {
       const { time, playing } = pendingFile
-      pendingFile = null
+      clearPendingFile(false)
       if (time > SYNC_THRESHOLD) sendPlayerCommand('seek', time + latency)
       if (playing) sendPlayerCommand('play')
     }
