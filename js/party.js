@@ -489,6 +489,41 @@ function onIframe(iframe) {
   initNativeWatchParty()
 }
 
+function hideNativeWatchPartyUi() {
+  if (document.getElementById('party-watchparty-hide-style')) return
+
+  const style = document.createElement('style')
+  style.id = 'party-watchparty-hide-style'
+  style.textContent = `
+    .wp-notification,
+    [class^="wp-"],
+    [class*=" wp-"] {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+  `
+  document.head.appendChild(style)
+
+  const hideNode = node => {
+    if (!(node instanceof HTMLElement)) return
+    const className = typeof node.className === 'string' ? node.className : ''
+    if (className === 'wp-notification' || className.startsWith('wp-') || className.includes(' wp-')) {
+      node.style.display = 'none'
+      node.style.visibility = 'hidden'
+      node.style.opacity = '0'
+      node.style.pointerEvents = 'none'
+    }
+  }
+
+  document.querySelectorAll('[class]').forEach(hideNode)
+  const observer = new MutationObserver(mutations => {
+    for (const mutation of mutations) mutation.addedNodes.forEach(hideNode)
+  })
+  observer.observe(document.body, { childList: true, subtree: true })
+}
+
 function initNativeWatchParty() {
   if (!USE_NATIVE_WATCH_PARTY || nativeParty || typeof WatchParty !== 'function') return
   const iframe = document.getElementById('vibix-frame')
@@ -500,6 +535,7 @@ function initNativeWatchParty() {
     username,
     debug: true,
   })
+  hideNativeWatchPartyUi()
   console.log('[party] native WatchParty initialized', JSON.stringify({ roomId, username }))
 }
 
