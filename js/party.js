@@ -184,11 +184,10 @@ function applySync(data) {
   if (fileEvent || playlistChanged || fileChanged) {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (data.file != null) currentFile = data.file
-    // Стриппим null-поля — некоторые SDK-плееры проверяют !== undefined
-    const rawFile = data.file || { playlistId: data.playlistId }
-    const fileObj = Object.fromEntries(Object.entries(rawFile).filter(([, v]) => v != null))
-    console.log('[party] sending file command', JSON.stringify(fileObj))
-    sendPlayerCommand('file', fileObj)
+    const playlistId = data.file?.playlistId ?? data.playlistId
+    // Пробуем строку — рабочие команды (seek, audiotrack) принимают примитивы
+    console.log('[party] sending file command (string)', playlistId)
+    sendPlayerCommand('file', playlistId)
     // После смены серии сбрасываем currentAudioTrack чтобы озвучка применилась повторно
     if (fileEvent) currentAudioTrack = null
   }
