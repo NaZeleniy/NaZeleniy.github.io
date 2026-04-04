@@ -31,6 +31,8 @@ function generateUsername() {
 const username = generateUsername()
 const USE_NATIVE_WATCH_PARTY = true
 let nativeParty = null
+let watchPartyPrototypePatched = false
+const NATIVE_ONLY_EVENTS = new Set(['file', 'playlist_changed'])
 
 // ── UI helpers ───────────────────────────────────────────────
 
@@ -141,14 +143,14 @@ function handleServerMessage(data) {
       break
 
     case 'sync':
-      if (!USE_NATIVE_WATCH_PARTY && !isHost) {
+      if (!isHost) {
         console.log('[party][viewer] ws sync', JSON.stringify(data))
         applySync(data)
       }
       break
 
     case 'state':
-      if (!USE_NATIVE_WATCH_PARTY && !isHost) {
+      if (!isHost) {
         console.log('[party][viewer] ws state', JSON.stringify(data))
         applyState(data)
       }
@@ -163,7 +165,7 @@ function handleServerMessage(data) {
       break
 
     case 'request_sync':
-      if (!USE_NATIVE_WATCH_PARTY && isHost) wsSend({ type: 'state', time: currentTime, playing: isPlaying, playlistId: currentPlaylistId, file: currentFile, audioTrack: currentAudioTrack })
+      if (isHost) wsSend({ type: 'state', time: currentTime, playing: isPlaying, playlistId: currentPlaylistId, file: currentFile, audioTrack: currentAudioTrack })
       break
 
     case 'pong':
@@ -220,6 +222,12 @@ function applySync(data) {
   const fileChanged = fileObj && !sameFile(fileObj, currentFile)
 
   console.log('[party][viewer] applySync normalized', JSON.stringify({ event: data.event, playlistId: data.playlistId ?? null, file: data.file ?? null, normalizedFile: fileObj, playlistChanged, fileChanged, currentPlaylistId, currentFile }))
+
+  if (USE_NATIVE_WATCH_PARTY && (fileEvent || playlistChanged || fileChanged)) {
+    if (data.playlistId != null) currentPlaylistId = data.playlistId
+    if (fileObj) currentFile = fileObj
+    return
+  }
 
   if (fileEvent || playlistChanged || fileChanged) {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
@@ -289,7 +297,10 @@ function applyState(data) {
   const fileChanged = fileObj && !sameFile(fileObj, currentFile)
 
   console.log('[party][viewer] applyState normalized', JSON.stringify({ playlistId: data.playlistId ?? null, file: data.file ?? null, normalizedFile: fileObj, playlistChanged, fileChanged, currentPlaylistId, currentFile }))
-  if (playlistChanged || fileChanged) {
+  if (USE_NATIVE_WATCH_PARTY && (playlistChanged || fileChanged)) {
+    if (data.playlistId != null) currentPlaylistId = data.playlistId
+    if (fileObj) currentFile = fileObj
+  } else if (playlistChanged || fileChanged) {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (fileObj) currentFile = fileObj
     sendFileCommand(fileObj || { playlistId: data.playlistId, fileId: null, playlistIndex: null })
@@ -404,9 +415,9 @@ window.addEventListener('message', e => {
 
   if (!isHost) return
 
-  if (USE_NATIVE_WATCH_PARTY) return
-
-  const syncEvents = ['play', 'pause', 'seek', 'timeupdate', 'started', 'start', 'file', 'playlist_changed', 'audiotrack_changed']
+  const syncEvents = USE_NATIVE_WATCH_PARTY
+    ? ['play', 'pause', 'seek', 'timeupdate', 'started', 'start', 'audiotrack_changed']
+    : ['play', 'pause', 'seek', 'timeupdate', 'started', 'start', 'file', 'playlist_changed', 'audiotrack_changed']
   if (!syncEvents.includes(ev)) return
 
   if (ev === 'seek' || ev === 'play' || ev === 'started') lastTimeupdateSent = 0
@@ -489,6 +500,22 @@ function onIframe(iframe) {
   initNativeWatchParty()
 }
 
+function patchWatchPartyPrototype() {
+  if (!USE_NATIVE_WATCH_PARTY || watchPartyPrototypePatched || typeof WatchParty !== 'function') return
+
+  const proto = WatchParty.prototype
+  if (typeof proto.handlePlayerEvent === 'function') {
+    const originalHandlePlayerEvent = proto.handlePlayerEvent
+    proto.handlePlayerEvent = function(eventData) {
+      const eventName = eventData?.event || null
+      if (eventName && !NATIVE_ONLY_EVENTS.has(eventName)) return
+      return originalHandlePlayerEvent.call(this, eventData)
+    }
+  }
+
+  watchPartyPrototypePatched = true
+}
+
 function hideNativeWatchPartyUi() {
   const root = document.querySelector('.party-page')
   const hideNode = node => {
@@ -516,6 +543,7 @@ function hideNativeWatchPartyUi() {
 
 function initNativeWatchParty() {
   if (!USE_NATIVE_WATCH_PARTY || nativeParty || typeof WatchParty !== 'function') return
+  patchWatchPartyPrototype()
   const iframe = document.getElementById('vibix-frame')
   if (!iframe) return
 
