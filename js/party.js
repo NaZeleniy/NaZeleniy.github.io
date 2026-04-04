@@ -166,16 +166,24 @@ function normalizeFileData(data) {
   if (!data) return null
 
   if (data.file && typeof data.file === 'object') {
-    const fileObj = Object.fromEntries(Object.entries(data.file).filter(([, v]) => v != null))
-    if (Object.keys(fileObj).length) return fileObj
+    return { ...data.file }
   }
 
   const fileObj = {}
   const keys = ['playlistId', 'fileId', 'playlistIndex', 'seasonId', 'seasonIndex', 'episodeId', 'episodeIndex']
+  let hasAny = false
   for (const key of keys) {
-    if (data[key] != null) fileObj[key] = data[key]
+    if (key in data) {
+      fileObj[key] = data[key]
+      hasAny = true
+    }
   }
-  return Object.keys(fileObj).length ? fileObj : null
+
+  if (!hasAny && data.playlistId != null) {
+    return { playlistId: data.playlistId, fileId: null, playlistIndex: null }
+  }
+
+  return hasAny ? fileObj : null
 }
 
 function sameFile(a, b) {
