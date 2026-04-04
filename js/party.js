@@ -162,16 +162,47 @@ function handleServerMessage(data) {
       break
   }
 }
+function normalizeFileData(data) {
+  if (!data) return null
+
+  if (data.file && typeof data.file === 'object') {
+    const fileObj = Object.fromEntries(Object.entries(data.file).filter(([, v]) => v != null))
+    if (Object.keys(fileObj).length) return fileObj
+  }
+
+  const fileObj = {}
+  const keys = ['playlistId', 'fileId', 'playlistIndex', 'seasonId', 'seasonIndex', 'episodeId', 'episodeIndex']
+  for (const key of keys) {
+    if (data[key] != null) fileObj[key] = data[key]
+  }
+  return Object.keys(fileObj).length ? fileObj : null
+}
+
+function sameFile(a, b) {
+  if (!a && !b) return true
+  if (!a || !b) return false
+  return a.playlistId === b.playlistId
+    && a.fileId === b.fileId
+    && a.playlistIndex === b.playlistIndex
+    && a.seasonId === b.seasonId
+    && a.seasonIndex === b.seasonIndex
+    && a.episodeId === b.episodeId
+    && a.episodeIndex === b.episodeIndex
+}
+
 
 function applySync(data) {
   if (!playerReady) return
   const compensated = (data.time ?? 0) + latency
+  const fileObj = normalizeFileData(data)
+  const fileEvent = data.event === 'file' || data.event === 'playlist_changed'
+  const playlistChanged = data.playlistId != null && data.playlistId !== currentPlaylistId
+  const fileChanged = fileObj && !sameFile(fileObj, currentFile)
 
-  // Смена озвучки/плейлиста — проверяем на любом событии
-  if (data.playlistId != null && data.playlistId !== currentPlaylistId) {
-    currentPlaylistId = data.playlistId
-    const fileObj = data.file || { playlistId: data.playlistId, fileId: null, playlistIndex: null }
-    sendPlayerCommand('file', fileObj)
+  if (fileEvent || playlistChanged || fileChanged) {
+    if (data.playlistId != null) currentPlaylistId = data.playlistId
+    if (fileObj) currentFile = fileObj
+    sendPlayerCommand('file', fileObj || { playlistId: data.playlistId, fileId: null, playlistIndex: null })
   }
 
   switch (data.event) {
@@ -210,11 +241,14 @@ function applySync(data) {
 
 function applyState(data) {
   if (!playerReady) return
-  if (data.playlistId != null && data.playlistId !== currentPlaylistId) {
-    currentPlaylistId = data.playlistId
-    const fileObj = data.file || { playlistId: data.playlistId, fileId: null, playlistIndex: null }
-    sendPlayerCommand('file', fileObj)
-  } else if (data.file && !data.playlistId) sendPlayerCommand('file', data.file)
+  const fileObj = normalizeFileData(data)
+  const playlistChanged = data.playlistId != null && data.playlistId !== currentPlaylistId
+  const fileChanged = fileObj && !sameFile(fileObj, currentFile)
+  if (playlistChanged || fileChanged) {
+    if (data.playlistId != null) currentPlaylistId = data.playlistId
+    if (fileObj) currentFile = fileObj
+    sendPlayerCommand('file', fileObj || { playlistId: data.playlistId, fileId: null, playlistIndex: null })
+  } else if (fileObj && !data.playlistId) sendPlayerCommand('file', fileObj)
   if (data.audioTrack != null && data.audioTrack !== currentAudioTrack) {
     currentAudioTrack = data.audioTrack
     const idx = Array.isArray(data.audioTracks) ? data.audioTracks.indexOf(data.audioTrack) : -1
@@ -267,15 +301,17 @@ window.addEventListener('message', e => {
     lastTimeupdateSent = now
   }
 
+  const fileObj = normalizeFileData(data)
   if (ev === 'file' || ev === 'playlist_changed') {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
-    if (data.file != null) currentFile = data.file
+    if (fileObj) currentFile = fileObj
+    console.log('[party] file event', JSON.stringify({ event: ev, playlistId: data.playlistId ?? null, file: data.file ?? null, fileId: data.fileId ?? null, playlistIndex: data.playlistIndex ?? null, normalizedFile: fileObj }))
   }
   if (ev === 'audiotrack_changed' && data.audioTrack != null) {
     currentAudioTrack = data.audioTrack
   }
 
-  wsSend({ type: 'sync', event: ev, time: data.time, playlistId: data.playlistId ?? null, file: data.file ?? null, audioTrack: data.audioTrack ?? null, audioTracks: data.audioTracks ?? null })
+  wsSend({ type: 'sync', event: ev, time: data.time, playlistId: data.playlistId ?? null, file: fileObj ?? null, audioTrack: data.audioTrack ?? null, audioTracks: data.audioTracks ?? null })
 })
 
 // ── Vibix player ─────────────────────────────────────────────
