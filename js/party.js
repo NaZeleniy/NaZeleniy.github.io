@@ -81,9 +81,12 @@ let currentAudioTrack = null
 let pendingRemoteFile = null
 let pendingInitialState = null
 let pendingInitialSyncEvents = []
+let pendingInitialPlaybackSync = null
+let pendingInitialAudioSync = null
+let pendingRequestSyncTimer = null
 const SYNC_THRESHOLD = 1  // секунды
 const SYNC_COOLDOWN = 3000  // мс между принудительными seek
-const TIMEUPDATE_INTERVAL = 5000  // мс между отправками timeupdate
+const TIMEUPDATE_INTERVAL = 2500  // ms between timeupdate sends
 
 const wsHost = window.location.hostname.endsWith('github.io') ? 'nazeleniy.mooo.com' : location.host
 const wsUrl = (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + wsHost + '/ws/party?room=' + roomId
@@ -126,6 +129,16 @@ function wsPing() {
   pingTimer = setTimeout(wsPing, 10000)
 }
 
+function scheduleRequestSync(delay = 0, reason = '') {
+  if (isHost) return
+  clearTimeout(pendingRequestSyncTimer)
+  pendingRequestSyncTimer = setTimeout(() => {
+    pendingRequestSyncTimer = null
+    console.log('[party][viewer] request_sync', JSON.stringify({ reason }))
+    wsSend({ type: 'request_sync' })
+  }, delay)
+}
+
 function handleServerMessage(data) {
   switch (data.type) {
     case 'role_assigned':
@@ -148,8 +161,14 @@ function handleServerMessage(data) {
       if (!isHost) {
         console.log('[party][viewer] ws sync', JSON.stringify(data))
         if (!playerReady) {
-          pendingInitialSyncEvents.push(data)
-          console.log('[party][viewer] buffered ws sync until player ready', JSON.stringify({ event: data.event, buffered: pendingInitialSyncEvents.length }))
+          if (data.event === 'audiotrack_changed') {
+            pendingInitialAudioSync = data
+          } else if (['play', 'pause', 'seek', 'timeupdate', 'started', 'start'].includes(data.event)) {
+            pendingInitialPlaybackSync = data
+          } else {
+            pendingInitialSyncEvents.push(data)
+          }
+          console.log('[party][viewer] buffered ws sync until player ready', JSON.stringify({ event: data.event, fileEvents: pendingInitialSyncEvents.length, hasPlayback: !!pendingInitialPlaybackSync, hasAudio: !!pendingInitialAudioSync }))
         } else {
           applySync(data)
         }
@@ -238,6 +257,7 @@ function applySync(data) {
   if (USE_NATIVE_WATCH_PARTY && (fileEvent || playlistChanged || fileChanged)) {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (fileObj) currentFile = fileObj
+    scheduleRequestSync(700, 'after_native_file')
     return
   }
 
@@ -420,6 +440,19 @@ window.addEventListener('message', e => {
         console.log('[party][viewer] replay buffered sync events after ready', JSON.stringify({ count: events.length }))
         events.forEach(applySync)
       }
+      if (pendingInitialAudioSync) {
+        const audioSync = pendingInitialAudioSync
+        pendingInitialAudioSync = null
+        console.log('[party][viewer] replay buffered audio sync after ready', JSON.stringify(audioSync))
+        applySync(audioSync)
+      }
+      if (pendingInitialPlaybackSync) {
+        const playbackSync = pendingInitialPlaybackSync
+        pendingInitialPlaybackSync = null
+        console.log('[party][viewer] replay buffered playback sync after ready', JSON.stringify(playbackSync))
+        applySync(playbackSync)
+      }
+      scheduleRequestSync(300, 'after_ready')
     }
     return
   }
