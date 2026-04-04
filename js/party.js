@@ -500,6 +500,25 @@ function onIframe(iframe) {
   initNativeWatchParty()
 }
 
+function exposeNativeWatchPartyDebug(instance) {
+  if (!instance) return
+
+  const proto = Object.getPrototypeOf(instance)
+  const methods = proto
+    ? Object.getOwnPropertyNames(proto).filter(name => name !== 'constructor' && typeof instance[name] === 'function')
+    : []
+  const ownKeys = Object.keys(instance)
+
+  window.__nzWatchParty = instance
+  window.__nzWatchPartyDebug = {
+    instance,
+    ownKeys,
+    methods,
+  }
+
+  console.log('[party] native WatchParty debug', JSON.stringify({ ownKeys, methods }))
+}
+
 function hideNativeWatchPartyWidget() {
   const root = document.querySelector('.party-page')
   const hideNode = node => {
@@ -520,7 +539,19 @@ function hideNativeWatchPartyWidget() {
 
   document.querySelectorAll('body *').forEach(hideNode)
   const observer = new MutationObserver(mutations => {
-    for (const mutation of mutations) mutation.addedNodes.forEach(hideNode)
+    for (const mutation of mutations) {
+      mutation.addedNodes.forEach(node => {
+        if (node instanceof HTMLElement) {
+          console.log('[party] native widget node', JSON.stringify({
+            tag: node.tagName,
+            id: node.id || null,
+            className: typeof node.className === 'string' ? node.className : null,
+            text: node.textContent ? node.textContent.trim().slice(0, 120) : '',
+          }))
+        }
+        hideNode(node)
+      })
+    }
   })
   observer.observe(document.body, { childList: true, subtree: true })
 }
@@ -536,6 +567,7 @@ function initNativeWatchParty() {
     username,
     debug: true,
   })
+  exposeNativeWatchPartyDebug(nativeParty)
   hideNativeWatchPartyWidget()
   console.log('[party] native WatchParty initialized', JSON.stringify({ roomId, username }))
 }
