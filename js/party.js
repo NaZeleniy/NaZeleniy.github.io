@@ -361,7 +361,9 @@ window.addEventListener('message', e => {
   if (!data || data.type !== 'playerEvent') return
 
   const ev = data.event
-  if (!isHost) console.log('[party][viewer] playerEvent', JSON.stringify(data))
+  if (ev === 'file' || ev === 'playlist_changed' || ev === 'ready' || ev === 'sync_ready' || ev === 'start' || ev === 'started') {
+    console.log(isHost ? '[party][host] playerEvent' : '[party][viewer] playerEvent', JSON.stringify(data))
+  }
 
   if (ev === 'ready' || ev === 'sync_ready') {
     playerReady = true
