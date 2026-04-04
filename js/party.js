@@ -81,6 +81,7 @@ let lastSyncAt = 0        // время последнего принудите�
 let currentPlaylistId = null
 let currentFile = null
 let currentAudioTrack = null
+let currentAudioTracks = null
 let pendingRemoteFile = null
 const SYNC_THRESHOLD = 1  // секунды
 const SYNC_COOLDOWN = 3000  // мс между принудительными seek
@@ -172,7 +173,7 @@ function handleServerMessage(data) {
       break
 
     case 'request_sync':
-      if (isHost) wsSend({ type: 'state', time: currentTime, playing: isPlaying, playlistId: currentPlaylistId, file: currentFile, audioTrack: currentAudioTrack })
+      if (isHost) wsSend({ type: 'state', time: currentTime, playing: isPlaying, playlistId: currentPlaylistId, file: currentFile, audioTrack: currentAudioTrack ?? nativeParty?.state?.audioTrack ?? null, audioTracks: currentAudioTracks ?? nativeParty?.state?.audioTracks ?? null })
       break
 
     case 'pong':
@@ -285,9 +286,11 @@ function applySync(data) {
       }
       break
     case 'audiotrack_changed':
+      if (Array.isArray(data.audioTracks)) currentAudioTracks = [...data.audioTracks]
       if (data.audioTrack != null && data.audioTrack !== currentAudioTrack) {
         currentAudioTrack = data.audioTrack
-        const idx = Array.isArray(data.audioTracks) ? data.audioTracks.indexOf(data.audioTrack) : -1
+        const tracks = Array.isArray(data.audioTracks) ? data.audioTracks : currentAudioTracks
+        const idx = Array.isArray(tracks) ? tracks.indexOf(data.audioTrack) : -1
         sendPlayerCommand('audiotrack', idx >= 0 ? idx : data.audioTrack)
       }
       break
@@ -313,9 +316,11 @@ function applyState(data) {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (fileObj) currentFile = fileObj
   }
+  if (Array.isArray(data.audioTracks)) currentAudioTracks = [...data.audioTracks]
   if (data.audioTrack != null && data.audioTrack !== currentAudioTrack) {
     currentAudioTrack = data.audioTrack
-    const idx = Array.isArray(data.audioTracks) ? data.audioTracks.indexOf(data.audioTrack) : -1
+    const tracks = Array.isArray(data.audioTracks) ? data.audioTracks : currentAudioTracks
+    const idx = Array.isArray(tracks) ? tracks.indexOf(data.audioTrack) : -1
     sendPlayerCommand('audiotrack', idx >= 0 ? idx : data.audioTrack)
   }
   const compensated = (data.time ?? 0) + latency
@@ -442,11 +447,10 @@ window.addEventListener('message', e => {
     if (fileObj) currentFile = fileObj
     console.log('[party] file event', JSON.stringify({ event: ev, playlistId: data.playlistId ?? null, file: data.file ?? null, fileId: data.fileId ?? null, playlistIndex: data.playlistIndex ?? null, normalizedFile: fileObj }))
   }
-  if (ev === 'audiotrack_changed' && data.audioTrack != null) {
-    currentAudioTrack = data.audioTrack
-  }
+  if (Array.isArray(data.audioTracks)) currentAudioTracks = [...data.audioTracks]
+  if (data.audioTrack != null) currentAudioTrack = data.audioTrack
 
-  wsSend({ type: 'sync', event: ev, time: data.time, playlistId: data.playlistId ?? null, file: fileObj ?? null, audioTrack: data.audioTrack ?? null, audioTracks: data.audioTracks ?? null })
+  wsSend({ type: 'sync', event: ev, time: data.time, playlistId: data.playlistId ?? null, file: fileObj ?? null, audioTrack: data.audioTrack ?? currentAudioTrack ?? null, audioTracks: data.audioTracks ?? currentAudioTracks ?? null })
 })
 
 // ── Vibix player ─────────────────────────────────────────────
