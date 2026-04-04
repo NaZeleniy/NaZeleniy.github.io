@@ -358,6 +358,19 @@ function flushBufferedPlayback(buffered) {
 
 window.addEventListener('message', e => {
   const data = e.data
+  if (!data || typeof data !== 'object') return
+
+  const serialized = JSON.stringify(data)
+  if (!serialized) return
+
+  const looksRelevant = /file|playlist|episode/i.test(serialized)
+  if (!looksRelevant) return
+
+  console.log(isHost ? '[party][host] raw message' : '[party][viewer] raw message', JSON.stringify({ origin: e.origin, data }))
+})
+
+window.addEventListener('message', e => {
+  const data = e.data
   if (!data || data.type !== 'playerEvent') return
 
   const ev = data.event
