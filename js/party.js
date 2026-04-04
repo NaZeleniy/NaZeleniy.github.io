@@ -413,10 +413,15 @@ function applyState(data) {
   const fileChanged = fileObj && !sameFile(fileObj, currentFile)
 
   console.log('[party][viewer] applyState normalized', JSON.stringify({ playlistId: data.playlistId ?? null, file: data.file ?? null, normalizedFile: fileObj, playlistChanged, fileChanged, currentPlaylistId, currentFile }))
-  if (playlistChanged || fileChanged) {
-    if (data.playlistId != null) currentPlaylistId = data.playlistId
-    if (fileObj) currentFile = fileObj
-    // Actual episode switch happens via episode_sync → applyEpisodeSync
+  if (fileObj) currentFile = fileObj
+  if (playlistChanged) {
+    // Switch to new episode; iframe will reload and re-sync via ready handler
+    applyEpisodeSync({
+      playlistId: data.playlistId,
+      seasonIndex: data.seasonIndex ?? null,
+      episodeIndex: data.episodeIndex ?? null,
+    })
+    return
   }
   if (data.audioTrack != null && data.audioTrack !== currentAudioTrack) {
     currentAudioTrack = data.audioTrack
@@ -451,17 +456,20 @@ function applyEpisodeSync(data) {
     const url = new URL(iframe.src)
     console.log('[party][viewer] iframe src before episode switch', iframe.src)
 
-    // season/episode are 1-indexed in URL, seasonIndex/episodeIndex are 0-indexed
-    if (data.seasonIndex != null) url.searchParams.set('season', data.seasonIndex + 1)
-    if (data.episodeIndex != null) {
-      url.searchParams.delete('episode[]')
-      url.searchParams.append('episode[]', data.episodeIndex + 1)
-    }
+    // Replace the content ID path segment with the episode's playlistId.
+    // URL format: /{publisherId}/embed-kp/{contentId}?params
+    // Each episode has its own playlistId that works as a direct content ID.
+    const parts = url.pathname.split('/')
+    parts[parts.length - 1] = data.playlistId
+    url.pathname = parts.join('/')
+    // Refresh nonce to bust cache
+    url.searchParams.set('nc', Date.now())
 
     console.log('[party][viewer] reloading iframe for episode', url.toString())
     iframe.src = url.toString()
   } catch (err) {
     console.log('[party][viewer] applyEpisodeSync iframe reload failed', String(err))
+    playerReady = true  // restore so viewers can still interact
   }
 
   // After player reloads it will emit ready → scheduleRequestSync runs in the ready handler
