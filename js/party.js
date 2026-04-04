@@ -76,7 +76,6 @@ let currentFile = null
 let currentAudioTrack = null
 let currentPlaylistSnapshot = null
 let currentEpisodeState = null
-let pendingRemoteFile = null
 let pendingInitialState = null
 let pendingInitialSyncEvents = []
 let pendingInitialPlaybackSync = null
@@ -363,26 +362,10 @@ function applySync(data) {
   console.log('[party][viewer] applySync normalized', JSON.stringify({ event: data.event, playlistId: data.playlistId ?? null, file: data.file ?? null, normalizedFile: fileObj, playlistChanged, fileChanged, currentPlaylistId, currentFile }))
 
   if (fileEvent || playlistChanged || fileChanged) {
+    // Episode switch is handled by episode_sync → applyEpisodeSync (iframe reload).
+    // Just update local state here; do not attempt sendFileCommand.
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (fileObj) currentFile = fileObj
-    if (pendingRemoteFile?.timer) clearTimeout(pendingRemoteFile.timer)
-    pendingRemoteFile = {
-      playlistId: fileObj?.playlistId ?? data.playlistId ?? null,
-      bufferedPlay: null,
-      timer: setTimeout(() => {
-        console.log('[party][viewer] pending file timeout', JSON.stringify(pendingRemoteFile))
-        const buffered = pendingRemoteFile?.bufferedPlay
-        pendingRemoteFile = null
-        if (buffered) flushBufferedPlayback(buffered)
-      }, 1500)
-    }
-    sendFileCommand(fileObj || { playlistId: data.playlistId, fileId: null, playlistIndex: null })
-    return
-  }
-
-  if (pendingRemoteFile && ['play', 'pause', 'seek', 'timeupdate', 'started', 'start'].includes(data.event)) {
-    pendingRemoteFile.bufferedPlay = { event: data.event, compensated, rawTime: data.time ?? 0 }
-    console.log('[party][viewer] buffering playback until file ack', JSON.stringify(pendingRemoteFile.bufferedPlay))
     return
   }
 
@@ -433,8 +416,8 @@ function applyState(data) {
   if (playlistChanged || fileChanged) {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (fileObj) currentFile = fileObj
-    sendFileCommand(fileObj || { playlistId: data.playlistId, fileId: null, playlistIndex: null })
-  } else if (fileObj && !data.playlistId) sendPlayerCommand('file', fileObj)
+    // Actual episode switch happens via episode_sync → applyEpisodeSync
+  }
   if (data.audioTrack != null && data.audioTrack !== currentAudioTrack) {
     currentAudioTrack = data.audioTrack
     const idx = Array.isArray(data.audioTracks) ? data.audioTracks.indexOf(data.audioTrack) : -1
@@ -449,16 +432,39 @@ function applyState(data) {
 
 function applyEpisodeSync(data) {
   if (!data || !data.playlistId) return
+  if (data.playlistId === currentPlaylistId) return
+
   console.log('[party][viewer] applyEpisodeSync', JSON.stringify({
     seasonIndex: data.seasonIndex ?? null,
     episodeIndex: data.episodeIndex ?? null,
     playlistId: data.playlistId,
     voice: data.voice ?? null,
   }))
-  if (data.playlistId === currentPlaylistId) return
+
+  const iframe = document.getElementById('vibix-frame')
+  if (!iframe || !iframe.src) return
+
   currentPlaylistId = data.playlistId
-  sendFileCommand({ playlistId: data.playlistId })
-  scheduleRequestSync(1500, 'after_episode_sync')
+  playerReady = false
+
+  try {
+    const url = new URL(iframe.src)
+    console.log('[party][viewer] iframe src before episode switch', iframe.src)
+
+    // season/episode are 1-indexed in URL, seasonIndex/episodeIndex are 0-indexed
+    if (data.seasonIndex != null) url.searchParams.set('season', data.seasonIndex + 1)
+    if (data.episodeIndex != null) {
+      url.searchParams.delete('episode[]')
+      url.searchParams.append('episode[]', data.episodeIndex + 1)
+    }
+
+    console.log('[party][viewer] reloading iframe for episode', url.toString())
+    iframe.src = url.toString()
+  } catch (err) {
+    console.log('[party][viewer] applyEpisodeSync iframe reload failed', String(err))
+  }
+
+  // After player reloads it will emit ready → scheduleRequestSync runs in the ready handler
 }
 
 // ── Player commands ──────────────────────────────────────────
@@ -473,43 +479,6 @@ function sendPlayerCommand(command, value) {
   frame.contentWindow.postMessage({ type: 'playerCommand', command, value, timestamp: Date.now() }, '*')
 }
 
-function sendFileCommand(fileObj) {
-  const variants = []
-  if (fileObj) variants.push(fileObj)
-  if (fileObj?.playlistId) variants.push({ playlistId: fileObj.playlistId })
-  if (fileObj?.playlistId) variants.push(fileObj.playlistId)
-
-  variants.forEach((variant, index) => {
-    setTimeout(() => {
-      console.log('[party][viewer] sendFile variant', index + 1, JSON.stringify(variant))
-      sendPlayerCommand('file', variant)
-    }, index * 250)
-  })
-}
-
-function flushBufferedPlayback(buffered) {
-  if (!buffered) return
-  console.log('[party][viewer] flush buffered playback', JSON.stringify(buffered))
-  switch (buffered.event) {
-    case 'play':
-    case 'started':
-    case 'start':
-      sendPlayerCommand('play')
-      isPlaying = true
-      if (Math.abs(currentTime - buffered.compensated) > SYNC_THRESHOLD) sendPlayerCommand('seek', buffered.compensated)
-      break
-    case 'pause':
-      sendPlayerCommand('pause')
-      break
-    case 'seek':
-      sendPlayerCommand('seek', buffered.compensated)
-      isPlaying = true
-      break
-    case 'timeupdate':
-      if (isPlaying && Math.abs(currentTime - buffered.compensated) > SYNC_THRESHOLD) sendPlayerCommand('seek', buffered.compensated)
-      break
-  }
-}
 
 // ── Player events ────────────────────────────────────────────
 
@@ -599,17 +568,6 @@ window.addEventListener('message', e => {
   if (ev === 'play' || ev === 'started' || ev === 'start') isPlaying = true
   if (ev === 'pause' || ev === 'end') isPlaying = false
 
-  if (!isHost && pendingRemoteFile && (ev === 'file' || ev === 'playlist_changed')) {
-    const ackPlaylistId = data.file?.playlistId ?? data.playlistId ?? null
-    if (!pendingRemoteFile.playlistId || ackPlaylistId === pendingRemoteFile.playlistId) {
-      console.log('[party][viewer] file ack', JSON.stringify({ ackPlaylistId, pendingRemoteFile }))
-      const buffered = pendingRemoteFile.bufferedPlay
-      clearTimeout(pendingRemoteFile.timer)
-      pendingRemoteFile = null
-      flushBufferedPlayback(buffered)
-    }
-  }
-
   if (!isHost) return
 
   const syncEvents = ['play', 'pause', 'seek', 'timeupdate', 'started', 'start', 'file', 'playlist_changed', 'audiotrack_changed']
@@ -673,7 +631,6 @@ function startVibix(vibixId) {
     data-type="kp"
     data-id="${vibixId}"
     data-design="2"
-    data-sync="true"
     data-color1="#333333"
     data-color2="#666666"
     data-color3="#999999"
@@ -695,6 +652,7 @@ function startVibix(vibixId) {
 
 function onIframe(iframe) {
   iframe.id = 'vibix-frame'
+  console.log('[party] iframe src', iframe.src)
 }
 
 // ── Chat ─────────────────────────────────────────────────────
