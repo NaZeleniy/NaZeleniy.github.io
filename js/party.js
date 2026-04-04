@@ -281,17 +281,22 @@ window.addEventListener('message', e => {
 // ── Vibix player ─────────────────────────────────────────────
 
 async function init() {
+  let vibixId = movieId
+
   try {
     const r = await fetch(`${API_BASE}/api/movie/${movieId}`)
     if (r.ok) {
       const movie = await r.json()
-      const title = movie.nameRu || movie.nameEn || 'Без названия'
-      document.title = title + ' — Совместный просмотр'
+      const title = movie.nameRu || movie.nameEn || 'Untitled'
+      document.title = title + ' - Watch Party'
       document.getElementById('partyTitle').textContent = title
+
+      const vibix = (movie.players || []).find(p => p.name === 'Vibix')
+      if (vibix?.url) vibixId = vibix.url
     }
   } catch {}
 
-  startVibix()
+  startVibix(vibixId)
   connect()
 
   document.getElementById('partyJoinBtn').addEventListener('click', () => {
@@ -300,12 +305,12 @@ async function init() {
   })
 }
 
-function startVibix() {
+function startVibix(vibixId) {
   const slot = document.getElementById('vibix-slot')
   slot.innerHTML = `<ins
     data-publisher-id="677393820"
     data-type="kp"
-    data-id="${movieId}"
+    data-id="${vibixId}"
     data-design="2"
     data-sync="true"
     data-color1="#333333"
@@ -313,7 +318,6 @@ function startVibix() {
     data-color3="#999999"
     data-color4="#CCCCCC"
     data-color5="#FFFFFF"></ins>`
-
   const script = document.createElement('script')
   script.src = 'https://graphicslab.io/sdk/v2/rendex-sdk.min.js'
   script.onload = () => {
