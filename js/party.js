@@ -504,12 +504,42 @@ function patchWatchPartyPrototype() {
   if (!USE_NATIVE_WATCH_PARTY || watchPartyPrototypePatched || typeof WatchParty !== 'function') return
 
   const proto = WatchParty.prototype
-  if (typeof proto.handlePlayerEvent === 'function') {
-    const originalHandlePlayerEvent = proto.handlePlayerEvent
+  const originalHandlePlayerEvent = typeof proto.handlePlayerEvent === 'function' ? proto.handlePlayerEvent : null
+  const originalHandleSync = typeof proto.handleSync === 'function' ? proto.handleSync : null
+
+  if (originalHandleSync) {
+    proto.handleSync = function(syncData) {
+      const eventName = syncData?.event || null
+      if (!eventName || !NATIVE_ONLY_EVENTS.has(eventName)) return
+
+      const ready = this.playerReady === true
+        || this.isPlayerReady === true
+        || this.state?.playerReady === true
+        || this.state?.ready === true
+
+      if (!ready) {
+        this.__nzPendingNativeSync = syncData
+        this.log?.('Buffer native sync until player ready', eventName)
+        return
+      }
+
+      return originalHandleSync.call(this, syncData)
+    }
+  }
+
+  if (originalHandlePlayerEvent) {
     proto.handlePlayerEvent = function(eventData) {
       const eventName = eventData?.event || null
       if (eventName && !NATIVE_ONLY_EVENTS.has(eventName)) return
-      return originalHandlePlayerEvent.call(this, eventData)
+
+      const result = originalHandlePlayerEvent.call(this, eventData)
+      if ((eventName === 'ready' || eventName === 'sync_ready') && this.__nzPendingNativeSync && originalHandleSync) {
+        const pendingSync = this.__nzPendingNativeSync
+        this.__nzPendingNativeSync = null
+        this.log?.('Replay buffered native sync', pendingSync?.event || null)
+        originalHandleSync.call(this, pendingSync)
+      }
+      return result
     }
   }
 
