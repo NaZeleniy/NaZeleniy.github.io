@@ -74,6 +74,7 @@ let lastSyncAt = 0        // время последнего принудите�
 let currentPlaylistId = null
 let currentFile = null
 let currentAudioTrack = null
+let playerWindow = null
 const SYNC_THRESHOLD = 1  // секунды
 const SYNC_COOLDOWN = 3000  // мс между принудительными seek
 const TIMEUPDATE_INTERVAL = 5000  // мс между отправками timeupdate
@@ -230,9 +231,8 @@ function applyState(data) {
 // ── Player commands ──────────────────────────────────────────
 
 function sendPlayerCommand(command, value) {
-  const frame = document.getElementById('vibix-frame')
-  if (!frame || !frame.contentWindow) return
-  frame.contentWindow.postMessage({ type: 'playerCommand', command, value, timestamp: Date.now() }, '*')
+  if (!playerWindow) return
+  playerWindow.postMessage({ type: 'playerCommand', command, value, timestamp: Date.now() }, '*')
 }
 
 // ── Player events ────────────────────────────────────────────
@@ -307,33 +307,34 @@ async function init() {
 
 function startVibix(vibixId) {
   const slot = document.getElementById('vibix-slot')
-  slot.innerHTML = `<ins
-    data-publisher-id="677393820"
-    data-type="kp"
-    data-id="${vibixId}"
-    data-design="2"
-    data-sync="true"
-    data-color1="#333333"
-    data-color2="#666666"
-    data-color3="#999999"
-    data-color4="#CCCCCC"
-    data-color5="#FFFFFF"></ins>`
-  const script = document.createElement('script')
-  script.src = 'https://graphicslab.io/sdk/v2/rendex-sdk.min.js'
-  script.onload = () => {
-    const existing = slot.querySelector('iframe')
-    if (existing) { onIframe(existing); return }
-    const observer = new MutationObserver(() => {
-      const iframe = slot.querySelector('iframe')
-      if (iframe) { observer.disconnect(); onIframe(iframe) }
-    })
-    observer.observe(slot, { childList: true, subtree: true })
-  }
-  document.head.appendChild(script)
-}
+  const wrap = document.querySelector('.party-player-wrap')
+  const height = Math.max(360, Math.round((wrap?.offsetHeight || 720) - 8))
 
-function onIframe(iframe) {
-  iframe.id = 'vibix-frame'
+  slot.innerHTML = '<iframe id="player-frame" frameborder="0" allowfullscreen></iframe>'
+  const frame = document.getElementById('player-frame')
+  playerWindow = null
+
+  frame.addEventListener('load', () => {
+    const doc = frame.contentDocument
+    if (!doc) return
+
+    const bindInnerFrame = () => {
+      const inner = doc.querySelector('iframe')
+      if (!inner || !inner.contentWindow) return false
+      inner.id = 'vibix-frame'
+      playerWindow = inner.contentWindow
+      return true
+    }
+
+    if (bindInnerFrame()) return
+
+    const observer = new MutationObserver(() => {
+      if (bindInnerFrame()) observer.disconnect()
+    })
+    observer.observe(doc.body || doc.documentElement, { childList: true, subtree: true })
+  }, { once: true })
+
+  frame.srcdoc = vibixSrcdoc(vibixId, height, true)
 }
 
 // ── Chat ─────────────────────────────────────────────────────
