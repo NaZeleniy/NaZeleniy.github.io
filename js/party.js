@@ -67,6 +67,7 @@ let playerReady = false
 let vibixBaseUrl = null  // iframe URL without season/episode/nc — used for episode switching
 let currentTime = 0
 let isPlaying = false
+let hostPlaying = false  // last known host playing state — applied immediately after episode reload
 let reconnectTimer = null
 let pingTimer = null
 let latency = 0           // половина RTT в секундах
@@ -175,6 +176,8 @@ function handleServerMessage(data) {
 
     case 'sync':
       if (!isHost) {
+        if (['play', 'started', 'start'].includes(data.event)) hostPlaying = true
+        else if (data.event === 'pause') hostPlaying = false
         console.log('[party][viewer] ws sync', JSON.stringify(data))
         if (!playerReady) {
           if (data.event === 'audiotrack_changed') {
@@ -193,6 +196,7 @@ function handleServerMessage(data) {
 
     case 'state':
       if (!isHost) {
+        if (data.playing !== undefined) hostPlaying = data.playing
         console.log('[party][viewer] ws state', JSON.stringify(data))
         if (!playerReady) {
           pendingInitialState = data
@@ -567,6 +571,12 @@ window.addEventListener('message', e => {
         pendingInitialPlaybackSync = null
         console.log('[party][viewer] replay buffered playback sync after ready', JSON.stringify(playbackSync))
         applySync(playbackSync)
+      }
+      // If host was playing before episode switch, start playback immediately
+      if (!isPlaying && hostPlaying) {
+        console.log('[party][viewer] auto-play after ready (hostPlaying=true)')
+        sendPlayerCommand('play')
+        isPlaying = true
       }
       scheduleRequestSync(300, 'after_ready')
     }
