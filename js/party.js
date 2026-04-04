@@ -315,23 +315,7 @@ function startVibix(vibixId) {
   playerWindow = null
 
   frame.addEventListener('load', () => {
-    const doc = frame.contentDocument
-    if (!doc) return
-
-    const bindInnerFrame = () => {
-      const inner = doc.querySelector('iframe')
-      if (!inner || !inner.contentWindow) return false
-      inner.id = 'vibix-frame'
-      playerWindow = inner.contentWindow
-      return true
-    }
-
-    if (bindInnerFrame()) return
-
-    const observer = new MutationObserver(() => {
-      if (bindInnerFrame()) observer.disconnect()
-    })
-    observer.observe(doc.body || doc.documentElement, { childList: true, subtree: true })
+    playerWindow = frame.contentWindow
   }, { once: true })
 
   frame.srcdoc = vibixSrcdoc(vibixId, height, true)
