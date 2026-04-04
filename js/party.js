@@ -64,6 +64,7 @@ function escHtml(s) {
 let ws = null
 let isHost = false
 let playerReady = false
+let vibixBaseUrl = null  // iframe URL without season/episode/nc — used for episode switching
 let currentTime = 0
 let isPlaying = false
 let reconnectTimer = null
@@ -453,20 +454,19 @@ function applyEpisodeSync(data) {
   playerReady = false
 
   try {
-    const url = new URL(iframe.src)
-    console.log('[party][viewer] iframe src before episode switch', iframe.src)
+    // Use stored base URL (original kinopoisk ID, no season/episode/nc params)
+    const base = vibixBaseUrl || iframe.src.split('?')[0]
+    const sep = base.includes('?') ? '&' : '?'
 
-    // Replace the content ID path segment with the episode's playlistId.
-    // URL format: /{publisherId}/embed-kp/{contentId}?params
-    // Each episode has its own playlistId that works as a direct content ID.
-    const parts = url.pathname.split('/')
-    parts[parts.length - 1] = data.playlistId
-    url.pathname = parts.join('/')
-    // Refresh nonce to bust cache
-    url.searchParams.set('nc', Date.now())
+    // Build URL manually — episode[] brackets must NOT be percent-encoded
+    let newSrc = base
+    if (data.seasonIndex != null) newSrc += sep + 'season=' + (data.seasonIndex + 1)
+    const epSep = newSrc.includes('?') ? '&' : '?'
+    if (data.episodeIndex != null) newSrc += epSep + 'episode[]=' + (data.episodeIndex + 1)
+    newSrc += (newSrc.includes('?') ? '&' : '?') + 'nc=' + Date.now()
 
-    console.log('[party][viewer] reloading iframe for episode', url.toString())
-    iframe.src = url.toString()
+    console.log('[party][viewer] reloading iframe for episode', newSrc)
+    iframe.src = newSrc
   } catch (err) {
     console.log('[party][viewer] applyEpisodeSync iframe reload failed', String(err))
     playerReady = true  // restore so viewers can still interact
@@ -639,6 +639,7 @@ function startVibix(vibixId) {
     data-type="kp"
     data-id="${vibixId}"
     data-design="2"
+    data-sync="true"
     data-color1="#333333"
     data-color2="#666666"
     data-color3="#999999"
@@ -661,6 +662,19 @@ function startVibix(vibixId) {
 function onIframe(iframe) {
   iframe.id = 'vibix-frame'
   console.log('[party] iframe src', iframe.src)
+  // Store base URL for episode switching: strip season/episode[]/nc so we can rebuild cleanly
+  try {
+    const url = new URL(iframe.src)
+    url.searchParams.delete('season')
+    url.searchParams.delete('nc')
+    // Remove episode[] (URLSearchParams encodes [] as %5B%5D)
+    const cleaned = url.toString()
+      .replace(/[&?]episode%5B%5D=[^&]*/g, '')
+      .replace(/[&?]episode\[\]=[^&]*/g, '')
+      .replace(/\?&/, '?')
+    vibixBaseUrl = cleaned
+    console.log('[party] vibix base url', vibixBaseUrl)
+  } catch {}
 }
 
 // ── Chat ─────────────────────────────────────────────────────
