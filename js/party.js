@@ -506,8 +506,16 @@ window.addEventListener('message', e => {
   if (!data || data.type !== 'playerEvent') return
 
   const ev = data.event
+  const resolvedPlayerPlaylistId = data.playlistId ?? data.file?.playlistId ?? data.playlistInfo?.currentId ?? null
+  if (resolvedPlayerPlaylistId) currentPlaylistId = resolvedPlayerPlaylistId
+  if (data.file && typeof data.file === 'object') currentFile = { ...data.file }
+
   if (ev === 'file' || ev === 'playlist_changed' || ev === 'ready' || ev === 'sync_ready' || ev === 'start' || ev === 'started') {
     console.log(isHost ? '[party][host] playerEvent' : '[party][viewer] playerEvent', JSON.stringify(data))
+  }
+
+  if ((ev === 'file' || ev === 'playlist_changed' || ev === 'start' || ev === 'started') && resolvedPlayerPlaylistId) {
+    updateEpisodeState('player_event_' + ev, resolvedPlayerPlaylistId, currentAudioTrack)
   }
 
   if (ev === 'ready' || ev === 'sync_ready') {
