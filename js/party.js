@@ -85,6 +85,7 @@ let pendingInitialState = null
 let pendingInitialSyncEvents = []
 let pendingInitialPlaybackSync = null
 let pendingInitialAudioSync = null
+let pendingInitialEpisodeSync = null
 let pendingRequestSyncTimer = null
 const SYNC_THRESHOLD = 1  // секунды
 const SYNC_COOLDOWN = 3000  // мс между принудительными seek
@@ -226,6 +227,11 @@ function handleServerMessage(data) {
           playlistId: data.playlistId ?? null,
           voice: data.voice ?? null,
         }))
+        if (!playerReady) {
+          pendingInitialEpisodeSync = data
+        } else {
+          applyEpisodeSync(data)
+        }
       }
       break
 
@@ -455,6 +461,20 @@ function applyState(data) {
   else if (!data.playing && isPlaying) { sendPlayerCommand('pause'); isPlaying = false }
 }
 
+function applyEpisodeSync(data) {
+  if (!data || !data.playlistId) return
+  console.log('[party][viewer] applyEpisodeSync', JSON.stringify({
+    seasonIndex: data.seasonIndex ?? null,
+    episodeIndex: data.episodeIndex ?? null,
+    playlistId: data.playlistId,
+    voice: data.voice ?? null,
+  }))
+  if (data.playlistId === currentPlaylistId) return
+  currentPlaylistId = data.playlistId
+  sendFileCommand({ playlistId: data.playlistId })
+  scheduleRequestSync(1500, 'after_episode_sync')
+}
+
 // ── Player commands ──────────────────────────────────────────
 
 function sendPlayerCommand(command, value) {
@@ -570,6 +590,12 @@ window.addEventListener('message', e => {
         pendingInitialAudioSync = null
         console.log('[party][viewer] replay buffered audio sync after ready', JSON.stringify(audioSync))
         applySync(audioSync)
+      }
+      if (pendingInitialEpisodeSync) {
+        const episodeSync = pendingInitialEpisodeSync
+        pendingInitialEpisodeSync = null
+        console.log('[party][viewer] replay buffered episode sync after ready', JSON.stringify(episodeSync))
+        applyEpisodeSync(episodeSync)
       }
       if (pendingInitialPlaybackSync) {
         const playbackSync = pendingInitialPlaybackSync
