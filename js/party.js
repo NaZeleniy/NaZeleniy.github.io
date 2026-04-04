@@ -176,14 +176,18 @@ function applySync(data) {
   console.log('[party] applySync', JSON.stringify(data))
   const compensated = (data.time ?? 0) + latency
 
-  // Смена серии/сезона/озвучки — проверяем изменение playlistId ИЛИ самого файла
+  // Смена серии/сезона — если event === 'file', всегда применяем (fileId/playlistIndex могут быть null)
+  // Для остальных событий — детектируем смену по изменению playlistId или файла
+  const fileEvent = data.event === 'file' || data.event === 'playlist_changed'
   const playlistChanged = data.playlistId != null && data.playlistId !== currentPlaylistId
   const fileChanged = data.file != null && !sameFile(data.file, currentFile)
-  if (playlistChanged || fileChanged) {
+  if (fileEvent || playlistChanged || fileChanged) {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (data.file != null) currentFile = data.file
     const fileObj = data.file || { playlistId: data.playlistId, fileId: null, playlistIndex: null }
     sendPlayerCommand('file', fileObj)
+    // После смены серии сбрасываем currentAudioTrack чтобы озвучка применилась повторно
+    if (fileEvent) currentAudioTrack = null
   }
 
   switch (data.event) {
@@ -211,7 +215,7 @@ function applySync(data) {
       }
       break
     case 'audiotrack_changed':
-      if (data.audioTrack != null && data.audioTrack !== currentAudioTrack) {
+      if (data.audioTrack != null) {
         currentAudioTrack = data.audioTrack
         const idx = Array.isArray(data.audioTracks) ? data.audioTracks.indexOf(data.audioTrack) : -1
         sendPlayerCommand('audiotrack', idx >= 0 ? idx : data.audioTrack)
