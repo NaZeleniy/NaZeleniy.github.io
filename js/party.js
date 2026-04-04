@@ -74,6 +74,8 @@ let lastSyncAt = 0        // время последнего принудите�
 let currentPlaylistId = null
 let currentFile = null
 let currentAudioTrack = null
+// Ожидаем смены эпизода: file команда отправляется на sync_ready после перезагрузки iframe
+let pendingFile = null    // { playlistId, time, playing }
 const SYNC_THRESHOLD = 1  // секунды
 const SYNC_COOLDOWN = 3000  // мс между принудительными seek
 const TIMEUPDATE_INTERVAL = 5000  // мс между отправками timeupdate
@@ -126,8 +128,6 @@ function handleServerMessage(data) {
       if (!isHost) {
         document.getElementById('partyViewerOverlay').classList.add('active')
         document.getElementById('partyJoinOverlay').classList.add('active')
-      } else {
-        startPlayer()
       }
       break
 
@@ -173,20 +173,18 @@ function sameFile(a, b) {
 
 function applySync(data) {
   if (!playerReady) return
-  console.log('[party] applySync', JSON.stringify(data))
   const compensated = (data.time ?? 0) + latency
 
-  // Смена серии/сезона — если event === 'file', всегда применяем (fileId/playlistIndex могут быть null)
-  // Для остальных событий — детектируем смену по изменению playlistId или файла
   const fileEvent = data.event === 'file' || data.event === 'playlist_changed'
   const playlistChanged = data.playlistId != null && data.playlistId !== currentPlaylistId
   const fileChanged = data.file != null && !sameFile(data.file, currentFile)
+
   if (fileEvent || playlistChanged || fileChanged) {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (data.file != null) currentFile = data.file
     currentAudioTrack = null
-    // Плеер не поддерживает программное переключение эпизодов — уведомляем зрителя
-    if (data.playlistInfo?.title) showEpisodeNotification(data.playlistInfo.title)
+    const targetId = data.file?.playlistId ?? data.playlistId
+    if (targetId) reloadPlayerForEpisode(targetId, data.time ?? 0, true)
     return
   }
 
@@ -231,12 +229,10 @@ function applyState(data) {
   if (playlistChanged || fileChanged) {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (data.file != null) currentFile = data.file
-    const rawFile = data.file || { playlistId: data.playlistId }
-    const fileObj = Object.fromEntries(Object.entries(rawFile).filter(([, v]) => v != null))
+    const fileObj = { playlistId: data.file?.playlistId ?? data.playlistId }
     sendPlayerCommand('file', fileObj)
   } else if (data.file && !data.playlistId) {
-    const fileObj = Object.fromEntries(Object.entries(data.file).filter(([, v]) => v != null))
-    sendPlayerCommand('file', fileObj)
+    sendPlayerCommand('file', { playlistId: data.file.playlistId })
   }
   if (data.audioTrack != null && data.audioTrack !== currentAudioTrack) {
     currentAudioTrack = data.audioTrack
@@ -259,15 +255,36 @@ function sendPlayerCommand(command, value) {
   frame.contentWindow.postMessage({ type: 'playerCommand', command, value, timestamp: Date.now() }, '*')
 }
 
-// ── Episode notification ─────────────────────────────────────
+// ── Episode reload: перезагружаем iframe и шлём file на sync_ready ──
 
-function showEpisodeNotification(title) {
-  const notif = document.getElementById('partyEpisodeNotif')
-  if (!notif) return
-  notif.textContent = 'Хост переключил: ' + title + ' — выберите серию в плеере'
-  notif.style.display = 'block'
-  clearTimeout(notif._t)
-  notif._t = setTimeout(() => { notif.style.display = 'none' }, 7000)
+function reloadPlayerForEpisode(playlistId, seekTime, playing) {
+  const frame = document.getElementById('vibix-frame')
+  if (!frame) return
+
+  console.log('[party] reloadPlayerForEpisode', playlistId)
+  playerReady = false
+  pendingFile = { playlistId, time: seekTime ?? 0, playing: !!playing }
+
+  try {
+    const url = new URL(frame.src)
+    url.searchParams.set('nc', Date.now())
+    frame.src = url.toString()
+  } catch(e) {
+    console.warn('[party] reloadPlayerForEpisode failed:', e.message)
+    playerReady = true
+    pendingFile = null
+  }
+
+  // Фолбэк: если через 6с плеер не переключился — восстанавливаем состояние
+  setTimeout(() => {
+    if (!pendingFile) return
+    console.warn('[party] episode reload timeout')
+    const { time, playing: p } = pendingFile
+    pendingFile = null
+    playerReady = true
+    if (time > SYNC_THRESHOLD) sendPlayerCommand('seek', time + latency)
+    if (p) sendPlayerCommand('play')
+  }, 6000)
 }
 
 // ── Player events ────────────────────────────────────────────
@@ -276,13 +293,29 @@ window.addEventListener('message', e => {
   const data = e.data
   if (!data || data.type !== 'playerEvent') return
 
-  console.log('[party] playerEvent', JSON.stringify(data))
-
   const ev = data.event
 
-  if (ev === 'ready' || ev === 'sync_ready') {
+  if (ev === 'sync_ready') {
     playerReady = true
     document.getElementById('partyLoading').style.display = 'none'
+    // Отправляем file команду именно в момент sync_ready — плеер ещё инициализируется
+    if (!isHost && pendingFile) {
+      console.log('[party] sync_ready: sending file command for', pendingFile.playlistId)
+      sendPlayerCommand('file', { playlistId: pendingFile.playlistId })
+    }
+    return
+  }
+
+  if (ev === 'ready') {
+    playerReady = true
+    document.getElementById('partyLoading').style.display = 'none'
+    // Если после ready эпизод всё ещё не переключился — применяем seek/play
+    if (!isHost && pendingFile) {
+      const { time, playing } = pendingFile
+      pendingFile = null
+      if (time > SYNC_THRESHOLD) sendPlayerCommand('seek', time + latency)
+      if (playing) sendPlayerCommand('play')
+    }
     return
   }
 
@@ -290,6 +323,18 @@ window.addEventListener('message', e => {
 
   if (ev === 'play' || ev === 'started' || ev === 'start') isPlaying = true
   if (ev === 'pause' || ev === 'end') isPlaying = false
+
+  // Viewer: плеер подтвердил смену эпизода
+  if (!isHost && pendingFile && (ev === 'playlist_changed' || ev === 'file')) {
+    const newId = data.playlistId ?? data.file?.playlistId
+    if (newId === pendingFile.playlistId) {
+      const { time, playing } = pendingFile
+      pendingFile = null
+      if (time > SYNC_THRESHOLD) sendPlayerCommand('seek', time + latency)
+      if (playing) sendPlayerCommand('play')
+    }
+    return
+  }
 
   if (!isHost) return
 
@@ -312,12 +357,10 @@ window.addEventListener('message', e => {
     currentAudioTrack = data.audioTrack
   }
 
-  wsSend({ type: 'sync', event: ev, time: data.time, playlistId: data.playlistId ?? null, file: data.file ?? null, audioTrack: data.audioTrack ?? null, audioTracks: data.audioTracks ?? null, playlistInfo: data.playlistInfo ?? null })
+  wsSend({ type: 'sync', event: ev, time: data.time, playlistId: data.playlistId ?? null, file: data.file ?? null, audioTrack: data.audioTrack ?? null, audioTracks: data.audioTracks ?? null })
 })
 
 // ── Vibix player ─────────────────────────────────────────────
-
-let _vibixScriptLoaded = false
 
 async function init() {
   try {
@@ -330,61 +373,36 @@ async function init() {
     }
   } catch {}
 
+  // Плеер загружается сразу для всех — это обеспечивает правильный тайминг file команды
+  startVibix()
   connect()
 
-  document.getElementById('partyJoinBtn').addEventListener('click', async () => {
+  document.getElementById('partyJoinBtn').addEventListener('click', () => {
     document.getElementById('partyJoinOverlay').classList.remove('active')
-    await startPlayer()
     wsSend({ type: 'request_sync' })
   })
 }
 
-async function startPlayer() {
-  try {
-    const r = await fetch(`${API_BASE}/api/movie/${movieId}`)
-    if (!r.ok) throw new Error()
-    const movie = await r.json()
-    const vibix = (movie.players || []).find(p => p.name === 'Vibix')
-    if (!vibix) throw new Error('Vibix недоступен')
+function startVibix() {
+  const slot = document.getElementById('vibix-slot')
+  slot.innerHTML = `<ins data-publisher-id="677393820" data-type="kp" data-id="${movieId}" data-design="2" data-sync="true" data-color1="#333333" data-color2="#666666" data-color3="#999999" data-color4="#CCCCCC" data-color5="#FFFFFF"></ins>`
 
-    const slot = document.getElementById('vibix-slot')
-    slot.innerHTML = `<ins data-publisher-id="677393820" data-type="kp" data-id="${vibix.url}" data-design="2" data-sync="true" data-color1="#333333" data-color2="#666666" data-color3="#999999" data-color4="#CCCCCC" data-color5="#FFFFFF"></ins>`
-
-    const waitForIframe = () => new Promise(resolve => {
-      const existing = slot.querySelector('iframe')
-      if (existing) { resolve(existing); return }
-      const obs = new MutationObserver(() => {
-        const f = slot.querySelector('iframe')
-        if (f) { obs.disconnect(); resolve(f) }
-      })
-      obs.observe(slot, { childList: true, subtree: true })
+  const script = document.createElement('script')
+  script.src = 'https://graphicslab.io/sdk/v2/rendex-sdk.min.js'
+  script.onload = () => {
+    const existing = slot.querySelector('iframe')
+    if (existing) { onIframe(existing); return }
+    const obs = new MutationObserver(() => {
+      const f = slot.querySelector('iframe')
+      if (f) { obs.disconnect(); onIframe(f) }
     })
-
-    if (_vibixScriptLoaded) {
-      const frame = await waitForIframe()
-      frame.id = 'vibix-frame'
-      document.getElementById('partyLoading').style.display = 'none'
-      playerReady = true
-    } else {
-      const script = document.createElement('script')
-      script.src = 'https://graphicslab.io/sdk/v2/rendex-sdk.min.js'
-      script.onload = async () => {
-        _vibixScriptLoaded = true
-        const frame = await waitForIframe()
-        frame.id = 'vibix-frame'
-        document.getElementById('partyLoading').style.display = 'none'
-        playerReady = true
-      }
-      script.onerror = () => {
-        document.getElementById('partyLoading').innerHTML =
-          '<i class="fas fa-exclamation-circle"></i><span>Ошибка загрузки плеера</span>'
-      }
-      document.head.appendChild(script)
-    }
-  } catch (e) {
-    document.getElementById('partyLoading').innerHTML =
-      `<i class="fas fa-exclamation-circle"></i><span>${e.message || 'Ошибка загрузки плеера'}</span>`
+    obs.observe(slot, { childList: true, subtree: true })
   }
+  document.head.appendChild(script)
+}
+
+function onIframe(iframe) {
+  iframe.id = 'vibix-frame'
 }
 
 // ── Chat ─────────────────────────────────────────────────────
