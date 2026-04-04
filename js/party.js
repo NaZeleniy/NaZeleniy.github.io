@@ -29,10 +29,6 @@ function generateUsername() {
 }
 
 const username = generateUsername()
-const USE_NATIVE_WATCH_PARTY = true
-let nativeParty = null
-let watchPartyPrototypePatched = false
-const NATIVE_ONLY_EVENTS = new Set(['file', 'playlist_changed'])
 
 // ── UI helpers ───────────────────────────────────────────────
 
@@ -366,13 +362,6 @@ function applySync(data) {
 
   console.log('[party][viewer] applySync normalized', JSON.stringify({ event: data.event, playlistId: data.playlistId ?? null, file: data.file ?? null, normalizedFile: fileObj, playlistChanged, fileChanged, currentPlaylistId, currentFile }))
 
-  if (USE_NATIVE_WATCH_PARTY && (fileEvent || playlistChanged || fileChanged)) {
-    if (data.playlistId != null) currentPlaylistId = data.playlistId
-    if (fileObj) currentFile = fileObj
-    scheduleRequestSync(700, 'after_native_file')
-    return
-  }
-
   if (fileEvent || playlistChanged || fileChanged) {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (fileObj) currentFile = fileObj
@@ -441,10 +430,7 @@ function applyState(data) {
   const fileChanged = fileObj && !sameFile(fileObj, currentFile)
 
   console.log('[party][viewer] applyState normalized', JSON.stringify({ playlistId: data.playlistId ?? null, file: data.file ?? null, normalizedFile: fileObj, playlistChanged, fileChanged, currentPlaylistId, currentFile }))
-  if (USE_NATIVE_WATCH_PARTY && (playlistChanged || fileChanged)) {
-    if (data.playlistId != null) currentPlaylistId = data.playlistId
-    if (fileObj) currentFile = fileObj
-  } else if (playlistChanged || fileChanged) {
+  if (playlistChanged || fileChanged) {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (fileObj) currentFile = fileObj
     sendFileCommand(fileObj || { playlistId: data.playlistId, fileId: null, playlistIndex: null })
@@ -626,9 +612,7 @@ window.addEventListener('message', e => {
 
   if (!isHost) return
 
-  const syncEvents = USE_NATIVE_WATCH_PARTY
-    ? ['play', 'pause', 'seek', 'timeupdate', 'started', 'start', 'audiotrack_changed']
-    : ['play', 'pause', 'seek', 'timeupdate', 'started', 'start', 'file', 'playlist_changed', 'audiotrack_changed']
+  const syncEvents = ['play', 'pause', 'seek', 'timeupdate', 'started', 'start', 'file', 'playlist_changed', 'audiotrack_changed']
   if (!syncEvents.includes(ev)) return
 
   if (ev === 'seek' || ev === 'play' || ev === 'started') lastTimeupdateSent = 0
@@ -711,99 +695,6 @@ function startVibix(vibixId) {
 
 function onIframe(iframe) {
   iframe.id = 'vibix-frame'
-  initNativeWatchParty()
-}
-
-function patchWatchPartyPrototype() {
-  if (!USE_NATIVE_WATCH_PARTY || watchPartyPrototypePatched || typeof WatchParty !== 'function') return
-
-  const proto = WatchParty.prototype
-  const originalHandlePlayerEvent = typeof proto.handlePlayerEvent === 'function' ? proto.handlePlayerEvent : null
-  const originalHandleSync = typeof proto.handleSync === 'function' ? proto.handleSync : null
-
-  if (originalHandleSync) {
-    proto.handleSync = function(syncData) {
-      const eventName = syncData?.event || null
-      if (!eventName || !NATIVE_ONLY_EVENTS.has(eventName)) return
-
-      const ready = this.playerReady === true
-        || this.isPlayerReady === true
-        || this.state?.playerReady === true
-        || this.state?.ready === true
-
-      if (!ready) {
-        this.__nzPendingNativeSync = syncData
-        this.log?.('Buffer native sync until player ready', eventName)
-        return
-      }
-
-      return originalHandleSync.call(this, syncData)
-    }
-  }
-
-  if (originalHandlePlayerEvent) {
-    proto.handlePlayerEvent = function(eventData) {
-      const eventName = eventData?.event || null
-      const shouldPass = !eventName
-        || NATIVE_ONLY_EVENTS.has(eventName)
-        || eventName === 'ready'
-        || eventName === 'sync_ready'
-
-      if (!shouldPass) return
-
-      const result = originalHandlePlayerEvent.call(this, eventData)
-      if ((eventName === 'ready' || eventName === 'sync_ready') && this.__nzPendingNativeSync && originalHandleSync) {
-        const pendingSync = this.__nzPendingNativeSync
-        this.__nzPendingNativeSync = null
-        this.log?.('Replay buffered native sync', pendingSync?.event || null)
-        originalHandleSync.call(this, pendingSync)
-      }
-      return result
-    }
-  }
-
-  watchPartyPrototypePatched = true
-}
-
-function hideNativeWatchPartyUi() {
-  const root = document.querySelector('.party-page')
-  const hideNode = node => {
-    if (!(node instanceof HTMLElement)) return
-    if (root && root.contains(node)) return
-
-    const style = window.getComputedStyle(node)
-    const zIndex = Number.parseInt(style.zIndex || '0', 10)
-    const rect = node.getBoundingClientRect()
-    const looksLikeFloatingWidget = style.position === 'fixed'
-      && zIndex >= 100
-      && rect.width > 120
-      && rect.width < 420
-      && rect.height > 40
-
-    if (looksLikeFloatingWidget) node.style.display = 'none'
-  }
-
-  document.querySelectorAll('body *').forEach(hideNode)
-  const observer = new MutationObserver(mutations => {
-    for (const mutation of mutations) mutation.addedNodes.forEach(hideNode)
-  })
-  observer.observe(document.body, { childList: true, subtree: true })
-}
-
-function initNativeWatchParty() {
-  if (!USE_NATIVE_WATCH_PARTY || nativeParty || typeof WatchParty !== 'function') return
-  patchWatchPartyPrototype()
-  const iframe = document.getElementById('vibix-frame')
-  if (!iframe) return
-
-  nativeParty = new WatchParty({
-    iframe: '#vibix-frame',
-    roomId,
-    username,
-    debug: true,
-  })
-  hideNativeWatchPartyUi()
-  console.log('[party] native WatchParty initialized', JSON.stringify({ roomId, username }))
 }
 
 // ── Chat ─────────────────────────────────────────────────────
