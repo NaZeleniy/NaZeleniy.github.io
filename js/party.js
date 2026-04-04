@@ -78,6 +78,8 @@ let lastSyncAt = 0        // время последнего принудите�
 let currentPlaylistId = null
 let currentFile = null
 let currentAudioTrack = null
+let currentPlaylistSnapshot = null
+let currentEpisodeState = null
 let pendingRemoteFile = null
 let pendingInitialState = null
 let pendingInitialSyncEvents = []
@@ -238,6 +240,73 @@ function sameFile(a, b) {
     && a.seasonIndex === b.seasonIndex
     && a.episodeId === b.episodeId
     && a.episodeIndex === b.episodeIndex
+}
+
+function parsePlaylistTree(rawData) {
+  if (typeof rawData !== 'string' || !rawData.trim()) return null
+
+  let parsed
+  try {
+    parsed = JSON.parse(rawData)
+  } catch (error) {
+    console.log('[party] playlist snapshot parse error', JSON.stringify({ message: error?.message || String(error) }))
+    return null
+  }
+
+  if (!Array.isArray(parsed)) return null
+
+  const seasons = parsed.map((season, seasonIndex) => {
+    const episodes = Array.isArray(season?.folder) ? season.folder.map((episode, episodeIndex) => ({
+      seasonIndex,
+      episodeIndex,
+      seasonTitle: season?.title ?? null,
+      episodeTitle: episode?.title ?? null,
+      playlistId: episode?.id ?? null,
+      file: episode?.file ?? null,
+      voices: episode?.voices && typeof episode.voices === 'object' ? { ...episode.voices } : null,
+    })) : []
+
+    return {
+      seasonIndex,
+      title: season?.title ?? null,
+      episodes,
+    }
+  })
+
+  return {
+    seasons,
+    byPlaylistId: Object.fromEntries(seasons.flatMap(season => season.episodes).filter(episode => episode.playlistId).map(episode => [episode.playlistId, episode])),
+  }
+}
+
+function inferVoiceForPlaylist(snapshot, playlistId, audioTrack) {
+  if (!snapshot?.byPlaylistId || !playlistId || audioTrack == null) return null
+  const episode = snapshot.byPlaylistId[playlistId]
+  if (!episode?.voices) return null
+
+  for (const [voiceName, voicePlaylistId] of Object.entries(episode.voices)) {
+    if (voicePlaylistId === audioTrack) return voiceName
+  }
+  return null
+}
+
+function updateEpisodeState(reason, playlistId = currentPlaylistId, audioTrack = currentAudioTrack) {
+  if (!currentPlaylistSnapshot?.byPlaylistId || !playlistId) return null
+  const episode = currentPlaylistSnapshot.byPlaylistId[playlistId]
+  if (!episode) return null
+
+  const voice = inferVoiceForPlaylist(currentPlaylistSnapshot, playlistId, audioTrack)
+  currentEpisodeState = {
+    seasonIndex: episode.seasonIndex,
+    episodeIndex: episode.episodeIndex,
+    seasonTitle: episode.seasonTitle,
+    episodeTitle: episode.episodeTitle,
+    playlistId,
+    audioTrack: audioTrack ?? null,
+    voice,
+  }
+  console.log('[party] episode state', JSON.stringify({ reason, ...currentEpisodeState }))
+  return currentEpisodeState
 }
 
 
@@ -411,6 +480,17 @@ window.addEventListener('message', e => {
   const looksRelevant = /file|playlist|episode/i.test(serialized)
   if (!looksRelevant) return
 
+  if (data.event === 'file' && typeof data.data === 'string') {
+    const snapshot = parsePlaylistTree(data.data)
+    if (snapshot) {
+      currentPlaylistSnapshot = snapshot
+      const seasonsCount = snapshot.seasons.length
+      const episodesCount = snapshot.seasons.reduce((sum, season) => sum + season.episodes.length, 0)
+      console.log('[party] playlist snapshot', JSON.stringify({ seasonsCount, episodesCount }))
+      updateEpisodeState('raw_playlist_tree')
+    }
+  }
+
   console.log(isHost ? '[party][host] raw message' : '[party][viewer] raw message', JSON.stringify({ origin: e.origin, data }))
 })
 
@@ -493,9 +573,11 @@ window.addEventListener('message', e => {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (fileObj) currentFile = fileObj
     console.log('[party] file event', JSON.stringify({ event: ev, playlistId: data.playlistId ?? null, file: data.file ?? null, fileId: data.fileId ?? null, playlistIndex: data.playlistIndex ?? null, normalizedFile: fileObj }))
+    updateEpisodeState(ev, data.playlistId ?? fileObj?.playlistId ?? currentPlaylistId, currentAudioTrack)
   }
   if (ev === 'audiotrack_changed' && data.audioTrack != null) {
     currentAudioTrack = data.audioTrack
+    updateEpisodeState(ev, currentPlaylistId, currentAudioTrack)
   }
 
   wsSend({ type: 'sync', event: ev, time: data.time, playlistId: data.playlistId ?? null, file: fileObj ?? null, audioTrack: data.audioTrack ?? null, audioTracks: data.audioTracks ?? null })
