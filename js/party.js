@@ -452,6 +452,8 @@ function applyEpisodeSync(data) {
 
   currentPlaylistId = data.playlistId
   playerReady = false
+  isPlaying = false  // player starts fresh after reload
+  currentTime = 0
 
   try {
     // Use stored base URL (original kinopoisk ID, no season/episode/nc params)
