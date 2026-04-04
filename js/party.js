@@ -530,7 +530,12 @@ function patchWatchPartyPrototype() {
   if (originalHandlePlayerEvent) {
     proto.handlePlayerEvent = function(eventData) {
       const eventName = eventData?.event || null
-      if (eventName && !NATIVE_ONLY_EVENTS.has(eventName)) return
+      const shouldPass = !eventName
+        || NATIVE_ONLY_EVENTS.has(eventName)
+        || eventName === 'ready'
+        || eventName === 'sync_ready'
+
+      if (!shouldPass) return
 
       const result = originalHandlePlayerEvent.call(this, eventData)
       if ((eventName === 'ready' || eventName === 'sync_ready') && this.__nzPendingNativeSync && originalHandleSync) {
