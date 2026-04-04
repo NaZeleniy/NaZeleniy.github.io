@@ -490,35 +490,24 @@ function onIframe(iframe) {
 }
 
 function hideNativeWatchPartyUi() {
-  if (document.getElementById('party-watchparty-hide-style')) return
-
-  const style = document.createElement('style')
-  style.id = 'party-watchparty-hide-style'
-  style.textContent = `
-    .watch-party-ui,
-    .wp-notification,
-    [class^="wp-"],
-    [class*=" wp-"] {
-      display: none !important;
-      visibility: hidden !important;
-      opacity: 0 !important;
-      pointer-events: none !important;
-    }
-  `
-  document.head.appendChild(style)
-
+  const root = document.querySelector('.party-page')
   const hideNode = node => {
     if (!(node instanceof HTMLElement)) return
-    const className = typeof node.className === 'string' ? node.className : ''
-    if (className === 'watch-party-ui' || className.includes('watch-party-ui') || className === 'wp-notification' || className.startsWith('wp-') || className.includes(' wp-')) {
-      node.style.display = 'none'
-      node.style.visibility = 'hidden'
-      node.style.opacity = '0'
-      node.style.pointerEvents = 'none'
-    }
+    if (root && root.contains(node)) return
+
+    const style = window.getComputedStyle(node)
+    const zIndex = Number.parseInt(style.zIndex || '0', 10)
+    const rect = node.getBoundingClientRect()
+    const looksLikeFloatingWidget = style.position === 'fixed'
+      && zIndex >= 100
+      && rect.width > 120
+      && rect.width < 420
+      && rect.height > 40
+
+    if (looksLikeFloatingWidget) node.style.display = 'none'
   }
 
-  document.querySelectorAll('[class]').forEach(hideNode)
+  document.querySelectorAll('body *').forEach(hideNode)
   const observer = new MutationObserver(mutations => {
     for (const mutation of mutations) mutation.addedNodes.forEach(hideNode)
   })
