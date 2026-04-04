@@ -79,6 +79,8 @@ let currentPlaylistId = null
 let currentFile = null
 let currentAudioTrack = null
 let pendingRemoteFile = null
+let pendingInitialState = null
+let pendingInitialSyncEvents = []
 const SYNC_THRESHOLD = 1  // секунды
 const SYNC_COOLDOWN = 3000  // мс между принудительными seek
 const TIMEUPDATE_INTERVAL = 5000  // мс между отправками timeupdate
@@ -145,14 +147,24 @@ function handleServerMessage(data) {
     case 'sync':
       if (!isHost) {
         console.log('[party][viewer] ws sync', JSON.stringify(data))
-        applySync(data)
+        if (!playerReady) {
+          pendingInitialSyncEvents.push(data)
+          console.log('[party][viewer] buffered ws sync until player ready', JSON.stringify({ event: data.event, buffered: pendingInitialSyncEvents.length }))
+        } else {
+          applySync(data)
+        }
       }
       break
 
     case 'state':
       if (!isHost) {
         console.log('[party][viewer] ws state', JSON.stringify(data))
-        applyState(data)
+        if (!playerReady) {
+          pendingInitialState = data
+          console.log('[party][viewer] buffered ws state until player ready', JSON.stringify(data))
+        } else {
+          applyState(data)
+        }
       }
       break
 
@@ -394,6 +406,21 @@ window.addEventListener('message', e => {
   if (ev === 'ready' || ev === 'sync_ready') {
     playerReady = true
     document.getElementById('partyLoading').style.display = 'none'
+
+    if (!isHost) {
+      if (pendingInitialState) {
+        const state = pendingInitialState
+        pendingInitialState = null
+        console.log('[party][viewer] replay buffered state after ready', JSON.stringify(state))
+        applyState(state)
+      }
+      if (pendingInitialSyncEvents.length) {
+        const events = pendingInitialSyncEvents.slice()
+        pendingInitialSyncEvents = []
+        console.log('[party][viewer] replay buffered sync events after ready', JSON.stringify({ count: events.length }))
+        events.forEach(applySync)
+      }
+    }
     return
   }
 
