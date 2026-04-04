@@ -1760,6 +1760,22 @@ a.movie-poster-side img {
 }
 .party-join-btn:hover { background: var(--accent-light); }
 
+.party-episode-notif {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  white-space: nowrap;
+  z-index: 15;
+  pointer-events: none;
+  border: 1px solid var(--accent);
+}
+
 .party-chat {
   width: 300px;
   flex-shrink: 0;
