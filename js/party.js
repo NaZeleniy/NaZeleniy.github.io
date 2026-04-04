@@ -469,7 +469,9 @@ function applyEpisodeSync(data) {
     if (data.seasonIndex != null) newSrc += sep + 'season=' + (data.seasonIndex + 1)
     const epSep = newSrc.includes('?') ? '&' : '?'
     if (data.episodeIndex != null) newSrc += epSep + 'episode[]=' + (data.episodeIndex + 1)
-    newSrc += (newSrc.includes('?') ? '&' : '?') + 'nc=' + Date.now()
+    // autoplay=true tells the player to start playing natively — works around browser autoplay policy
+    if (hostPlaying) newSrc += '&autoplay=true'
+    newSrc += '&nc=' + Date.now()
 
     console.log('[party][viewer] reloading iframe for episode', newSrc)
     iframe.src = newSrc
@@ -571,12 +573,6 @@ window.addEventListener('message', e => {
         pendingInitialPlaybackSync = null
         console.log('[party][viewer] replay buffered playback sync after ready', JSON.stringify(playbackSync))
         applySync(playbackSync)
-      }
-      // If host was playing before episode switch, start playback immediately
-      if (!isPlaying && hostPlaying) {
-        console.log('[party][viewer] auto-play after ready (hostPlaying=true)')
-        sendPlayerCommand('play')
-        isPlaying = true
       }
       scheduleRequestSync(300, 'after_ready')
     }
