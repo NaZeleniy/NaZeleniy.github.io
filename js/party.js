@@ -74,6 +74,7 @@ let lastSyncAt = 0        // время последнего принудите�
 let currentPlaylistId = null
 let currentFile = null
 let currentAudioTrack = null
+let pendingFileSeek = null   // { time, playing } — применить после загрузки нового эпизода
 const SYNC_THRESHOLD = 1  // секунды
 const SYNC_COOLDOWN = 3000  // мс между принудительными seek
 const TIMEUPDATE_INTERVAL = 5000  // мс между отправками timeupdate
@@ -184,20 +185,28 @@ function applySync(data) {
   if (fileEvent || playlistChanged || fileChanged) {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (data.file != null) currentFile = data.file
-    const fileObj = data.file || { playlistId: data.playlistId, fileId: null, playlistIndex: null }
+    // Стриппим null-поля — некоторые SDK-плееры проверяют !== undefined
+    const rawFile = data.file || { playlistId: data.playlistId }
+    const fileObj = Object.fromEntries(Object.entries(rawFile).filter(([, v]) => v != null))
     sendPlayerCommand('file', fileObj)
-    // После смены серии сбрасываем currentAudioTrack чтобы озвучка применилась повторно
-    if (fileEvent) currentAudioTrack = null
+    // После смены серии сбрасываем состояние чтобы seek/озвучка применились после загрузки
+    if (fileEvent) {
+      currentAudioTrack = null
+      pendingFileSeek = { time: data.time ?? 0, playing: true }
+    }
   }
 
   switch (data.event) {
     case 'play':
     case 'started':
     case 'start':
-      sendPlayerCommand('play')
+      // Если ждём загрузки файла — только обновляем isPlaying, seek отложен на pendingFileSeek
+      if (!pendingFileSeek) {
+        sendPlayerCommand('play')
+        if (Math.abs(currentTime - compensated) > SYNC_THRESHOLD)
+          sendPlayerCommand('seek', compensated)
+      }
       isPlaying = true
-      if (Math.abs(currentTime - compensated) > SYNC_THRESHOLD)
-        sendPlayerCommand('seek', compensated)
       break
     case 'pause':
       sendPlayerCommand('pause')
@@ -231,9 +240,13 @@ function applyState(data) {
   if (playlistChanged || fileChanged) {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (data.file != null) currentFile = data.file
-    const fileObj = data.file || { playlistId: data.playlistId, fileId: null, playlistIndex: null }
+    const rawFile = data.file || { playlistId: data.playlistId }
+    const fileObj = Object.fromEntries(Object.entries(rawFile).filter(([, v]) => v != null))
     sendPlayerCommand('file', fileObj)
-  } else if (data.file && !data.playlistId) sendPlayerCommand('file', data.file)
+  } else if (data.file && !data.playlistId) {
+    const fileObj = Object.fromEntries(Object.entries(data.file).filter(([, v]) => v != null))
+    sendPlayerCommand('file', fileObj)
+  }
   if (data.audioTrack != null && data.audioTrack !== currentAudioTrack) {
     currentAudioTrack = data.audioTrack
     const idx = Array.isArray(data.audioTracks) ? data.audioTracks.indexOf(data.audioTrack) : -1
@@ -275,6 +288,14 @@ window.addEventListener('message', e => {
 
   if (ev === 'play' || ev === 'started' || ev === 'start') isPlaying = true
   if (ev === 'pause' || ev === 'end') isPlaying = false
+
+  // Зритель: при первом play после смены серии применяем отложенный seek
+  if (!isHost && pendingFileSeek && (ev === 'play' || ev === 'started' || ev === 'start')) {
+    const { time } = pendingFileSeek
+    pendingFileSeek = null
+    if (Math.abs(currentTime - time) > SYNC_THRESHOLD) sendPlayerCommand('seek', time + latency)
+    return
+  }
 
   if (!isHost) return
 
