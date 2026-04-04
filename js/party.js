@@ -141,6 +141,23 @@ function scheduleRequestSync(delay = 0, reason = '') {
   }, delay)
 }
 
+function sendEpisodeSync(seed) {
+  if (!seed || !isHost) return
+  wsSend({
+    type: 'episode_sync',
+    seasonIndex: seed.seasonIndex,
+    episodeIndex: seed.episodeIndex,
+    playlistId: seed.playlistId,
+    voice: seed.voice ?? null,
+  })
+  console.log('[party][host] episode_sync sent', JSON.stringify({
+    seasonIndex: seed.seasonIndex,
+    episodeIndex: seed.episodeIndex,
+    playlistId: seed.playlistId,
+    voice: seed.voice ?? null,
+  }))
+}
+
 function handleServerMessage(data) {
   switch (data.type) {
     case 'role_assigned':
@@ -199,6 +216,17 @@ function handleServerMessage(data) {
 
     case 'request_sync':
       if (isHost) wsSend({ type: 'state', time: currentTime, playing: isPlaying, playlistId: currentPlaylistId, file: currentFile, audioTrack: currentAudioTrack })
+      break
+
+    case 'episode_sync':
+      if (!isHost) {
+        console.log('[party][viewer] episode_sync received', JSON.stringify({
+          seasonIndex: data.seasonIndex ?? null,
+          episodeIndex: data.episodeIndex ?? null,
+          playlistId: data.playlistId ?? null,
+          voice: data.voice ?? null,
+        }))
+      }
       break
 
     case 'pong':
@@ -312,7 +340,9 @@ function updateEpisodeState(reason, playlistId = currentPlaylistId, audioTrack =
     voice,
   }
   console.log('[party] episode state', JSON.stringify({ reason, ...currentEpisodeState }))
-  console.log('[party] episode sync seed', JSON.stringify({ seasonIndex: episode.seasonIndex, episodeIndex: episode.episodeIndex, playlistId, voice, reason }))
+  const syncSeed = { seasonIndex: episode.seasonIndex, episodeIndex: episode.episodeIndex, playlistId, voice, reason }
+  console.log('[party] episode sync seed', JSON.stringify(syncSeed))
+  if (isHost && ['player_event_file', 'player_event_playlist_changed'].includes(reason)) sendEpisodeSync(syncSeed)
   return currentEpisodeState
 }
 
