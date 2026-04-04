@@ -495,6 +495,7 @@ function hideNativeWatchPartyUi() {
   const style = document.createElement('style')
   style.id = 'party-watchparty-hide-style'
   style.textContent = `
+    .watch-party-ui,
     .wp-notification,
     [class^="wp-"],
     [class*=" wp-"] {
@@ -509,7 +510,7 @@ function hideNativeWatchPartyUi() {
   const hideNode = node => {
     if (!(node instanceof HTMLElement)) return
     const className = typeof node.className === 'string' ? node.className : ''
-    if (className === 'wp-notification' || className.startsWith('wp-') || className.includes(' wp-')) {
+    if (className === 'watch-party-ui' || className.includes('watch-party-ui') || className === 'wp-notification' || className.startsWith('wp-') || className.includes(' wp-')) {
       node.style.display = 'none'
       node.style.visibility = 'hidden'
       node.style.opacity = '0'
