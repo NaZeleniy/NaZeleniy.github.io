@@ -74,6 +74,7 @@ let lastSyncAt = 0        // время последнего принудите�
 let currentPlaylistId = null
 let currentFile = null
 let currentAudioTrack = null
+let pendingRemoteFile = null
 const SYNC_THRESHOLD = 1  // секунды
 const SYNC_COOLDOWN = 3000  // мс между принудительными seek
 const TIMEUPDATE_INTERVAL = 5000  // мс между отправками timeupdate
@@ -221,7 +222,25 @@ function applySync(data) {
   if (fileEvent || playlistChanged || fileChanged) {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (fileObj) currentFile = fileObj
+    if (pendingRemoteFile?.timer) clearTimeout(pendingRemoteFile.timer)
+    pendingRemoteFile = {
+      playlistId: fileObj?.playlistId ?? data.playlistId ?? null,
+      bufferedPlay: null,
+      timer: setTimeout(() => {
+        console.log('[party][viewer] pending file timeout', JSON.stringify(pendingRemoteFile))
+        const buffered = pendingRemoteFile?.bufferedPlay
+        pendingRemoteFile = null
+        if (buffered) flushBufferedPlayback(buffered)
+      }, 1500)
+    }
     sendPlayerCommand('file', fileObj || { playlistId: data.playlistId, fileId: null, playlistIndex: null })
+    return
+  }
+
+  if (pendingRemoteFile && ['play', 'pause', 'seek', 'timeupdate', 'started', 'start'].includes(data.event)) {
+    pendingRemoteFile.bufferedPlay = { event: data.event, compensated, rawTime: data.time ?? 0 }
+    console.log('[party][viewer] buffering playback until file ack', JSON.stringify(pendingRemoteFile.bufferedPlay))
+    return
   }
 
   switch (data.event) {
@@ -297,6 +316,30 @@ function sendPlayerCommand(command, value) {
   frame.contentWindow.postMessage({ type: 'playerCommand', command, value, timestamp: Date.now() }, '*')
 }
 
+function flushBufferedPlayback(buffered) {
+  if (!buffered) return
+  console.log('[party][viewer] flush buffered playback', JSON.stringify(buffered))
+  switch (buffered.event) {
+    case 'play':
+    case 'started':
+    case 'start':
+      sendPlayerCommand('play')
+      isPlaying = true
+      if (Math.abs(currentTime - buffered.compensated) > SYNC_THRESHOLD) sendPlayerCommand('seek', buffered.compensated)
+      break
+    case 'pause':
+      sendPlayerCommand('pause')
+      break
+    case 'seek':
+      sendPlayerCommand('seek', buffered.compensated)
+      isPlaying = true
+      break
+    case 'timeupdate':
+      if (isPlaying && Math.abs(currentTime - buffered.compensated) > SYNC_THRESHOLD) sendPlayerCommand('seek', buffered.compensated)
+      break
+  }
+}
+
 // ── Player events ────────────────────────────────────────────
 
 window.addEventListener('message', e => {
@@ -304,6 +347,7 @@ window.addEventListener('message', e => {
   if (!data || data.type !== 'playerEvent') return
 
   const ev = data.event
+  if (!isHost) console.log('[party][viewer] playerEvent', JSON.stringify(data))
 
   if (ev === 'ready' || ev === 'sync_ready') {
     playerReady = true
@@ -315,6 +359,17 @@ window.addEventListener('message', e => {
 
   if (ev === 'play' || ev === 'started' || ev === 'start') isPlaying = true
   if (ev === 'pause' || ev === 'end') isPlaying = false
+
+  if (!isHost && pendingRemoteFile && (ev === 'file' || ev === 'playlist_changed')) {
+    const ackPlaylistId = data.file?.playlistId ?? data.playlistId ?? null
+    if (!pendingRemoteFile.playlistId || ackPlaylistId === pendingRemoteFile.playlistId) {
+      console.log('[party][viewer] file ack', JSON.stringify({ ackPlaylistId, pendingRemoteFile }))
+      const buffered = pendingRemoteFile.bufferedPlay
+      clearTimeout(pendingRemoteFile.timer)
+      pendingRemoteFile = null
+      flushBufferedPlayback(buffered)
+    }
+  }
 
   if (!isHost) return
 
