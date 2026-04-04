@@ -29,6 +29,8 @@ function generateUsername() {
 }
 
 const username = generateUsername()
+const USE_NATIVE_WATCH_PARTY = true
+let nativeParty = null
 
 // ── UI helpers ───────────────────────────────────────────────
 
@@ -139,14 +141,14 @@ function handleServerMessage(data) {
       break
 
     case 'sync':
-      if (!isHost) {
+      if (!USE_NATIVE_WATCH_PARTY && !isHost) {
         console.log('[party][viewer] ws sync', JSON.stringify(data))
         applySync(data)
       }
       break
 
     case 'state':
-      if (!isHost) {
+      if (!USE_NATIVE_WATCH_PARTY && !isHost) {
         console.log('[party][viewer] ws state', JSON.stringify(data))
         applyState(data)
       }
@@ -161,7 +163,7 @@ function handleServerMessage(data) {
       break
 
     case 'request_sync':
-      if (isHost) wsSend({ type: 'state', time: currentTime, playing: isPlaying, playlistId: currentPlaylistId, file: currentFile, audioTrack: currentAudioTrack })
+      if (!USE_NATIVE_WATCH_PARTY && isHost) wsSend({ type: 'state', time: currentTime, playing: isPlaying, playlistId: currentPlaylistId, file: currentFile, audioTrack: currentAudioTrack })
       break
 
     case 'pong':
@@ -402,6 +404,8 @@ window.addEventListener('message', e => {
 
   if (!isHost) return
 
+  if (USE_NATIVE_WATCH_PARTY) return
+
   const syncEvents = ['play', 'pause', 'seek', 'timeupdate', 'started', 'start', 'file', 'playlist_changed', 'audiotrack_changed']
   if (!syncEvents.includes(ev)) return
 
@@ -482,6 +486,21 @@ function startVibix(vibixId) {
 
 function onIframe(iframe) {
   iframe.id = 'vibix-frame'
+  initNativeWatchParty()
+}
+
+function initNativeWatchParty() {
+  if (!USE_NATIVE_WATCH_PARTY || nativeParty || typeof WatchParty !== 'function') return
+  const iframe = document.getElementById('vibix-frame')
+  if (!iframe) return
+
+  nativeParty = new WatchParty({
+    iframe: '#vibix-frame',
+    roomId,
+    username,
+    debug: true,
+  })
+  console.log('[party] native WatchParty initialized', JSON.stringify({ roomId, username }))
 }
 
 // ── Chat ─────────────────────────────────────────────────────
