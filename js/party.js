@@ -291,9 +291,15 @@ function inferVoiceForPlaylist(snapshot, playlistId, audioTrack) {
 }
 
 function updateEpisodeState(reason, playlistId = currentPlaylistId, audioTrack = currentAudioTrack) {
-  if (!currentPlaylistSnapshot?.byPlaylistId || !playlistId) return null
+  if (!currentPlaylistSnapshot?.byPlaylistId || !playlistId) {
+    console.log('[party] episode state skipped', JSON.stringify({ reason, playlistId: playlistId ?? null, hasSnapshot: !!currentPlaylistSnapshot?.byPlaylistId }))
+    return null
+  }
   const episode = currentPlaylistSnapshot.byPlaylistId[playlistId]
-  if (!episode) return null
+  if (!episode) {
+    console.log('[party] episode lookup miss', JSON.stringify({ reason, playlistId, knownIds: Object.keys(currentPlaylistSnapshot.byPlaylistId).slice(0, 5), totalIds: Object.keys(currentPlaylistSnapshot.byPlaylistId).length }))
+    return null
+  }
 
   const voice = inferVoiceForPlaylist(currentPlaylistSnapshot, playlistId, audioTrack)
   currentEpisodeState = {
@@ -573,8 +579,9 @@ window.addEventListener('message', e => {
   if (ev === 'file' || ev === 'playlist_changed') {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (fileObj) currentFile = fileObj
-    console.log('[party] file event', JSON.stringify({ event: ev, playlistId: data.playlistId ?? null, file: data.file ?? null, fileId: data.fileId ?? null, playlistIndex: data.playlistIndex ?? null, normalizedFile: fileObj }))
-    updateEpisodeState(ev, data.playlistId ?? fileObj?.playlistId ?? currentPlaylistId, currentAudioTrack)
+    const resolvedPlaylistId = data.playlistId ?? fileObj?.playlistId ?? data.playlistInfo?.currentId ?? currentPlaylistId
+    console.log('[party] file event', JSON.stringify({ event: ev, playlistId: data.playlistId ?? null, playlistInfoCurrentId: data.playlistInfo?.currentId ?? null, file: data.file ?? null, fileId: data.fileId ?? null, playlistIndex: data.playlistIndex ?? null, normalizedFile: fileObj, resolvedPlaylistId }))
+    updateEpisodeState(ev, resolvedPlaylistId, currentAudioTrack)
   }
   if (ev === 'audiotrack_changed' && data.audioTrack != null) {
     currentAudioTrack = data.audioTrack
