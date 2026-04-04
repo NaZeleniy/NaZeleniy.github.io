@@ -31,11 +31,6 @@ function generateUsername() {
 const username = generateUsername()
 const USE_NATIVE_WATCH_PARTY = true
 let nativeParty = null
-let watchPartyPrototypePatched = false
-const NATIVE_ONLY_EVENTS = new Set(['file', 'playlist_changed'])
-const NATIVE_OUTGOING_EVENTS = new Set(['file', 'playlist_changed'])
-
-window.__nzCanWatchPartyPublish = () => !!isHost
 
 // ── UI helpers ───────────────────────────────────────────────
 
@@ -81,7 +76,6 @@ let lastSyncAt = 0        // время последнего принудите�
 let currentPlaylistId = null
 let currentFile = null
 let currentAudioTrack = null
-let currentAudioTracks = null
 let pendingRemoteFile = null
 const SYNC_THRESHOLD = 1  // секунды
 const SYNC_COOLDOWN = 3000  // мс между принудительными seek
@@ -135,11 +129,7 @@ function handleServerMessage(data) {
       if (!isHost) {
         document.getElementById('partyViewerOverlay').classList.add('active')
         document.getElementById('partyJoinOverlay').classList.add('active')
-      } else {
-        document.getElementById('partyViewerOverlay').classList.remove('active')
-        document.getElementById('partyJoinOverlay').classList.remove('active')
       }
-      syncNativePartyRole()
       break
 
     case 'role_changed':
@@ -151,14 +141,14 @@ function handleServerMessage(data) {
       break
 
     case 'sync':
-      if (!isHost) {
+      if (!USE_NATIVE_WATCH_PARTY && !isHost) {
         console.log('[party][viewer] ws sync', JSON.stringify(data))
         applySync(data)
       }
       break
 
     case 'state':
-      if (!isHost) {
+      if (!USE_NATIVE_WATCH_PARTY && !isHost) {
         console.log('[party][viewer] ws state', JSON.stringify(data))
         applyState(data)
       }
@@ -173,7 +163,7 @@ function handleServerMessage(data) {
       break
 
     case 'request_sync':
-      if (isHost) wsSend({ type: 'state', time: currentTime, playing: isPlaying, playlistId: currentPlaylistId, file: currentFile, audioTrack: currentAudioTrack ?? nativeParty?.state?.audioTrack ?? null, audioTracks: currentAudioTracks ?? nativeParty?.state?.audioTracks ?? null })
+      if (!USE_NATIVE_WATCH_PARTY && isHost) wsSend({ type: 'state', time: currentTime, playing: isPlaying, playlistId: currentPlaylistId, file: currentFile, audioTrack: currentAudioTrack })
       break
 
     case 'pong':
@@ -231,13 +221,7 @@ function applySync(data) {
 
   console.log('[party][viewer] applySync normalized', JSON.stringify({ event: data.event, playlistId: data.playlistId ?? null, file: data.file ?? null, normalizedFile: fileObj, playlistChanged, fileChanged, currentPlaylistId, currentFile }))
 
-  if (USE_NATIVE_WATCH_PARTY && NATIVE_ONLY_EVENTS.has(data.event)) {
-    if (data.playlistId != null) currentPlaylistId = data.playlistId
-    if (fileObj) currentFile = fileObj
-    return
-  }
-
-  if (!USE_NATIVE_WATCH_PARTY && (fileEvent || playlistChanged || fileChanged)) {
+  if (fileEvent || playlistChanged || fileChanged) {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (fileObj) currentFile = fileObj
     if (pendingRemoteFile?.timer) clearTimeout(pendingRemoteFile.timer)
@@ -255,7 +239,7 @@ function applySync(data) {
     return
   }
 
-  if (!USE_NATIVE_WATCH_PARTY && pendingRemoteFile && ['play', 'pause', 'seek', 'timeupdate', 'started', 'start'].includes(data.event)) {
+  if (pendingRemoteFile && ['play', 'pause', 'seek', 'timeupdate', 'started', 'start'].includes(data.event)) {
     pendingRemoteFile.bufferedPlay = { event: data.event, compensated, rawTime: data.time ?? 0 }
     console.log('[party][viewer] buffering playback until file ack', JSON.stringify(pendingRemoteFile.bufferedPlay))
     return
@@ -286,11 +270,9 @@ function applySync(data) {
       }
       break
     case 'audiotrack_changed':
-      if (Array.isArray(data.audioTracks)) currentAudioTracks = [...data.audioTracks]
       if (data.audioTrack != null && data.audioTrack !== currentAudioTrack) {
         currentAudioTrack = data.audioTrack
-        const tracks = Array.isArray(data.audioTracks) ? data.audioTracks : currentAudioTracks
-        const idx = Array.isArray(tracks) ? tracks.indexOf(data.audioTrack) : -1
+        const idx = Array.isArray(data.audioTracks) ? data.audioTracks.indexOf(data.audioTrack) : -1
         sendPlayerCommand('audiotrack', idx >= 0 ? idx : data.audioTrack)
       }
       break
@@ -307,20 +289,14 @@ function applyState(data) {
   const fileChanged = fileObj && !sameFile(fileObj, currentFile)
 
   console.log('[party][viewer] applyState normalized', JSON.stringify({ playlistId: data.playlistId ?? null, file: data.file ?? null, normalizedFile: fileObj, playlistChanged, fileChanged, currentPlaylistId, currentFile }))
-  if (!USE_NATIVE_WATCH_PARTY && (playlistChanged || fileChanged)) {
+  if (playlistChanged || fileChanged) {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (fileObj) currentFile = fileObj
     sendFileCommand(fileObj || { playlistId: data.playlistId, fileId: null, playlistIndex: null })
-  } else if (!USE_NATIVE_WATCH_PARTY && fileObj && !data.playlistId) sendPlayerCommand('file', fileObj)
-  if (USE_NATIVE_WATCH_PARTY && (playlistChanged || fileChanged)) {
-    if (data.playlistId != null) currentPlaylistId = data.playlistId
-    if (fileObj) currentFile = fileObj
-  }
-  if (Array.isArray(data.audioTracks)) currentAudioTracks = [...data.audioTracks]
+  } else if (fileObj && !data.playlistId) sendPlayerCommand('file', fileObj)
   if (data.audioTrack != null && data.audioTrack !== currentAudioTrack) {
     currentAudioTrack = data.audioTrack
-    const tracks = Array.isArray(data.audioTracks) ? data.audioTracks : currentAudioTracks
-    const idx = Array.isArray(tracks) ? tracks.indexOf(data.audioTrack) : -1
+    const idx = Array.isArray(data.audioTracks) ? data.audioTracks.indexOf(data.audioTrack) : -1
     sendPlayerCommand('audiotrack', idx >= 0 ? idx : data.audioTrack)
   }
   const compensated = (data.time ?? 0) + latency
@@ -428,9 +404,9 @@ window.addEventListener('message', e => {
 
   if (!isHost) return
 
-  const syncEvents = USE_NATIVE_WATCH_PARTY
-    ? ['play', 'pause', 'seek', 'timeupdate', 'started', 'start', 'audiotrack_changed']
-    : ['play', 'pause', 'seek', 'timeupdate', 'started', 'start', 'file', 'playlist_changed', 'audiotrack_changed']
+  if (USE_NATIVE_WATCH_PARTY) return
+
+  const syncEvents = ['play', 'pause', 'seek', 'timeupdate', 'started', 'start', 'file', 'playlist_changed', 'audiotrack_changed']
   if (!syncEvents.includes(ev)) return
 
   if (ev === 'seek' || ev === 'play' || ev === 'started') lastTimeupdateSent = 0
@@ -447,10 +423,11 @@ window.addEventListener('message', e => {
     if (fileObj) currentFile = fileObj
     console.log('[party] file event', JSON.stringify({ event: ev, playlistId: data.playlistId ?? null, file: data.file ?? null, fileId: data.fileId ?? null, playlistIndex: data.playlistIndex ?? null, normalizedFile: fileObj }))
   }
-  if (Array.isArray(data.audioTracks)) currentAudioTracks = [...data.audioTracks]
-  if (data.audioTrack != null) currentAudioTrack = data.audioTrack
+  if (ev === 'audiotrack_changed' && data.audioTrack != null) {
+    currentAudioTrack = data.audioTrack
+  }
 
-  wsSend({ type: 'sync', event: ev, time: data.time, playlistId: data.playlistId ?? null, file: fileObj ?? null, audioTrack: data.audioTrack ?? currentAudioTrack ?? null, audioTracks: data.audioTracks ?? currentAudioTracks ?? null })
+  wsSend({ type: 'sync', event: ev, time: data.time, playlistId: data.playlistId ?? null, file: fileObj ?? null, audioTrack: data.audioTrack ?? null, audioTracks: data.audioTracks ?? null })
 })
 
 // ── Vibix player ─────────────────────────────────────────────
@@ -512,108 +489,8 @@ function onIframe(iframe) {
   initNativeWatchParty()
 }
 
-function syncNativePartyRole() {
-  if (!nativeParty) return
-  nativeParty.isHost = !!isHost
-  nativeParty.roleAssigned = true
-  if (!nativeParty.state || typeof nativeParty.state !== 'object') nativeParty.state = {}
-  nativeParty.state.isHost = !!isHost
-  console.log('[party] native role synced', JSON.stringify({ isHost }))
-}
-
-function patchWatchPartyPrototype() {
-  if (!USE_NATIVE_WATCH_PARTY || watchPartyPrototypePatched || typeof WatchParty !== 'function') return
-
-  const proto = WatchParty.prototype
-  for (const name of ['createUI', 'setupUIHandlers', 'makeDraggable', 'updateRoleUI', 'showNotification']) {
-    if (typeof proto[name] === 'function') proto[name] = function() {}
-  }
-
-  if (typeof proto.handlePlayerEvent === 'function') {
-    const originalHandlePlayerEvent = proto.handlePlayerEvent
-    proto.handlePlayerEvent = function(eventData) {
-      const eventName = eventData?.event || null
-      if (!window.__nzCanWatchPartyPublish()) {
-        this.isHost = false
-        this.roleAssigned = true
-        if (eventName) this.log?.('Viewer event skipped', eventName)
-        return
-      }
-      if (eventName && !NATIVE_OUTGOING_EVENTS.has(eventName)) {
-        this.isHost = true
-        this.roleAssigned = true
-        this.log?.('Native outgoing event skipped', eventName)
-        return
-      }
-      this.isHost = true
-      this.roleAssigned = true
-      return originalHandlePlayerEvent.call(this, eventData)
-    }
-  }
-
-  watchPartyPrototypePatched = true
-  console.log('[party] WatchParty prototype patched')
-}
-
-function exposeNativeWatchPartyDebug(instance) {
-  if (!instance) return
-
-  const proto = Object.getPrototypeOf(instance)
-  const methods = proto
-    ? Object.getOwnPropertyNames(proto).filter(name => name !== 'constructor' && typeof instance[name] === 'function')
-    : []
-  const ownKeys = Object.keys(instance)
-
-  window.__nzWatchParty = instance
-  window.__nzWatchPartyDebug = {
-    instance,
-    ownKeys,
-    methods,
-  }
-
-  console.log('[party] native WatchParty debug', JSON.stringify({ ownKeys, methods }))
-}
-
-function hideNativeWatchPartyWidget() {
-  const root = document.querySelector('.party-page')
-  const hideNode = node => {
-    if (!(node instanceof HTMLElement)) return
-    if (root && root.contains(node)) return
-
-    const style = window.getComputedStyle(node)
-    const zIndex = Number.parseInt(style.zIndex || '0', 10)
-    const rect = node.getBoundingClientRect()
-    const looksLikeFloatingWidget = style.position === 'fixed'
-      && zIndex >= 100
-      && rect.width > 120
-      && rect.width < 420
-      && rect.height > 40
-
-    if (looksLikeFloatingWidget) node.style.display = 'none'
-  }
-
-  document.querySelectorAll('body *').forEach(hideNode)
-  const observer = new MutationObserver(mutations => {
-    for (const mutation of mutations) {
-      mutation.addedNodes.forEach(node => {
-        if (node instanceof HTMLElement) {
-          console.log('[party] native widget node', JSON.stringify({
-            tag: node.tagName,
-            id: node.id || null,
-            className: typeof node.className === 'string' ? node.className : null,
-            text: node.textContent ? node.textContent.trim().slice(0, 120) : '',
-          }))
-        }
-        hideNode(node)
-      })
-    }
-  })
-  observer.observe(document.body, { childList: true, subtree: true })
-}
-
 function initNativeWatchParty() {
   if (!USE_NATIVE_WATCH_PARTY || nativeParty || typeof WatchParty !== 'function') return
-  patchWatchPartyPrototype()
   const iframe = document.getElementById('vibix-frame')
   if (!iframe) return
 
@@ -623,9 +500,6 @@ function initNativeWatchParty() {
     username,
     debug: true,
   })
-  exposeNativeWatchPartyDebug(nativeParty)
-  syncNativePartyRole()
-  hideNativeWatchPartyWidget()
   console.log('[party] native WatchParty initialized', JSON.stringify({ roomId, username }))
 }
 
