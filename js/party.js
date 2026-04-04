@@ -306,6 +306,7 @@ function updateEpisodeState(reason, playlistId = currentPlaylistId, audioTrack =
     voice,
   }
   console.log('[party] episode state', JSON.stringify({ reason, ...currentEpisodeState }))
+  console.log('[party] episode sync seed', JSON.stringify({ seasonIndex: episode.seasonIndex, episodeIndex: episode.episodeIndex, playlistId, voice, reason }))
   return currentEpisodeState
 }
 
