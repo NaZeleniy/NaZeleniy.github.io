@@ -75,7 +75,7 @@ let currentPlaylistId = null
 let currentFile = null
 let currentAudioTrack = null
 // Ожидаем смены эпизода: file команда отправляется на sync_ready после перезагрузки iframe
-let pendingFile = null    // { playlistId, time, playing }
+let pendingFile = null    // { playlistId, fileCommandValue, time, playing }
 const SYNC_THRESHOLD = 1  // секунды
 const SYNC_COOLDOWN = 3000  // мс между принудительными seek
 const TIMEUPDATE_INTERVAL = 5000  // мс между отправками timeupdate
@@ -171,6 +171,12 @@ function sameFile(a, b) {
   return a.fileId === b.fileId && a.playlistIndex === b.playlistIndex && a.playlistId === b.playlistId
 }
 
+function buildFileCommandValue(file, playlistId) {
+  const rawFile = file && typeof file === 'object' ? file : { playlistId }
+  const fileObj = Object.fromEntries(Object.entries(rawFile).filter(([, v]) => v != null))
+  return Object.keys(fileObj).length ? fileObj : null
+}
+
 function applySync(data) {
   if (!playerReady) return
   const compensated = (data.time ?? 0) + latency
@@ -183,8 +189,9 @@ function applySync(data) {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (data.file != null) currentFile = data.file
     currentAudioTrack = null
-    const targetId = data.file?.playlistId ?? data.playlistId
-    if (targetId) reloadPlayerForEpisode(targetId, data.time ?? 0, true)
+    const fileCommandValue = buildFileCommandValue(data.file, data.playlistId)
+    const targetId = fileCommandValue?.playlistId
+    if (targetId) reloadPlayerForEpisode(targetId, fileCommandValue, data.time ?? 0, true)
     return
   }
 
@@ -229,10 +236,11 @@ function applyState(data) {
   if (playlistChanged || fileChanged) {
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (data.file != null) currentFile = data.file
-    const fileObj = { playlistId: data.file?.playlistId ?? data.playlistId }
-    sendPlayerCommand('file', fileObj)
+    const fileObj = buildFileCommandValue(data.file, data.playlistId)
+    if (fileObj) sendPlayerCommand('file', fileObj)
   } else if (data.file && !data.playlistId) {
-    sendPlayerCommand('file', { playlistId: data.file.playlistId })
+    const fileObj = buildFileCommandValue(data.file, data.file.playlistId)
+    if (fileObj) sendPlayerCommand('file', fileObj)
   }
   if (data.audioTrack != null && data.audioTrack !== currentAudioTrack) {
     currentAudioTrack = data.audioTrack
@@ -257,13 +265,13 @@ function sendPlayerCommand(command, value) {
 
 // ── Episode reload: перезагружаем iframe и шлём file на sync_ready ──
 
-function reloadPlayerForEpisode(playlistId, seekTime, playing) {
+function reloadPlayerForEpisode(playlistId, fileCommandValue, seekTime, playing) {
   const frame = document.getElementById('vibix-frame')
   if (!frame) return
 
   console.log('[party] reloadPlayerForEpisode', playlistId)
   playerReady = false
-  pendingFile = { playlistId, time: seekTime ?? 0, playing: !!playing }
+  pendingFile = { playlistId, fileCommandValue, time: seekTime ?? 0, playing: !!playing }
 
   try {
     const url = new URL(frame.src)
@@ -301,7 +309,7 @@ window.addEventListener('message', e => {
     // Отправляем file команду именно в момент sync_ready — плеер ещё инициализируется
     if (!isHost && pendingFile) {
       console.log('[party] sync_ready: sending file command for', pendingFile.playlistId)
-      sendPlayerCommand('file', { playlistId: pendingFile.playlistId })
+      if (pendingFile.fileCommandValue) sendPlayerCommand('file', pendingFile.fileCommandValue)
     }
     return
   }
