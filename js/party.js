@@ -689,8 +689,11 @@ function handlePlayerEvent(ev) {
 
 // ── Player startup ────────────────────────────────────────────
 
+let partyPlayers = []   // available party-capable players from API
+let activePlayerName = null
+
 async function init() {
-  let selectedPlayer = null
+  let players = []
 
   try {
     const r = await fetch(`${API_BASE}/api/movie/${movieId}`)
@@ -700,25 +703,21 @@ async function init() {
       document.title = title + ' - Watch Party'
       document.getElementById('partyTitle').textContent = title
 
-      // Prefer Vibix (full episode/audio sync), fall back to Turbo
-      const vibix = (movie.players || []).find(p => p.name === 'Vibix')
-      const turbo = (movie.players || []).find(p => p.name === 'Turbo')
-      selectedPlayer = vibix || turbo
+      players = (movie.players || []).filter(p => p.type === 'vibix' || p.type === 'turbo')
     }
   } catch {}
 
-  if (!selectedPlayer) {
+  if (!players.length) {
     // Fallback: treat movieId as a Vibix KP ID
-    selectedPlayer = { name: 'Vibix', url: movieId, type: 'vibix' }
+    players = [{ name: 'Vibix', url: movieId, type: 'vibix' }]
   }
 
-  if (selectedPlayer.type === 'turbo') {
-    playerType = 'turbo'
-    startTurbo(selectedPlayer.url)
-  } else {
-    playerType = 'vibix'
-    startVibix(selectedPlayer.url)
-  }
+  partyPlayers = players
+  buildPlayerSelector(players)
+
+  // Prefer Vibix (full episode/audio sync), fall back to first available
+  const preferred = players.find(p => p.type === 'vibix') || players[0]
+  switchPlayer(preferred)
 
   connect()
 
@@ -726,6 +725,52 @@ async function init() {
     document.getElementById('partyJoinOverlay').classList.remove('active')
     wsSend({ type: 'request_sync' })
   })
+}
+
+function buildPlayerSelector(players) {
+  if (players.length < 2) return
+  const wrap = document.getElementById('partyPlayerSelect')
+  const btns = document.getElementById('partyPlayerBtns')
+  if (!wrap || !btns) return
+  btns.innerHTML = players.map(p =>
+    `<button class="party-player-btn" data-name="${p.name}" onclick="switchPlayer(partyPlayers.find(x=>x.name==='${p.name}'))">${p.name}</button>`
+  ).join('')
+  wrap.style.display = 'flex'
+}
+
+function setActiveSelectorBtn(name) {
+  document.querySelectorAll('.party-player-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.name === name)
+  })
+}
+
+function switchPlayer(player) {
+  if (!player) return
+  if (activePlayerName === player.name) return
+
+  activePlayerName = player.name
+  setActiveSelectorBtn(player.name)
+
+  // Reset state for new player
+  playerReady = false
+  isPlaying = false
+  currentTime = 0
+  playerBaseUrl = null
+  adapter = null
+
+  // Clear previous player DOM
+  const slot = document.getElementById('party-player-slot')
+  slot.innerHTML = ''
+
+  if (player.type === 'turbo') {
+    playerType = 'turbo'
+    startTurbo(player.url)
+  } else {
+    playerType = 'vibix'
+    startVibix(player.url)
+  }
+
+  console.log('[party] switched to player', player.name)
 }
 
 // ── Vibix player ──────────────────────────────────────────────
@@ -787,7 +832,6 @@ function startTurbo(embedUrl) {
   iframe.allowFullscreen = true
   iframe.allow = 'autoplay; fullscreen'
   iframe.style.cssText = 'width:100%;height:100%;position:absolute;top:0;left:0;'
-  slot.style.position = 'relative'
   slot.appendChild(iframe)
 
   adapter = turboAdapter(iframe)
