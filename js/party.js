@@ -59,12 +59,76 @@ function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
 }
 
+// ── Player adapters ──────────────────────────────────────────
+//
+// Each adapter exposes:
+//   send(command, value)  — translate internal command → player-specific postMessage
+//   parse(data)           — translate player-specific postMessage → internal event
+//
+// Internal event shape:
+//   { event, time, playlistId?, file?, audioTrack?, audioTracks? }
+//
+// Internal commands: 'play', 'pause', 'seek' (value=seconds),
+//                    'audiotrack' (value=index), 'file' (value=fileObj)
+
+let playerType = null  // 'vibix' | 'turbo'
+let adapter    = null
+
+// Vibix — graphicslab SDK postMessage protocol
+function vibixAdapter(frame) {
+  return {
+    send(command, value) {
+      frame.contentWindow.postMessage(
+        { type: 'playerCommand', command, value, timestamp: Date.now() }, '*'
+      )
+    },
+    parse(data) {
+      if (!data || data.type !== 'playerEvent') return null
+      return {
+        event:       data.event,
+        time:        data.time        ?? null,
+        playlistId:  data.playlistId  ?? data.file?.playlistId ?? data.playlistInfo?.currentId ?? null,
+        file:        data.file        ?? null,
+        audioTrack:  data.audioTrack  ?? null,
+        audioTracks: data.audioTracks ?? null,
+      }
+    },
+  }
+}
+
+// Turbo — Playerjs (Pjs) postMessage protocol (?api=1)
+// Commands: {api:'play'}, {api:'pause'}, {api:'seek',set:seconds}
+// Events:   {api:'event', event:'ready|play|pause|end|time', seconds, duration}
+function turboAdapter(frame) {
+  return {
+    send(command, value) {
+      let msg = null
+      if (command === 'play')  msg = { api: 'play' }
+      if (command === 'pause') msg = { api: 'pause' }
+      if (command === 'seek')  msg = { api: 'seek', set: value }
+      if (!msg) { console.log('[party] turbo: unsupported command', command); return }
+      frame.contentWindow.postMessage(msg, '*')
+    },
+    parse(data) {
+      if (!data || data.api !== 'event') return null
+      const evMap = { ready: 'ready', play: 'play', pause: 'pause', end: 'end', time: 'timeupdate' }
+      const event = evMap[data.event]
+      if (!event) return null
+      return { event, time: data.seconds ?? 0 }
+    },
+  }
+}
+
+function getPlayerFrame() {
+  return document.getElementById('party-frame')
+}
+
 // ── WebSocket sync ───────────────────────────────────────────
 
 let ws = null
 let isHost = false
 let playerReady = false
-let vibixBaseUrl = null  // iframe URL without season/episode/nc — used for episode switching
+let playerBaseUrl = null  // base URL without season/episode/nc — for episode switching
 let currentTime = 0
 let isPlaying = false
 let hostPlaying = false  // last known host playing state — applied immediately after episode reload
@@ -451,7 +515,7 @@ function applyEpisodeSync(data) {
     voice: data.voice ?? null,
   }))
 
-  const iframe = document.getElementById('vibix-frame')
+  const iframe = getPlayerFrame()
   if (!iframe || !iframe.src) return
 
   currentPlaylistId = data.playlistId
@@ -460,8 +524,8 @@ function applyEpisodeSync(data) {
   currentTime = 0
 
   try {
-    // Use stored base URL (original kinopoisk ID, no season/episode/nc params)
-    const base = vibixBaseUrl || iframe.src.split('?')[0]
+    // Use stored base URL (original URL without season/episode/nc params)
+    const base = playerBaseUrl || iframe.src.split('?')[0]
     const sep = base.includes('?') ? '&' : '?'
 
     // Build URL manually — episode[] brackets must NOT be percent-encoded
@@ -486,19 +550,23 @@ function applyEpisodeSync(data) {
 // ── Player commands ──────────────────────────────────────────
 
 function sendPlayerCommand(command, value) {
-  const frame = document.getElementById('vibix-frame')
-  if (!frame || !frame.contentWindow) {
-    console.log('[party] sendPlayerCommand skipped: no frame', command, JSON.stringify(value))
+  const frame = getPlayerFrame()
+  if (!frame?.contentWindow || !adapter) {
+    console.log('[party] sendPlayerCommand skipped: no frame or adapter', command, JSON.stringify(value))
     return
   }
   console.log('[party] sendPlayerCommand', command, JSON.stringify(value))
-  frame.contentWindow.postMessage({ type: 'playerCommand', command, value, timestamp: Date.now() }, '*')
+  adapter.send(command, value)
 }
 
 
-// ── Player events ────────────────────────────────────────────
+// ── Player events ─────────────────────────────────────────────
+//
+// Vibix-only: raw playlist tree snapshot sent as {event:'file', data: jsonString}
+// This is Vibix SDK-specific and not part of the Playerjs protocol.
 
 window.addEventListener('message', e => {
+  if (playerType !== 'vibix') return
   const data = e.data
   if (!data || typeof data !== 'object') return
 
@@ -522,24 +590,32 @@ window.addEventListener('message', e => {
   console.log(isHost ? '[party][host] raw message' : '[party][viewer] raw message', JSON.stringify({ origin: e.origin, data }))
 })
 
+// Unified event handler — normalizes via active adapter
 window.addEventListener('message', e => {
+  if (!adapter) return
   const data = e.data
-  if (!data || data.type !== 'playerEvent') return
+  if (!data || typeof data !== 'object') return
 
-  const ev = data.event
-  const resolvedPlayerPlaylistId = data.playlistId ?? data.file?.playlistId ?? data.playlistInfo?.currentId ?? null
+  const ev = adapter.parse(data)
+  if (!ev) return
+
+  handlePlayerEvent(ev)
+})
+
+function handlePlayerEvent(ev) {
+  const resolvedPlayerPlaylistId = ev.playlistId ?? null
   if (resolvedPlayerPlaylistId) currentPlaylistId = resolvedPlayerPlaylistId
-  if (data.file && typeof data.file === 'object') currentFile = { ...data.file }
+  if (ev.file && typeof ev.file === 'object') currentFile = { ...ev.file }
 
-  if (ev === 'file' || ev === 'playlist_changed' || ev === 'ready' || ev === 'sync_ready' || ev === 'start' || ev === 'started') {
-    console.log(isHost ? '[party][host] playerEvent' : '[party][viewer] playerEvent', JSON.stringify(data))
+  if (ev.event === 'file' || ev.event === 'playlist_changed' || ev.event === 'ready' || ev.event === 'sync_ready' || ev.event === 'start' || ev.event === 'started') {
+    console.log(isHost ? '[party][host] playerEvent' : '[party][viewer] playerEvent', JSON.stringify(ev))
   }
 
-  if ((ev === 'file' || ev === 'playlist_changed' || ev === 'start' || ev === 'started') && resolvedPlayerPlaylistId) {
-    updateEpisodeState('player_event_' + ev, resolvedPlayerPlaylistId, currentAudioTrack)
+  if ((ev.event === 'file' || ev.event === 'playlist_changed' || ev.event === 'start' || ev.event === 'started') && resolvedPlayerPlaylistId) {
+    updateEpisodeState('player_event_' + ev.event, resolvedPlayerPlaylistId, currentAudioTrack)
   }
 
-  if (ev === 'ready' || ev === 'sync_ready') {
+  if (ev.event === 'ready' || ev.event === 'sync_ready') {
     playerReady = true
     document.getElementById('partyLoading').style.display = 'none'
 
@@ -579,44 +655,42 @@ window.addEventListener('message', e => {
     return
   }
 
-  if (data.time !== undefined) currentTime = data.time
+  if (ev.time != null) currentTime = ev.time
 
-  if (ev === 'play' || ev === 'started' || ev === 'start') isPlaying = true
-  if (ev === 'pause' || ev === 'end') isPlaying = false
+  if (ev.event === 'play' || ev.event === 'started' || ev.event === 'start') isPlaying = true
+  if (ev.event === 'pause' || ev.event === 'end') isPlaying = false
 
   if (!isHost) return
 
   const syncEvents = ['play', 'pause', 'seek', 'timeupdate', 'started', 'start', 'file', 'playlist_changed', 'audiotrack_changed']
-  if (!syncEvents.includes(ev)) return
+  if (!syncEvents.includes(ev.event)) return
 
-  if (ev === 'seek' || ev === 'play' || ev === 'started') lastTimeupdateSent = 0
+  if (ev.event === 'seek' || ev.event === 'play' || ev.event === 'started') lastTimeupdateSent = 0
 
-  if (ev === 'timeupdate') {
+  if (ev.event === 'timeupdate') {
     const now = Date.now()
     if (now - lastTimeupdateSent < TIMEUPDATE_INTERVAL) return
     lastTimeupdateSent = now
   }
 
-  const fileObj = normalizeFileData(data)
-  if (ev === 'file' || ev === 'playlist_changed') {
-    if (data.playlistId != null) currentPlaylistId = data.playlistId
+  const fileObj = ev.file ? normalizeFileData({ file: ev.file }) : null
+  if (ev.event === 'file' || ev.event === 'playlist_changed') {
+    if (ev.playlistId != null) currentPlaylistId = ev.playlistId
     if (fileObj) currentFile = fileObj
-    const resolvedPlaylistId = data.playlistId ?? fileObj?.playlistId ?? data.playlistInfo?.currentId ?? currentPlaylistId
-    console.log('[party] file event', JSON.stringify({ event: ev, playlistId: data.playlistId ?? null, playlistInfoCurrentId: data.playlistInfo?.currentId ?? null, file: data.file ?? null, fileId: data.fileId ?? null, playlistIndex: data.playlistIndex ?? null, normalizedFile: fileObj, resolvedPlaylistId }))
-    updateEpisodeState(ev, resolvedPlaylistId, currentAudioTrack)
+    updateEpisodeState(ev.event, ev.playlistId ?? currentPlaylistId, currentAudioTrack)
   }
-  if (ev === 'audiotrack_changed' && data.audioTrack != null) {
-    currentAudioTrack = data.audioTrack
-    updateEpisodeState(ev, currentPlaylistId, currentAudioTrack)
+  if (ev.event === 'audiotrack_changed' && ev.audioTrack != null) {
+    currentAudioTrack = ev.audioTrack
+    updateEpisodeState(ev.event, currentPlaylistId, currentAudioTrack)
   }
 
-  wsSend({ type: 'sync', event: ev, time: data.time, playlistId: data.playlistId ?? null, file: fileObj ?? null, audioTrack: data.audioTrack ?? null, audioTracks: data.audioTracks ?? null })
-})
+  wsSend({ type: 'sync', event: ev.event, time: ev.time, playlistId: ev.playlistId ?? null, file: fileObj ?? null, audioTrack: ev.audioTrack ?? null, audioTracks: ev.audioTracks ?? null })
+}
 
-// ── Vibix player ─────────────────────────────────────────────
+// ── Player startup ────────────────────────────────────────────
 
 async function init() {
-  let vibixId = movieId
+  let selectedPlayer = null
 
   try {
     const r = await fetch(`${API_BASE}/api/movie/${movieId}`)
@@ -626,12 +700,26 @@ async function init() {
       document.title = title + ' - Watch Party'
       document.getElementById('partyTitle').textContent = title
 
+      // Prefer Vibix (full episode/audio sync), fall back to Turbo
       const vibix = (movie.players || []).find(p => p.name === 'Vibix')
-      if (vibix?.url) vibixId = vibix.url
+      const turbo = (movie.players || []).find(p => p.name === 'Turbo')
+      selectedPlayer = vibix || turbo
     }
   } catch {}
 
-  startVibix(vibixId)
+  if (!selectedPlayer) {
+    // Fallback: treat movieId as a Vibix KP ID
+    selectedPlayer = { name: 'Vibix', url: movieId, type: 'vibix' }
+  }
+
+  if (selectedPlayer.type === 'turbo') {
+    playerType = 'turbo'
+    startTurbo(selectedPlayer.url)
+  } else {
+    playerType = 'vibix'
+    startVibix(selectedPlayer.url)
+  }
+
   connect()
 
   document.getElementById('partyJoinBtn').addEventListener('click', () => {
@@ -640,8 +728,10 @@ async function init() {
   })
 }
 
+// ── Vibix player ──────────────────────────────────────────────
+
 function startVibix(vibixId) {
-  const slot = document.getElementById('vibix-slot')
+  const slot = document.getElementById('party-player-slot')
   slot.innerHTML = `<ins
     data-publisher-id="677393820"
     data-type="kp"
@@ -668,8 +758,9 @@ function startVibix(vibixId) {
 }
 
 function onIframe(iframe) {
-  iframe.id = 'vibix-frame'
-  console.log('[party] iframe src', iframe.src)
+  iframe.id = 'party-frame'
+  adapter = vibixAdapter(iframe)
+  console.log('[party] vibix iframe src', iframe.src)
   // Store base URL for episode switching: strip season/episode[]/nc so we can rebuild cleanly
   try {
     const url = new URL(iframe.src)
@@ -680,9 +771,39 @@ function onIframe(iframe) {
       .replace(/[&?]episode%5B%5D=[^&]*/g, '')
       .replace(/[&?]episode\[\]=[^&]*/g, '')
       .replace(/\?&/, '?')
-    vibixBaseUrl = cleaned
-    console.log('[party] vibix base url', vibixBaseUrl)
+    playerBaseUrl = cleaned
+    console.log('[party] player base url', playerBaseUrl)
   } catch {}
+}
+
+// ── Turbo player (Playerjs / ?api=1) ─────────────────────────
+
+function startTurbo(embedUrl) {
+  const slot = document.getElementById('party-player-slot')
+  const iframe = document.createElement('iframe')
+  iframe.id = 'party-frame'
+  iframe.src = embedUrl
+  iframe.frameBorder = '0'
+  iframe.allowFullscreen = true
+  iframe.allow = 'autoplay; fullscreen'
+  iframe.style.cssText = 'width:100%;height:100%;position:absolute;top:0;left:0;'
+  slot.style.position = 'relative'
+  slot.appendChild(iframe)
+
+  adapter = turboAdapter(iframe)
+
+  // Store base URL for episode switching (strip nc/autoplay params)
+  try {
+    const url = new URL(embedUrl)
+    url.searchParams.delete('nc')
+    url.searchParams.delete('autoplay')
+    playerBaseUrl = url.toString()
+    console.log('[party] turbo base url', playerBaseUrl)
+  } catch {
+    playerBaseUrl = embedUrl
+  }
+
+  console.log('[party] turbo iframe created', embedUrl)
 }
 
 // ── Chat ─────────────────────────────────────────────────────

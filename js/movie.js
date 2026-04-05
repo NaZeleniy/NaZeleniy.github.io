@@ -106,8 +106,8 @@ function playerSectionHtml(movie) {
   const id = movie.kinopoiskId || movie.imdbId
   if (!id || !movie.players?.length) return ''
 
-  const hasVibix = (movie.players || []).some(p => p.name === 'Vibix')
-  const partyBtn = hasVibix ? `
+  const hasParty = (movie.players || []).some(p => p.name === 'Vibix' || p.name === 'Turbo')
+  const partyBtn = hasParty ? `
       <a class="watch-party-btn" href="party.html?id=${id}" target="_blank" title="Совместный просмотр">
         <i class="fas fa-users"></i>
         <span>Смотреть вместе</span>
