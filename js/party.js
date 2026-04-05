@@ -98,11 +98,19 @@ function vibixAdapter(frame) {
   }
 }
 
-// Turbo — Playerjs (Pjs) postMessage protocol (?api=1)
-// Commands: {api:'play'}, {api:'pause'}, {api:'seek',set:seconds}
-// Events format A: {api:'event', event:'ready|play|pause|end|time', seconds, duration}
-// Events format B: {api:'ready'|'play'|'pause'|'end'|'time',    seconds, duration}
-const TURBO_EV_MAP = { ready: 'ready', play: 'play', pause: 'pause', end: 'end', time: 'timeupdate' }
+// Turbo — actual postMessage format (discovered from runtime logs):
+//   Events: {event:'play'|'pause'|'time'|'seek'|..., time:seconds, data:..., duration:...}
+//   Commands: {api:'play'}, {api:'pause'}, {api:'seek', set:seconds}
+const TURBO_EV_MAP = {
+  inited:  'ready',    // player initialised → treat as ready
+  play:    'play',
+  pause:   'pause',
+  time:    'timeupdate',
+  seek:    'seek',
+  start:   'started',
+  started: 'started',
+  stop:    'end',
+}
 function turboAdapter(frame) {
   return {
     send(command, value) {
@@ -114,17 +122,10 @@ function turboAdapter(frame) {
       frame.contentWindow.postMessage(msg, '*')
     },
     parse(data) {
-      if (!data) return null
-      // Format A: {api:'event', event:'play', seconds:X}
-      if (data.api === 'event' && data.event) {
-        const event = TURBO_EV_MAP[data.event]
-        if (event) return { event, time: data.seconds ?? 0 }
-      }
-      // Format B: {api:'play', seconds:X}  (api IS the event name)
-      if (typeof data.api === 'string' && TURBO_EV_MAP[data.api]) {
-        return { event: TURBO_EV_MAP[data.api], time: data.seconds ?? 0 }
-      }
-      return null
+      if (!data || typeof data.event !== 'string') return null
+      const event = TURBO_EV_MAP[data.event]
+      if (!event) return null
+      return { event, time: data.time ?? 0 }
     },
   }
 }
@@ -626,12 +627,6 @@ window.addEventListener('message', e => {
   if (!adapter) return
   const raw = e.data
   if (raw == null) return
-
-  // Log every raw message from the player iframe so we can see the actual format
-  if (playerType === 'turbo') {
-    const preview = typeof raw === 'string' ? raw : JSON.stringify(raw)
-    console.log('[party][turbo] raw msg', typeof raw, preview.slice(0, 200))
-  }
 
   // Some Playerjs builds serialize events as a JSON string — parse them
   let data = raw
