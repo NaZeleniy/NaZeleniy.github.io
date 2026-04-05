@@ -624,7 +624,20 @@ window.addEventListener('message', e => {
 // Unified event handler — normalizes via active adapter
 window.addEventListener('message', e => {
   if (!adapter) return
-  const data = e.data
+  const raw = e.data
+  if (raw == null) return
+
+  // Log every raw message from the player iframe so we can see the actual format
+  if (playerType === 'turbo') {
+    const preview = typeof raw === 'string' ? raw : JSON.stringify(raw)
+    console.log('[party][turbo] raw msg', typeof raw, preview.slice(0, 200))
+  }
+
+  // Some Playerjs builds serialize events as a JSON string — parse them
+  let data = raw
+  if (typeof data === 'string') {
+    try { data = JSON.parse(data) } catch { return }
+  }
   if (!data || typeof data !== 'object') return
 
   const ev = adapter.parse(data)
@@ -893,16 +906,27 @@ function startTurbo(embedUrl) {
     playerBaseUrl = embedUrl
   }
 
-  // Fallback: if neither 'ready' nor 'time' events arrive within 800ms of load,
-  // mark as ready so buffered sync can be applied.
   iframe.addEventListener('load', () => {
     console.log('[party] turbo iframe loaded')
+
+    // Playerjs handshake: some builds require the parent to send {api:'ready'} and
+    // explicit addEventListener calls before they start emitting events.
+    setTimeout(() => {
+      if (!iframe.contentWindow) return
+      iframe.contentWindow.postMessage({ api: 'ready' }, '*')
+      for (const ev of ['play', 'pause', 'time', 'end', 'ready']) {
+        iframe.contentWindow.postMessage({ api: 'addEventListener', value: ev }, '*')
+      }
+      console.log('[party] turbo handshake sent')
+    }, 300)
+
+    // Fallback: if still not ready 1s after load, unblock buffered sync
     setTimeout(() => {
       if (!playerReady) {
-        console.log('[party] turbo ready fallback (no ready/time events received)')
+        console.log('[party] turbo ready fallback (no events received)')
         onPlayerReady()
       }
-    }, 800)
+    }, 1000)
   })
 
   console.log('[party] turbo iframe created', embedUrl)
