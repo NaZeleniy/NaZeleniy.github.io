@@ -580,92 +580,76 @@ function applyState(data) {
 
 function applyEpisodeSync(data) {
   if (!data) return
-  // Turbo: reload iframe with ?season=X&episode=Y&translation=V
-  // Voice is the last segment of the episode id (contentId-S-E-V), passed as translation param.
+
+  // ── Turbo ──────────────────────────────────────────────────────
   if (playerType === 'turbo') {
-    if (data.seasonIndex == null && data.episodeIndex == null) return
+    if (data.seasonIndex == null || data.episodeIndex == null) return
 
-    const incomingVoiceIndex = data.voice != null ? parseInt(data.voice, 10) : null
-    const episodeChanged = data.seasonIndex !== currentTurboSeasonIndex ||
-                           data.episodeIndex !== currentTurboEpisodeIndex
-    const voiceChanged = incomingVoiceIndex != null && !isNaN(incomingVoiceIndex) &&
-                         incomingVoiceIndex !== currentTurboVoiceIndex
+    const voiceIndex = data.voice != null ? parseInt(data.voice, 10) : null
 
-    if (!episodeChanged && !voiceChanged) return
-
-    currentPlaylistId = data.playlistId ?? currentPlaylistId
-    currentTurboSeasonIndex = data.seasonIndex
-    currentTurboEpisodeIndex = data.episodeIndex
-    if (incomingVoiceIndex != null && !isNaN(incomingVoiceIndex)) currentTurboVoiceIndex = incomingVoiceIndex
+    // Skip if nothing changed
+    if (
+      data.seasonIndex === currentTurboSeasonIndex &&
+      data.episodeIndex === currentTurboEpisodeIndex &&
+      (voiceIndex == null || isNaN(voiceIndex) || voiceIndex === currentTurboVoiceIndex)
+    ) return
 
     const iframe = getPlayerFrame()
     if (!iframe) return
+
+    // Update state before reload
+    currentTurboSeasonIndex = data.seasonIndex
+    currentTurboEpisodeIndex = data.episodeIndex
+    if (voiceIndex != null && !isNaN(voiceIndex)) currentTurboVoiceIndex = voiceIndex
+    if (data.playlistId != null) currentPlaylistId = data.playlistId
 
     playerReady = false
     isPlaying = false
     currentTime = 0
 
-    try {
-      const url = new URL(playerBaseUrl || iframe.src.split('?')[0])
-      url.searchParams.delete('season')
-      url.searchParams.delete('episode')
-      url.searchParams.delete('translation')
-      url.searchParams.delete('nc')
-      url.searchParams.delete('autoplay')
-      if (data.seasonIndex != null) url.searchParams.set('season', data.seasonIndex + 1)
-      if (data.episodeIndex != null) url.searchParams.set('episode', data.episodeIndex + 1)
-      if (incomingVoiceIndex != null && !isNaN(incomingVoiceIndex)) url.searchParams.set('translation', incomingVoiceIndex)
-      if (hostPlaying) url.searchParams.set('autoplay', 'true')
-      url.searchParams.set('nc', Date.now())
-      const newSrc = url.toString()
-      console.log('[party][viewer] turbo iframe reload', JSON.stringify({ episodeChanged, voiceChanged, voiceIndex: incomingVoiceIndex, newSrc }))
-      iframe.src = newSrc
-    } catch (err) {
-      console.log('[party][viewer] turbo reload failed', String(err))
-      playerReady = true
-    }
+    const url = new URL(playerBaseUrl || iframe.src.split('?')[0])
+    url.searchParams.delete('season')
+    url.searchParams.delete('episode')
+    url.searchParams.delete('translation')
+    url.searchParams.delete('autoplay')
+    url.searchParams.delete('nc')
+    url.searchParams.set('season', data.seasonIndex + 1)
+    url.searchParams.set('episode', data.episodeIndex + 1)
+    if (voiceIndex != null && !isNaN(voiceIndex)) url.searchParams.set('translation', voiceIndex)
+    if (hostPlaying) url.searchParams.set('autoplay', 'true')
+    url.searchParams.set('nc', Date.now())
+
+    const newSrc = url.toString()
+    console.log('[turbo] reload', { seasonIndex: data.seasonIndex, episodeIndex: data.episodeIndex, voiceIndex, url: newSrc })
+    iframe.src = newSrc
+    // onPlayerReady() will apply buffered sync after the iframe fires its ready event
     return
   }
 
-  // Vibix path
+  // ── Vibix ──────────────────────────────────────────────────────
   if (!data.playlistId) return
   if (data.playlistId === currentPlaylistId) return
-
-  console.log('[party][viewer] applyEpisodeSync', JSON.stringify({
-    playerType,
-    seasonIndex: data.seasonIndex ?? null,
-    episodeIndex: data.episodeIndex ?? null,
-    playlistId: data.playlistId ?? null,
-    voice: data.voice ?? null,
-  }))
 
   const iframe = getPlayerFrame()
   if (!iframe || !iframe.src) return
 
-  if (data.playlistId != null) currentPlaylistId = data.playlistId
+  currentPlaylistId = data.playlistId
   playerReady = false
-  isPlaying = false  // player starts fresh after reload
+  isPlaying = false
   currentTime = 0
 
-  try {
-    // Vibix uses episode[] brackets which must NOT be percent-encoded
-    const base = playerBaseUrl || iframe.src.split('?')[0]
-    const sep = base.includes('?') ? '&' : '?'
-    let newSrc = base
-    if (data.seasonIndex != null) newSrc += sep + 'season=' + (data.seasonIndex + 1)
-    const epSep = newSrc.includes('?') ? '&' : '?'
-    if (data.episodeIndex != null) newSrc += epSep + 'episode[]=' + (data.episodeIndex + 1)
-    if (hostPlaying) newSrc += '&autoplay=true'
-    newSrc += '&nc=' + Date.now()
+  // episode[] brackets must NOT be percent-encoded — build URL manually
+  const base = playerBaseUrl || iframe.src.split('?')[0]
+  const sep = base.includes('?') ? '&' : '?'
+  let newSrc = base
+  if (data.seasonIndex != null) newSrc += sep + 'season=' + (data.seasonIndex + 1)
+  if (data.episodeIndex != null) newSrc += (newSrc.includes('?') ? '&' : '?') + 'episode[]=' + (data.episodeIndex + 1)
+  if (hostPlaying) newSrc += '&autoplay=true'
+  newSrc += '&nc=' + Date.now()
 
-    console.log('[party][viewer] reloading iframe for episode', newSrc)
-    iframe.src = newSrc
-  } catch (err) {
-    console.log('[party][viewer] applyEpisodeSync iframe reload failed', String(err))
-    playerReady = true  // restore so viewers can still interact
-  }
-
-  // After player reloads it will emit ready → scheduleRequestSync runs in the ready handler
+  console.log('[vibix] reload', { seasonIndex: data.seasonIndex, episodeIndex: data.episodeIndex, playlistId: data.playlistId, url: newSrc })
+  iframe.src = newSrc
+  // onPlayerReady() will apply buffered sync after the iframe fires its ready event
 }
 
 // ── Player commands ──────────────────────────────────────────
