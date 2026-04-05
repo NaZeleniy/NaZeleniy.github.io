@@ -136,6 +136,7 @@ function turboAdapter(frame) {
       if (command === 'play')  msg = { api: 'play' }
       if (command === 'pause') msg = { api: 'pause' }
       if (command === 'seek')       msg = { api: 'seek', set: value }
+      if (command === 'navigate')   msg = { api: 'play', set: 'id:' + value }
       if (!msg) { console.log('[party] turbo: unsupported command', command); return }
       frame.contentWindow.postMessage(msg, '*')
     },
@@ -595,46 +596,21 @@ function applyEpisodeSync(data) {
       (voiceIndex == null || isNaN(voiceIndex) || voiceIndex === currentTurboVoiceIndex)
     ) return
 
-    const iframe = getPlayerFrame()
-    if (!iframe) return
-
-    const episodeChanged = data.seasonIndex !== currentTurboSeasonIndex ||
-                           data.episodeIndex !== currentTurboEpisodeIndex
+    if (!data.playlistId) return
 
     // Update state
     currentTurboSeasonIndex = data.seasonIndex
     currentTurboEpisodeIndex = data.episodeIndex
     if (voiceIndex != null && !isNaN(voiceIndex)) currentTurboVoiceIndex = voiceIndex
-    if (data.playlistId != null) currentPlaylistId = data.playlistId
+    currentPlaylistId = data.playlistId
 
-    // Voice-only change — Turbo generates stream URLs server-side with session tokens;
-    // no postMessage command or URL param can switch voice from outside the iframe.
-    // State is already updated above; viewer stays on current voice (known limitation).
-    if (!episodeChanged) {
-      console.log('[turbo] voice-only change: not supported via external API', { voiceIndex })
-      return
-    }
-
-    // Episode changed — reload iframe
+    // Navigate via {api:'play', set:'id:episodeId'} — works for both episode and voice change.
+    // Player fires 'inited'/'ready' after navigation → onPlayerReady() → scheduleRequestSync.
     playerReady = false
     isPlaying = false
     currentTime = 0
-
-    const url = new URL(playerBaseUrl || iframe.src.split('?')[0])
-    url.searchParams.delete('season')
-    url.searchParams.delete('episode')
-    url.searchParams.delete('voice')
-    url.searchParams.delete('autoplay')
-    url.searchParams.delete('nc')
-    url.searchParams.set('season', data.seasonIndex + 1)
-    url.searchParams.set('episode', data.episodeIndex + 1)
-    if (hostPlaying) url.searchParams.set('autoplay', 'true')
-    url.searchParams.set('nc', Date.now())
-
-    const newSrc = url.toString()
-    console.log('[turbo] reload', { seasonIndex: data.seasonIndex, episodeIndex: data.episodeIndex, voiceIndex, url: newSrc })
-    iframe.src = newSrc
-    // onPlayerReady() will apply buffered sync after the iframe fires its ready event
+    console.log('[turbo] navigate', { seasonIndex: data.seasonIndex, episodeIndex: data.episodeIndex, voiceIndex, episodeId: data.playlistId })
+    sendPlayerCommand('navigate', data.playlistId)
     return
   }
 
