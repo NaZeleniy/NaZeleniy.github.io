@@ -136,7 +136,7 @@ function turboAdapter(frame) {
       if (command === 'play')  msg = { api: 'play' }
       if (command === 'pause') msg = { api: 'pause' }
       if (command === 'seek')       msg = { api: 'seek', set: value }
-      if (command === 'audiotrack') msg = { api: 'audioTrack', set: value }
+      if (command === 'file')       msg = { api: 'file', set: value }
       if (!msg) { console.log('[party] turbo: unsupported command', command); return }
       frame.contentWindow.postMessage(msg, '*')
     },
@@ -581,32 +581,33 @@ function applyState(data) {
 
 function applyEpisodeSync(data) {
   if (!data) return
-  // Turbo: identify episode by season/episode index; Vibix: by playlistId
+  // Turbo: voice is embedded in episode id (format: contentId-S-E-V).
+  // Navigate via {api:'file', set:episodeId} — handles both episode and voice change
+  // without reloading the iframe.
   if (playerType === 'turbo') {
-    if (data.seasonIndex == null && data.episodeIndex == null) return
+    if (!data.playlistId) return
+    if (data.playlistId === currentPlaylistId) return
 
     const incomingVoiceIndex = data.voice != null ? parseInt(data.voice, 10) : null
     const episodeChanged = data.seasonIndex !== currentTurboSeasonIndex ||
                            data.episodeIndex !== currentTurboEpisodeIndex
 
-    // Voice-only change: same episode, different dubbing — switch audio track directly
-    if (!episodeChanged && incomingVoiceIndex != null && !isNaN(incomingVoiceIndex) &&
-        incomingVoiceIndex !== currentTurboVoiceIndex) {
-      console.log('[party][viewer] turbo voice-only switch', JSON.stringify({ from: currentTurboVoiceIndex, to: incomingVoiceIndex }))
-      currentTurboVoiceIndex = incomingVoiceIndex
-      sendPlayerCommand('audiotrack', incomingVoiceIndex)
-      return
-    }
-    if (!episodeChanged) return  // nothing to do
-
-    // Episode changed — update tracking, then reload iframe
+    currentPlaylistId = data.playlistId
     currentTurboSeasonIndex = data.seasonIndex
     currentTurboEpisodeIndex = data.episodeIndex
     if (incomingVoiceIndex != null && !isNaN(incomingVoiceIndex)) currentTurboVoiceIndex = incomingVoiceIndex
-  } else {
-    if (!data.playlistId) return
-    if (data.playlistId === currentPlaylistId) return
+
+    console.log('[party][viewer] turbo file command', JSON.stringify({
+      episodeId: data.playlistId, episodeChanged,
+      seasonIndex: data.seasonIndex, episodeIndex: data.episodeIndex, voiceIndex: incomingVoiceIndex,
+    }))
+    sendPlayerCommand('file', data.playlistId)
+    return
   }
+
+  // Vibix path
+  if (!data.playlistId) return
+  if (data.playlistId === currentPlaylistId) return
 
   console.log('[party][viewer] applyEpisodeSync', JSON.stringify({
     playerType,
@@ -625,32 +626,15 @@ function applyEpisodeSync(data) {
   currentTime = 0
 
   try {
-    // Use stored base URL (original URL without season/episode/nc params)
+    // Vibix uses episode[] brackets which must NOT be percent-encoded
     const base = playerBaseUrl || iframe.src.split('?')[0]
-
-    let newSrc
-    if (playerType === 'turbo') {
-      // Turbo uses plain ?season=X&episode=Y params (1-indexed, no brackets)
-      const url = new URL(base)
-      url.searchParams.delete('season')
-      url.searchParams.delete('episode')
-      url.searchParams.delete('nc')
-      url.searchParams.delete('autoplay')
-      if (data.seasonIndex != null) url.searchParams.set('season', data.seasonIndex + 1)
-      if (data.episodeIndex != null) url.searchParams.set('episode', data.episodeIndex + 1)
-      if (hostPlaying) url.searchParams.set('autoplay', 'true')
-      url.searchParams.set('nc', Date.now())
-      newSrc = url.toString()
-    } else {
-      // Vibix uses episode[] brackets which must NOT be percent-encoded
-      const sep = base.includes('?') ? '&' : '?'
-      newSrc = base
-      if (data.seasonIndex != null) newSrc += sep + 'season=' + (data.seasonIndex + 1)
-      const epSep = newSrc.includes('?') ? '&' : '?'
-      if (data.episodeIndex != null) newSrc += epSep + 'episode[]=' + (data.episodeIndex + 1)
-      if (hostPlaying) newSrc += '&autoplay=true'
-      newSrc += '&nc=' + Date.now()
-    }
+    const sep = base.includes('?') ? '&' : '?'
+    let newSrc = base
+    if (data.seasonIndex != null) newSrc += sep + 'season=' + (data.seasonIndex + 1)
+    const epSep = newSrc.includes('?') ? '&' : '?'
+    if (data.episodeIndex != null) newSrc += epSep + 'episode[]=' + (data.episodeIndex + 1)
+    if (hostPlaying) newSrc += '&autoplay=true'
+    newSrc += '&nc=' + Date.now()
 
     console.log('[party][viewer] reloading iframe for episode', newSrc)
     iframe.src = newSrc
