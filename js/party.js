@@ -6,8 +6,7 @@ if (!roomId) {
   roomId = 'room-' + Math.random().toString(36).slice(2, 12)
   params.set('room', roomId)
   history.replaceState(null, '', '?' + params.toString())
-  // sessionStorage is per-tab — prevents other tabs in the same browser from
-  // claiming the creator role when testing or when the creator opens their own link
+  // sessionStorage is per-tab — prevents other tabs from claiming host role
   sessionStorage.setItem('nz_host_room_' + roomId, '1')
 }
 
@@ -71,12 +70,11 @@ function escHtml(s) {
 //   { event, time, playlistId?, file?, audioTrack?, audioTracks? }
 //
 // Internal commands: 'play', 'pause', 'seek' (value=seconds),
-//                    'audiotrack' (value=index), 'file' (value=fileObj)
+//                    'audiotrack' (value=index), 'navigate' (value=episodeId)
 
 let playerType = null  // 'vibix' | 'turbo'
 let adapter    = null
 
-// Vibix — graphicslab SDK postMessage protocol
 function vibixAdapter(frame) {
   return {
     send(command, value) {
@@ -98,12 +96,13 @@ function vibixAdapter(frame) {
   }
 }
 
-// Turbo — actual postMessage format (discovered from runtime logs):
-//   Events: {event:'play'|'pause'|'time'|'seek'|..., time:seconds, data:..., duration:...}
-//           {event:'new', id:'contentId-seasonIdx-episodeIdx-voiceIdx'} — episode change
+// Turbo player postMessage protocol (discovered from runtime):
+//   Events: {event:'play'|'pause'|'time'|'seek'|..., time:seconds}
+//           {event:'new', id:'contentId-seasonIdx-episodeIdx-voiceIdx'}
 //   Commands: {api:'play'}, {api:'pause'}, {api:'seek', set:seconds}
+//             {api:'play', set:'id:episodeId'} — navigate to specific episode+voice
 const TURBO_EV_MAP = {
-  inited:  'ready',    // player initialised → treat as ready
+  inited:  'ready',
   play:    'play',
   pause:   'pause',
   time:    'timeupdate',
@@ -113,12 +112,11 @@ const TURBO_EV_MAP = {
   stop:    'end',
 }
 
-// Parse Turbo episode id: 'contentId-seasonIdx-episodeIdx-voiceIdx'
-// Trailing 3 numeric segments are indices (0-based); content id may contain dashes.
+// Episode id format: 'contentId-seasonIdx-episodeIdx-voiceIdx'
+// Trailing 3 numeric segments are 0-based indices; content id may contain dashes.
 function parseTurboEpisodeId(id) {
   if (!id || typeof id !== 'string') return null
   const parts = id.split('-')
-  // Walk from the end collecting numeric segments
   const nums = []
   for (let i = parts.length - 1; i >= 0 && nums.length < 3; i--) {
     const n = parseInt(parts[i], 10)
@@ -133,16 +131,15 @@ function turboAdapter(frame) {
   return {
     send(command, value) {
       let msg = null
-      if (command === 'play')  msg = { api: 'play' }
-      if (command === 'pause') msg = { api: 'pause' }
-      if (command === 'seek')       msg = { api: 'seek', set: value }
-      if (command === 'navigate')   msg = { api: 'play', set: 'id:' + value }
-      if (!msg) { console.log('[party] turbo: unsupported command', command); return }
+      if (command === 'play')     msg = { api: 'play' }
+      if (command === 'pause')    msg = { api: 'pause' }
+      if (command === 'seek')     msg = { api: 'seek', set: value }
+      if (command === 'navigate') msg = { api: 'play', set: 'id:' + value }
+      if (!msg) return
       frame.contentWindow.postMessage(msg, '*')
     },
     parse(data) {
       if (!data || typeof data.event !== 'string') return null
-      // Episode change event
       if (data.event === 'new') {
         const ep = parseTurboEpisodeId(data.id)
         if (!ep) return null
@@ -152,7 +149,7 @@ function turboAdapter(frame) {
           seasonIndex: ep.seasonIndex,
           episodeIndex: ep.episodeIndex,
           voiceIndex: ep.voiceIndex,
-          playlistId: data.id,  // raw id — used for dedup on viewers
+          playlistId: data.id,
         }
       }
       const event = TURBO_EV_MAP[data.event]
@@ -174,7 +171,7 @@ let playerReady = false
 let playerBaseUrl = null  // base URL without season/episode/nc — for episode switching
 let currentTime = 0
 let isPlaying = false
-let hostPlaying = false  // last known host playing state — applied immediately after episode reload
+let hostPlaying = false  // last known host playing state — applied after episode reload
 let reconnectTimer = null
 let pingTimer = null
 let latency = 0           // половина RTT в секундах
@@ -184,7 +181,6 @@ let currentPlaylistId = null
 let currentFile = null
 let currentAudioTrack = null
 let currentPlaylistSnapshot = null
-let currentEpisodeState = null
 // Turbo episode tracking — season/episode/voice indices from 'new' events
 let currentTurboSeasonIndex = null
 let currentTurboEpisodeIndex = null
@@ -195,9 +191,10 @@ let pendingInitialPlaybackSync = null
 let pendingInitialAudioSync = null
 let pendingInitialEpisodeSync = null
 let pendingRequestSyncTimer = null
-const SYNC_THRESHOLD = 1  // секунды
-const SYNC_COOLDOWN = 3000  // мс между принудительными seek
+const SYNC_THRESHOLD = 1       // секунды
+const SYNC_COOLDOWN = 3000     // мс между принудительными seek
 const TIMEUPDATE_INTERVAL = 2500  // ms between timeupdate sends
+const HOST_SYNC_EVENTS = new Set(['play', 'pause', 'seek', 'timeupdate', 'started', 'start', 'file', 'playlist_changed', 'audiotrack_changed'])
 
 const wsHost = window.location.hostname.endsWith('github.io') ? 'nazeleniy.mooo.com' : location.host
 const wsUrl = (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + wsHost + '/ws/party?room=' + roomId
@@ -215,11 +212,10 @@ function connect() {
     const usernameWrap = document.getElementById('partyUsername')
     if (usernameEl) { usernameEl.textContent = username; usernameWrap.style.display = '' }
 
-    // Turbo race: player may fire 'inited' before WS opens, so scheduleRequestSync
-    // was called against a closed socket. Re-schedule now that we're connected.
-    // The re-check inside scheduleRequestSync's callback handles the case where
-    // role_assigned arrives (isHost=true) within the delay window.
-    if (playerReady) scheduleRequestSync(600, 'ws_open_player_already_ready')
+    // Turbo race: player may fire 'inited' before WS opens → scheduleRequestSync
+    // fires against a closed socket. Re-schedule now; the isHost re-check inside
+    // the timer guards against role_assigned arriving within the delay window.
+    if (playerReady) scheduleRequestSync(600)
   }
 
   ws.onmessage = e => {
@@ -246,13 +242,12 @@ function wsPing() {
   pingTimer = setTimeout(wsPing, 10000)
 }
 
-function scheduleRequestSync(delay = 0, reason = '') {
+function scheduleRequestSync(delay = 0) {
   if (isHost) return
   clearTimeout(pendingRequestSyncTimer)
   pendingRequestSyncTimer = setTimeout(() => {
     pendingRequestSyncTimer = null
-    if (isHost) return  // role may have been assigned (via role_assigned) since we scheduled
-    console.log('[party][viewer] request_sync', JSON.stringify({ reason }))
+    if (isHost) return  // role may have been assigned since we scheduled
     wsSend({ type: 'request_sync' })
   }, delay)
 }
@@ -266,12 +261,6 @@ function sendEpisodeSync(seed) {
     playlistId: seed.playlistId,
     voice: seed.voice ?? null,
   })
-  console.log('[party][host] episode_sync sent', JSON.stringify({
-    seasonIndex: seed.seasonIndex,
-    episodeIndex: seed.episodeIndex,
-    playlistId: seed.playlistId,
-    voice: seed.voice ?? null,
-  }))
 }
 
 function handleServerMessage(data) {
@@ -296,7 +285,6 @@ function handleServerMessage(data) {
       if (!isHost) {
         if (['play', 'started', 'start'].includes(data.event)) hostPlaying = true
         else if (data.event === 'pause') hostPlaying = false
-        console.log('[party][viewer] ws sync', JSON.stringify(data))
         if (!playerReady) {
           if (data.event === 'audiotrack_changed') {
             pendingInitialAudioSync = data
@@ -305,7 +293,6 @@ function handleServerMessage(data) {
           } else {
             pendingInitialSyncEvents.push(data)
           }
-          console.log('[party][viewer] buffered ws sync until player ready', JSON.stringify({ event: data.event, fileEvents: pendingInitialSyncEvents.length, hasPlayback: !!pendingInitialPlaybackSync, hasAudio: !!pendingInitialAudioSync }))
         } else {
           applySync(data)
         }
@@ -315,20 +302,16 @@ function handleServerMessage(data) {
     case 'state':
       if (!isHost) {
         if (data.playing !== undefined) hostPlaying = data.playing
-        console.log('[party][viewer] ws state', JSON.stringify(data))
-        // If host is using a different player, switch before applying state
         if (data.playerName && data.playerName !== activePlayerName) {
           const target = partyPlayers.find(p => p.name === data.playerName)
           if (target) {
-            console.log('[party][viewer] state: switching player to', data.playerName)
-            pendingInitialState = data  // buffer — applied after new player fires ready
+            pendingInitialState = data  // applied after new player fires ready
             switchPlayer(target)
             break
           }
         }
         if (!playerReady) {
           pendingInitialState = data
-          console.log('[party][viewer] buffered ws state until player ready', JSON.stringify(data))
         } else {
           applyState(data)
         }
@@ -346,11 +329,7 @@ function handleServerMessage(data) {
     case 'player_switch':
       if (!isHost && data.playerName) {
         const target = partyPlayers.find(p => p.name === data.playerName)
-        if (target && target.name !== activePlayerName) {
-          console.log('[party][viewer] player_switch received', data.playerName)
-          switchPlayer(target)
-          // player will request sync after it becomes ready via onPlayerReady → scheduleRequestSync
-        }
+        if (target && target.name !== activePlayerName) switchPlayer(target)
       }
       break
 
@@ -360,12 +339,6 @@ function handleServerMessage(data) {
 
     case 'episode_sync':
       if (!isHost) {
-        console.log('[party][viewer] episode_sync received', JSON.stringify({
-          seasonIndex: data.seasonIndex ?? null,
-          episodeIndex: data.episodeIndex ?? null,
-          playlistId: data.playlistId ?? null,
-          voice: data.voice ?? null,
-        }))
         if (!playerReady) {
           pendingInitialEpisodeSync = data
         } else {
@@ -379,6 +352,7 @@ function handleServerMessage(data) {
       break
   }
 }
+
 function normalizeFileData(data) {
   if (!data) return null
 
@@ -419,13 +393,7 @@ function parsePlaylistTree(rawData) {
   if (typeof rawData !== 'string' || !rawData.trim()) return null
 
   let parsed
-  try {
-    parsed = JSON.parse(rawData)
-  } catch (error) {
-    console.log('[party] playlist snapshot parse error', JSON.stringify({ message: error?.message || String(error) }))
-    return null
-  }
-
+  try { parsed = JSON.parse(rawData) } catch { return null }
   if (!Array.isArray(parsed)) return null
 
   const seasons = parsed.map((season, seasonIndex) => {
@@ -438,17 +406,14 @@ function parsePlaylistTree(rawData) {
       file: episode?.file ?? null,
       voices: episode?.voices && typeof episode.voices === 'object' ? { ...episode.voices } : null,
     })) : []
-
-    return {
-      seasonIndex,
-      title: season?.title ?? null,
-      episodes,
-    }
+    return { seasonIndex, title: season?.title ?? null, episodes }
   })
 
   return {
     seasons,
-    byPlaylistId: Object.fromEntries(seasons.flatMap(season => season.episodes).filter(episode => episode.playlistId).map(episode => [episode.playlistId, episode])),
+    byPlaylistId: Object.fromEntries(
+      seasons.flatMap(s => s.episodes).filter(ep => ep.playlistId).map(ep => [ep.playlistId, ep])
+    ),
   }
 }
 
@@ -456,7 +421,6 @@ function inferVoiceForPlaylist(snapshot, playlistId, audioTrack) {
   if (!snapshot?.byPlaylistId || !playlistId || audioTrack == null) return null
   const episode = snapshot.byPlaylistId[playlistId]
   if (!episode?.voices) return null
-
   for (const [voiceName, voicePlaylistId] of Object.entries(episode.voices)) {
     if (voicePlaylistId === audioTrack) return voiceName
   }
@@ -464,50 +428,33 @@ function inferVoiceForPlaylist(snapshot, playlistId, audioTrack) {
 }
 
 function updateEpisodeState(reason, playlistId = currentPlaylistId, audioTrack = currentAudioTrack) {
-  if (!currentPlaylistSnapshot?.byPlaylistId || !playlistId) {
-    console.log('[party] episode state skipped', JSON.stringify({ reason, playlistId: playlistId ?? null, hasSnapshot: !!currentPlaylistSnapshot?.byPlaylistId }))
-    return null
-  }
+  if (!currentPlaylistSnapshot?.byPlaylistId || !playlistId) return
   const episode = currentPlaylistSnapshot.byPlaylistId[playlistId]
-  if (!episode) {
-    console.log('[party] episode lookup miss', JSON.stringify({ reason, playlistId, knownIds: Object.keys(currentPlaylistSnapshot.byPlaylistId).slice(0, 5), totalIds: Object.keys(currentPlaylistSnapshot.byPlaylistId).length }))
-    return null
-  }
-
+  if (!episode) return
   const voice = inferVoiceForPlaylist(currentPlaylistSnapshot, playlistId, audioTrack)
-  currentEpisodeState = {
-    seasonIndex: episode.seasonIndex,
-    episodeIndex: episode.episodeIndex,
-    seasonTitle: episode.seasonTitle,
-    episodeTitle: episode.episodeTitle,
-    playlistId,
-    audioTrack: audioTrack ?? null,
-    voice,
+  if (isHost && ['player_event_file', 'player_event_playlist_changed'].includes(reason)) {
+    sendEpisodeSync({ seasonIndex: episode.seasonIndex, episodeIndex: episode.episodeIndex, playlistId, voice })
   }
-  console.log('[party] episode state', JSON.stringify({ reason, ...currentEpisodeState }))
-  const syncSeed = { seasonIndex: episode.seasonIndex, episodeIndex: episode.episodeIndex, playlistId, voice, reason }
-  console.log('[party] episode sync seed', JSON.stringify(syncSeed))
-  if (isHost && ['player_event_file', 'player_event_playlist_changed'].includes(reason)) sendEpisodeSync(syncSeed)
-  return currentEpisodeState
 }
 
+function applyAudioTrack(data) {
+  if (data.audioTrack == null || data.audioTrack === currentAudioTrack) return
+  currentAudioTrack = data.audioTrack
+  const idx = Array.isArray(data.audioTracks) ? data.audioTracks.indexOf(data.audioTrack) : -1
+  sendPlayerCommand('audiotrack', idx >= 0 ? idx : data.audioTrack)
+}
 
 function applySync(data) {
-  if (!playerReady) {
-    console.log('[party][viewer] applySync skipped: player not ready', JSON.stringify(data))
-    return
-  }
+  if (!playerReady) return
   const compensated = (data.time ?? 0) + latency
   const fileObj = normalizeFileData(data)
   const fileEvent = data.event === 'file' || data.event === 'playlist_changed'
   const playlistChanged = data.playlistId != null && data.playlistId !== currentPlaylistId
   const fileChanged = fileObj && !sameFile(fileObj, currentFile)
 
-  console.log('[party][viewer] applySync normalized', JSON.stringify({ event: data.event, playlistId: data.playlistId ?? null, file: data.file ?? null, normalizedFile: fileObj, playlistChanged, fileChanged, currentPlaylistId, currentFile }))
-
   if (fileEvent || playlistChanged || fileChanged) {
-    // Episode switch is handled by episode_sync → applyEpisodeSync (iframe reload).
-    // Just update local state here; do not attempt sendFileCommand.
+    // Episode switch is handled by episode_sync → applyEpisodeSync.
+    // Just update local state here.
     if (data.playlistId != null) currentPlaylistId = data.playlistId
     if (fileObj) currentFile = fileObj
     return
@@ -538,25 +485,16 @@ function applySync(data) {
       }
       break
     case 'audiotrack_changed':
-      if (data.audioTrack != null && data.audioTrack !== currentAudioTrack) {
-        currentAudioTrack = data.audioTrack
-        const idx = Array.isArray(data.audioTracks) ? data.audioTracks.indexOf(data.audioTrack) : -1
-        sendPlayerCommand('audiotrack', idx >= 0 ? idx : data.audioTrack)
-      }
+      applyAudioTrack(data)
       break
   }
 }
 
 function applyState(data) {
-  if (!playerReady) {
-    console.log('[party][viewer] applyState skipped: player not ready', JSON.stringify(data))
-    return
-  }
+  if (!playerReady) return
   const fileObj = normalizeFileData(data)
   const playlistChanged = data.playlistId != null && data.playlistId !== currentPlaylistId
-  const fileChanged = fileObj && !sameFile(fileObj, currentFile)
 
-  console.log('[party][viewer] applyState normalized', JSON.stringify({ playlistId: data.playlistId ?? null, file: data.file ?? null, normalizedFile: fileObj, playlistChanged, fileChanged, currentPlaylistId, currentFile }))
   if (fileObj) currentFile = fileObj
   if (playlistChanged) {
     // Switch to new episode; iframe will reload and re-sync via ready handler
@@ -568,11 +506,7 @@ function applyState(data) {
     })
     return
   }
-  if (data.audioTrack != null && data.audioTrack !== currentAudioTrack) {
-    currentAudioTrack = data.audioTrack
-    const idx = Array.isArray(data.audioTracks) ? data.audioTracks.indexOf(data.audioTrack) : -1
-    sendPlayerCommand('audiotrack', idx >= 0 ? idx : data.audioTrack)
-  }
+  applyAudioTrack(data)
   const compensated = (data.time ?? 0) + latency
   if (Math.abs(currentTime - compensated) > SYNC_THRESHOLD)
     sendPlayerCommand('seek', compensated)
@@ -589,7 +523,6 @@ function applyEpisodeSync(data) {
 
     const voiceIndex = data.voice != null ? parseInt(data.voice, 10) : null
 
-    // Skip if nothing changed
     if (
       data.seasonIndex === currentTurboSeasonIndex &&
       data.episodeIndex === currentTurboEpisodeIndex &&
@@ -598,18 +531,16 @@ function applyEpisodeSync(data) {
 
     if (!data.playlistId) return
 
-    // Update state
     currentTurboSeasonIndex = data.seasonIndex
     currentTurboEpisodeIndex = data.episodeIndex
     if (voiceIndex != null && !isNaN(voiceIndex)) currentTurboVoiceIndex = voiceIndex
     currentPlaylistId = data.playlistId
 
-    // Navigate via {api:'play', set:'id:episodeId'} — works for both episode and voice change.
+    // Navigate via {api:'play', set:'id:episodeId'} — handles episode and voice change.
     // Player fires 'inited'/'ready' after navigation → onPlayerReady() → scheduleRequestSync.
     playerReady = false
     isPlaying = false
     currentTime = 0
-    console.log('[turbo] navigate', { seasonIndex: data.seasonIndex, episodeIndex: data.episodeIndex, voiceIndex, episodeId: data.playlistId })
     sendPlayerCommand('navigate', data.playlistId)
     return
   }
@@ -635,52 +566,31 @@ function applyEpisodeSync(data) {
   if (hostPlaying) newSrc += '&autoplay=true'
   newSrc += '&nc=' + Date.now()
 
-  console.log('[vibix] reload', { seasonIndex: data.seasonIndex, episodeIndex: data.episodeIndex, playlistId: data.playlistId, url: newSrc })
   iframe.src = newSrc
-  // onPlayerReady() will apply buffered sync after the iframe fires its ready event
 }
 
 // ── Player commands ──────────────────────────────────────────
 
 function sendPlayerCommand(command, value) {
   const frame = getPlayerFrame()
-  if (!frame?.contentWindow || !adapter) {
-    console.log('[party] sendPlayerCommand skipped: no frame or adapter', command, JSON.stringify(value))
-    return
-  }
-  console.log('[party] sendPlayerCommand', command, JSON.stringify(value))
+  if (!frame?.contentWindow || !adapter) return
   adapter.send(command, value)
 }
 
-
 // ── Player events ─────────────────────────────────────────────
-//
-// Vibix-only: raw playlist tree snapshot sent as {event:'file', data: jsonString}
-// This is Vibix SDK-specific and not part of the Playerjs protocol.
 
+// Vibix-only: raw playlist tree snapshot sent as {event:'file', data: jsonString}
 window.addEventListener('message', e => {
   if (playerType !== 'vibix') return
   const data = e.data
   if (!data || typeof data !== 'object') return
+  if (data.event !== 'file' || typeof data.data !== 'string') return
 
-  const serialized = JSON.stringify(data)
-  if (!serialized) return
-
-  const looksRelevant = /file|playlist|episode/i.test(serialized)
-  if (!looksRelevant) return
-
-  if (data.event === 'file' && typeof data.data === 'string') {
-    const snapshot = parsePlaylistTree(data.data)
-    if (snapshot) {
-      currentPlaylistSnapshot = snapshot
-      const seasonsCount = snapshot.seasons.length
-      const episodesCount = snapshot.seasons.reduce((sum, season) => sum + season.episodes.length, 0)
-      console.log('[party] playlist snapshot', JSON.stringify({ seasonsCount, episodesCount }))
-      updateEpisodeState('raw_playlist_tree')
-    }
+  const snapshot = parsePlaylistTree(data.data)
+  if (snapshot) {
+    currentPlaylistSnapshot = snapshot
+    updateEpisodeState('raw_playlist_tree')
   }
-
-  console.log(isHost ? '[party][host] raw message' : '[party][viewer] raw message', JSON.stringify({ origin: e.origin, data }))
 })
 
 // Unified event handler — normalizes via active adapter
@@ -689,7 +599,7 @@ window.addEventListener('message', e => {
   const raw = e.data
   if (raw == null) return
 
-  // Some Playerjs builds serialize events as a JSON string — parse them
+  // Some Playerjs builds serialize events as a JSON string
   let data = raw
   if (typeof data === 'string') {
     try { data = JSON.parse(data) } catch { return }
@@ -706,40 +616,24 @@ function onPlayerReady() {
   if (playerReady) return  // idempotent
   playerReady = true
   document.getElementById('partyLoading').style.display = 'none'
-  console.log('[party] player ready', JSON.stringify({ isHost, playerType }))
 
   if (!isHost) {
     if (pendingInitialState) {
-      const state = pendingInitialState
-      pendingInitialState = null
-      console.log('[party][viewer] replay buffered state after ready', JSON.stringify(state))
-      applyState(state)
+      const s = pendingInitialState; pendingInitialState = null; applyState(s)
     }
     if (pendingInitialSyncEvents.length) {
-      const events = pendingInitialSyncEvents.slice()
-      pendingInitialSyncEvents = []
-      console.log('[party][viewer] replay buffered sync events after ready', JSON.stringify({ count: events.length }))
-      events.forEach(applySync)
+      pendingInitialSyncEvents.splice(0).forEach(applySync)
     }
     if (pendingInitialAudioSync) {
-      const audioSync = pendingInitialAudioSync
-      pendingInitialAudioSync = null
-      console.log('[party][viewer] replay buffered audio sync after ready', JSON.stringify(audioSync))
-      applySync(audioSync)
+      const s = pendingInitialAudioSync; pendingInitialAudioSync = null; applySync(s)
     }
     if (pendingInitialEpisodeSync) {
-      const episodeSync = pendingInitialEpisodeSync
-      pendingInitialEpisodeSync = null
-      console.log('[party][viewer] replay buffered episode sync after ready', JSON.stringify(episodeSync))
-      applyEpisodeSync(episodeSync)
+      const s = pendingInitialEpisodeSync; pendingInitialEpisodeSync = null; applyEpisodeSync(s)
     }
     if (pendingInitialPlaybackSync) {
-      const playbackSync = pendingInitialPlaybackSync
-      pendingInitialPlaybackSync = null
-      console.log('[party][viewer] replay buffered playback sync after ready', JSON.stringify(playbackSync))
-      applySync(playbackSync)
+      const s = pendingInitialPlaybackSync; pendingInitialPlaybackSync = null; applySync(s)
     }
-    scheduleRequestSync(300, 'after_ready')
+    scheduleRequestSync(300)
   }
 }
 
@@ -748,36 +642,23 @@ function handlePlayerEvent(ev) {
   if (resolvedPlayerPlaylistId) currentPlaylistId = resolvedPlayerPlaylistId
   if (ev.file && typeof ev.file === 'object') currentFile = { ...ev.file }
 
-  if (ev.event === 'file' || ev.event === 'playlist_changed' || ev.event === 'ready' || ev.event === 'sync_ready' || ev.event === 'start' || ev.event === 'started') {
-    console.log(isHost ? '[party][host] playerEvent' : '[party][viewer] playerEvent', JSON.stringify(ev))
-  }
-
-  if ((ev.event === 'file' || ev.event === 'playlist_changed' || ev.event === 'start' || ev.event === 'started') && resolvedPlayerPlaylistId) {
-    updateEpisodeState('player_event_' + ev.event, resolvedPlayerPlaylistId, currentAudioTrack)
-  }
-
   if (ev.event === 'ready' || ev.event === 'sync_ready') {
     onPlayerReady()
     return
   }
 
-  // Turbo (Playerjs) may not send a 'ready' event — treat first 'time' tick as implicit ready
-  if (!playerReady && ev.event === 'timeupdate') {
-    console.log('[party] implicit ready via first timeupdate')
-    onPlayerReady()
-  }
+  // Turbo may not send a 'ready' event — treat first timeupdate as implicit ready
+  if (!playerReady && ev.event === 'timeupdate') onPlayerReady()
 
   if (ev.time != null) currentTime = ev.time
 
   if (ev.event === 'play' || ev.event === 'started' || ev.event === 'start') isPlaying = true
   if (ev.event === 'pause' || ev.event === 'end') isPlaying = false
 
-  // Turbo episode/voice change — sync to viewers and return (not a standard sync event)
   if (ev.event === 'turbo_episode') {
     currentTurboSeasonIndex = ev.seasonIndex
     currentTurboEpisodeIndex = ev.episodeIndex
     currentTurboVoiceIndex = ev.voiceIndex
-    console.log('[party] turbo_episode', JSON.stringify({ seasonIndex: ev.seasonIndex, episodeIndex: ev.episodeIndex, voiceIndex: ev.voiceIndex, playlistId: ev.playlistId }))
     if (isHost) {
       sendEpisodeSync({
         seasonIndex: ev.seasonIndex,
@@ -791,8 +672,7 @@ function handlePlayerEvent(ev) {
 
   if (!isHost) return
 
-  const syncEvents = ['play', 'pause', 'seek', 'timeupdate', 'started', 'start', 'file', 'playlist_changed', 'audiotrack_changed']
-  if (!syncEvents.includes(ev.event)) return
+  if (!HOST_SYNC_EVENTS.has(ev.event)) return
 
   if (ev.event === 'seek' || ev.event === 'play' || ev.event === 'started') lastTimeupdateSent = 0
 
@@ -802,11 +682,11 @@ function handlePlayerEvent(ev) {
     lastTimeupdateSent = now
   }
 
-  const fileObj = ev.file ? normalizeFileData({ file: ev.file }) : null
+  const fileObj = ev.file ? { ...ev.file } : null
   if (ev.event === 'file' || ev.event === 'playlist_changed') {
     if (ev.playlistId != null) currentPlaylistId = ev.playlistId
     if (fileObj) currentFile = fileObj
-    updateEpisodeState(ev.event, ev.playlistId ?? currentPlaylistId, currentAudioTrack)
+    updateEpisodeState('player_event_' + ev.event, ev.playlistId ?? currentPlaylistId, currentAudioTrack)
   }
   if (ev.event === 'audiotrack_changed' && ev.audioTrack != null) {
     currentAudioTrack = ev.audioTrack
@@ -818,7 +698,7 @@ function handlePlayerEvent(ev) {
 
 // ── Player startup ────────────────────────────────────────────
 
-let partyPlayers = []   // available party-capable players from API
+let partyPlayers = []
 let activePlayerName = null
 
 async function init() {
@@ -831,13 +711,11 @@ async function init() {
       const title = movie.nameRu || movie.nameEn || 'Untitled'
       document.title = title + ' - Watch Party'
       document.getElementById('partyTitle').textContent = title
-
       players = (movie.players || []).filter(p => p.type === 'vibix' || p.type === 'turbo')
     }
   } catch {}
 
   if (!players.length) {
-    // Fallback: treat movieId as a Vibix KP ID
     players = [{ name: 'Vibix', url: movieId, type: 'vibix' }]
   }
 
@@ -880,7 +758,6 @@ function switchPlayer(player) {
   activePlayerName = player.name
   setActiveSelectorBtn(player.name)
 
-  // Reset state for new player
   playerReady = false
   isPlaying = false
   currentTime = 0
@@ -890,9 +767,7 @@ function switchPlayer(player) {
   currentTurboEpisodeIndex = null
   currentTurboVoiceIndex = null
 
-  // Clear previous player DOM
-  const slot = document.getElementById('party-player-slot')
-  slot.innerHTML = ''
+  document.getElementById('party-player-slot').innerHTML = ''
 
   if (player.type === 'turbo') {
     playerType = 'turbo'
@@ -902,10 +777,7 @@ function switchPlayer(player) {
     startVibix(player.url)
   }
 
-  // Notify viewers about player switch (only if connected and is host)
   if (isHost) wsSend({ type: 'player_switch', playerName: player.name })
-
-  console.log('[party] switched to player', player.name)
 }
 
 // ── Vibix player ──────────────────────────────────────────────
@@ -940,23 +812,21 @@ function startVibix(vibixId) {
 function onIframe(iframe) {
   iframe.id = 'party-frame'
   adapter = vibixAdapter(iframe)
-  console.log('[party] vibix iframe src', iframe.src)
-  // Store base URL for episode switching: strip season/episode[]/nc so we can rebuild cleanly
+  // Store base URL: strip season/episode[]/nc so we can rebuild cleanly on episode switch
   try {
     const url = new URL(iframe.src)
     url.searchParams.delete('season')
     url.searchParams.delete('nc')
-    // Remove episode[] (URLSearchParams encodes [] as %5B%5D)
+    // Remove episode[] — URLSearchParams encodes [] as %5B%5D
     const cleaned = url.toString()
       .replace(/[&?]episode%5B%5D=[^&]*/g, '')
       .replace(/[&?]episode\[\]=[^&]*/g, '')
       .replace(/\?&/, '?')
     playerBaseUrl = cleaned
-    console.log('[party] player base url', playerBaseUrl)
   } catch {}
 }
 
-// ── Turbo player (Playerjs / ?api=1) ─────────────────────────
+// ── Turbo player ──────────────────────────────────────────────
 
 function startTurbo(embedUrl) {
   const slot = document.getElementById('party-player-slot')
@@ -971,7 +841,7 @@ function startTurbo(embedUrl) {
 
   adapter = turboAdapter(iframe)
 
-  // Store base URL for episode switching (strip dynamic/episode params so applyEpisodeSync can rebuild cleanly)
+  // Store base URL: strip dynamic params so episode navigation builds a clean URL
   try {
     const url = new URL(embedUrl)
     url.searchParams.delete('nc')
@@ -980,43 +850,32 @@ function startTurbo(embedUrl) {
     url.searchParams.delete('episode')
     url.searchParams.delete('voice')
     playerBaseUrl = url.toString()
-    console.log('[party] turbo base url', playerBaseUrl)
   } catch {
     playerBaseUrl = embedUrl
   }
 
   iframe.addEventListener('load', () => {
-    console.log('[party] turbo iframe loaded')
-
-    // Playerjs handshake: some builds require the parent to send {api:'ready'} and
-    // explicit addEventListener calls before they start emitting events.
+    // Playerjs handshake: some builds require {api:'ready'} and explicit addEventListener
+    // calls before they start emitting events.
     setTimeout(() => {
       if (!iframe.contentWindow) return
       iframe.contentWindow.postMessage({ api: 'ready' }, '*')
       for (const ev of ['play', 'pause', 'time', 'end', 'ready']) {
         iframe.contentWindow.postMessage({ api: 'addEventListener', value: ev }, '*')
       }
-      console.log('[party] turbo handshake sent')
     }, 300)
 
     // Fallback: if still not ready 1s after load, unblock buffered sync
-    setTimeout(() => {
-      if (!playerReady) {
-        console.log('[party] turbo ready fallback (no events received)')
-        onPlayerReady()
-      }
-    }, 1000)
+    setTimeout(() => { if (!playerReady) onPlayerReady() }, 1000)
   })
-
-  console.log('[party] turbo iframe created', embedUrl)
 }
 
 // ── Chat ─────────────────────────────────────────────────────
 
 function sendMessage() {
   const input = document.getElementById('partyChatInput')
-  if (!input || !input.value.trim()) return
-  const text = input.value.trim()
+  const text = input?.value.trim()
+  if (!text) return
   wsSend({ type: 'chat', message: text })
   addChatMessage(username, text, false)
   input.value = ''
