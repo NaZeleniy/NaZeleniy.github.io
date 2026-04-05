@@ -136,6 +136,7 @@ function turboAdapter(frame) {
       if (command === 'play')  msg = { api: 'play' }
       if (command === 'pause') msg = { api: 'pause' }
       if (command === 'seek')       msg = { api: 'seek', set: value }
+      if (command === 'new')        msg = { api: 'new',  set: value }
       if (!msg) { console.log('[party] turbo: unsupported command', command); return }
       frame.contentWindow.postMessage(msg, '*')
     },
@@ -563,6 +564,7 @@ function applyState(data) {
       playlistId: data.playlistId,
       seasonIndex: data.seasonIndex ?? null,
       episodeIndex: data.episodeIndex ?? null,
+      voice: data.voice ?? null,
     })
     return
   }
@@ -597,12 +599,25 @@ function applyEpisodeSync(data) {
     const iframe = getPlayerFrame()
     if (!iframe) return
 
-    // Update state before reload
+    const episodeChanged = data.seasonIndex !== currentTurboSeasonIndex ||
+                           data.episodeIndex !== currentTurboEpisodeIndex
+
+    // Update state
     currentTurboSeasonIndex = data.seasonIndex
     currentTurboEpisodeIndex = data.episodeIndex
     if (voiceIndex != null && !isNaN(voiceIndex)) currentTurboVoiceIndex = voiceIndex
     if (data.playlistId != null) currentPlaylistId = data.playlistId
 
+    // Voice-only change — try {api:'new', set:episodeId}. The player builds the
+    // stream URL internally from the episode id, so this may be the only way
+    // to switch voice without a full iframe reload.
+    if (!episodeChanged && data.playlistId) {
+      console.log('[turbo] voice command', { voiceIndex, episodeId: data.playlistId })
+      sendPlayerCommand('new', data.playlistId)
+      return
+    }
+
+    // Episode changed — reload iframe
     playerReady = false
     isPlaying = false
     currentTime = 0
@@ -610,12 +625,11 @@ function applyEpisodeSync(data) {
     const url = new URL(playerBaseUrl || iframe.src.split('?')[0])
     url.searchParams.delete('season')
     url.searchParams.delete('episode')
-    url.searchParams.delete('translation')
+    url.searchParams.delete('voice')
     url.searchParams.delete('autoplay')
     url.searchParams.delete('nc')
     url.searchParams.set('season', data.seasonIndex + 1)
     url.searchParams.set('episode', data.episodeIndex + 1)
-    if (voiceIndex != null && !isNaN(voiceIndex)) url.searchParams.set('translation', voiceIndex)
     if (hostPlaying) url.searchParams.set('autoplay', 'true')
     url.searchParams.set('nc', Date.now())
 
@@ -990,6 +1004,7 @@ function startTurbo(embedUrl) {
     url.searchParams.delete('autoplay')
     url.searchParams.delete('season')
     url.searchParams.delete('episode')
+    url.searchParams.delete('voice')
     playerBaseUrl = url.toString()
     console.log('[party] turbo base url', playerBaseUrl)
   } catch {
