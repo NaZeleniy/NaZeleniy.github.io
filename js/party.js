@@ -98,7 +98,9 @@ function vibixAdapter(frame) {
 
 // Turbo — Playerjs (Pjs) postMessage protocol (?api=1)
 // Commands: {api:'play'}, {api:'pause'}, {api:'seek',set:seconds}
-// Events:   {api:'event', event:'ready|play|pause|end|time', seconds, duration}
+// Events format A: {api:'event', event:'ready|play|pause|end|time', seconds, duration}
+// Events format B: {api:'ready'|'play'|'pause'|'end'|'time',    seconds, duration}
+const TURBO_EV_MAP = { ready: 'ready', play: 'play', pause: 'pause', end: 'end', time: 'timeupdate' }
 function turboAdapter(frame) {
   return {
     send(command, value) {
@@ -110,11 +112,17 @@ function turboAdapter(frame) {
       frame.contentWindow.postMessage(msg, '*')
     },
     parse(data) {
-      if (!data || data.api !== 'event') return null
-      const evMap = { ready: 'ready', play: 'play', pause: 'pause', end: 'end', time: 'timeupdate' }
-      const event = evMap[data.event]
-      if (!event) return null
-      return { event, time: data.seconds ?? 0 }
+      if (!data) return null
+      // Format A: {api:'event', event:'play', seconds:X}
+      if (data.api === 'event' && data.event) {
+        const event = TURBO_EV_MAP[data.event]
+        if (event) return { event, time: data.seconds ?? 0 }
+      }
+      // Format B: {api:'play', seconds:X}  (api IS the event name)
+      if (typeof data.api === 'string' && TURBO_EV_MAP[data.api]) {
+        return { event: TURBO_EV_MAP[data.api], time: data.seconds ?? 0 }
+      }
+      return null
     },
   }
 }
@@ -262,6 +270,16 @@ function handleServerMessage(data) {
       if (!isHost) {
         if (data.playing !== undefined) hostPlaying = data.playing
         console.log('[party][viewer] ws state', JSON.stringify(data))
+        // If host is using a different player, switch before applying state
+        if (data.playerName && data.playerName !== activePlayerName) {
+          const target = partyPlayers.find(p => p.name === data.playerName)
+          if (target) {
+            console.log('[party][viewer] state: switching player to', data.playerName)
+            pendingInitialState = data  // buffer — applied after new player fires ready
+            switchPlayer(target)
+            break
+          }
+        }
         if (!playerReady) {
           pendingInitialState = data
           console.log('[party][viewer] buffered ws state until player ready', JSON.stringify(data))
@@ -279,8 +297,19 @@ function handleServerMessage(data) {
       addChatMessage(data.username, data.message, data.isSystem)
       break
 
+    case 'player_switch':
+      if (!isHost && data.playerName) {
+        const target = partyPlayers.find(p => p.name === data.playerName)
+        if (target && target.name !== activePlayerName) {
+          console.log('[party][viewer] player_switch received', data.playerName)
+          switchPlayer(target)
+          // player will request sync after it becomes ready via onPlayerReady → scheduleRequestSync
+        }
+      }
+      break
+
     case 'request_sync':
-      if (isHost) wsSend({ type: 'state', time: currentTime, playing: isPlaying, playlistId: currentPlaylistId, file: currentFile, audioTrack: currentAudioTrack })
+      if (isHost) wsSend({ type: 'state', time: currentTime, playing: isPlaying, playlistId: currentPlaylistId, file: currentFile, audioTrack: currentAudioTrack, playerName: activePlayerName })
       break
 
     case 'episode_sync':
@@ -602,6 +631,47 @@ window.addEventListener('message', e => {
   handlePlayerEvent(ev)
 })
 
+function onPlayerReady() {
+  if (playerReady) return  // idempotent
+  playerReady = true
+  document.getElementById('partyLoading').style.display = 'none'
+  console.log('[party] player ready', JSON.stringify({ isHost, playerType }))
+
+  if (!isHost) {
+    if (pendingInitialState) {
+      const state = pendingInitialState
+      pendingInitialState = null
+      console.log('[party][viewer] replay buffered state after ready', JSON.stringify(state))
+      applyState(state)
+    }
+    if (pendingInitialSyncEvents.length) {
+      const events = pendingInitialSyncEvents.slice()
+      pendingInitialSyncEvents = []
+      console.log('[party][viewer] replay buffered sync events after ready', JSON.stringify({ count: events.length }))
+      events.forEach(applySync)
+    }
+    if (pendingInitialAudioSync) {
+      const audioSync = pendingInitialAudioSync
+      pendingInitialAudioSync = null
+      console.log('[party][viewer] replay buffered audio sync after ready', JSON.stringify(audioSync))
+      applySync(audioSync)
+    }
+    if (pendingInitialEpisodeSync) {
+      const episodeSync = pendingInitialEpisodeSync
+      pendingInitialEpisodeSync = null
+      console.log('[party][viewer] replay buffered episode sync after ready', JSON.stringify(episodeSync))
+      applyEpisodeSync(episodeSync)
+    }
+    if (pendingInitialPlaybackSync) {
+      const playbackSync = pendingInitialPlaybackSync
+      pendingInitialPlaybackSync = null
+      console.log('[party][viewer] replay buffered playback sync after ready', JSON.stringify(playbackSync))
+      applySync(playbackSync)
+    }
+    scheduleRequestSync(300, 'after_ready')
+  }
+}
+
 function handlePlayerEvent(ev) {
   const resolvedPlayerPlaylistId = ev.playlistId ?? null
   if (resolvedPlayerPlaylistId) currentPlaylistId = resolvedPlayerPlaylistId
@@ -616,42 +686,7 @@ function handlePlayerEvent(ev) {
   }
 
   if (ev.event === 'ready' || ev.event === 'sync_ready') {
-    playerReady = true
-    document.getElementById('partyLoading').style.display = 'none'
-
-    if (!isHost) {
-      if (pendingInitialState) {
-        const state = pendingInitialState
-        pendingInitialState = null
-        console.log('[party][viewer] replay buffered state after ready', JSON.stringify(state))
-        applyState(state)
-      }
-      if (pendingInitialSyncEvents.length) {
-        const events = pendingInitialSyncEvents.slice()
-        pendingInitialSyncEvents = []
-        console.log('[party][viewer] replay buffered sync events after ready', JSON.stringify({ count: events.length }))
-        events.forEach(applySync)
-      }
-      if (pendingInitialAudioSync) {
-        const audioSync = pendingInitialAudioSync
-        pendingInitialAudioSync = null
-        console.log('[party][viewer] replay buffered audio sync after ready', JSON.stringify(audioSync))
-        applySync(audioSync)
-      }
-      if (pendingInitialEpisodeSync) {
-        const episodeSync = pendingInitialEpisodeSync
-        pendingInitialEpisodeSync = null
-        console.log('[party][viewer] replay buffered episode sync after ready', JSON.stringify(episodeSync))
-        applyEpisodeSync(episodeSync)
-      }
-      if (pendingInitialPlaybackSync) {
-        const playbackSync = pendingInitialPlaybackSync
-        pendingInitialPlaybackSync = null
-        console.log('[party][viewer] replay buffered playback sync after ready', JSON.stringify(playbackSync))
-        applySync(playbackSync)
-      }
-      scheduleRequestSync(300, 'after_ready')
-    }
+    onPlayerReady()
     return
   }
 
@@ -770,6 +805,9 @@ function switchPlayer(player) {
     startVibix(player.url)
   }
 
+  // Notify viewers about player switch (only if connected and is host)
+  if (isHost) wsSend({ type: 'player_switch', playerName: player.name })
+
   console.log('[party] switched to player', player.name)
 }
 
@@ -846,6 +884,18 @@ function startTurbo(embedUrl) {
   } catch {
     playerBaseUrl = embedUrl
   }
+
+  // Fallback: if the player doesn't send a 'ready' event within 2s of load,
+  // mark it ready so buffered sync events can be applied.
+  iframe.addEventListener('load', () => {
+    console.log('[party] turbo iframe loaded')
+    setTimeout(() => {
+      if (!playerReady) {
+        console.log('[party] turbo ready fallback (no ready event received)')
+        onPlayerReady()
+      }
+    }, 2000)
+  })
 
   console.log('[party] turbo iframe created', embedUrl)
 }
