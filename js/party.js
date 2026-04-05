@@ -135,7 +135,8 @@ function turboAdapter(frame) {
       let msg = null
       if (command === 'play')  msg = { api: 'play' }
       if (command === 'pause') msg = { api: 'pause' }
-      if (command === 'seek')  msg = { api: 'seek', set: value }
+      if (command === 'seek')       msg = { api: 'seek', set: value }
+      if (command === 'audiotrack') msg = { api: 'audioTrack', set: value }
       if (!msg) { console.log('[party] turbo: unsupported command', command); return }
       frame.contentWindow.postMessage(msg, '*')
     },
@@ -184,6 +185,10 @@ let currentFile = null
 let currentAudioTrack = null
 let currentPlaylistSnapshot = null
 let currentEpisodeState = null
+// Turbo episode tracking — season/episode/voice indices from 'new' events
+let currentTurboSeasonIndex = null
+let currentTurboEpisodeIndex = null
+let currentTurboVoiceIndex = null
 let pendingInitialState = null
 let pendingInitialSyncEvents = []
 let pendingInitialPlaybackSync = null
@@ -579,6 +584,25 @@ function applyEpisodeSync(data) {
   // Turbo: identify episode by season/episode index; Vibix: by playlistId
   if (playerType === 'turbo') {
     if (data.seasonIndex == null && data.episodeIndex == null) return
+
+    const incomingVoiceIndex = data.voice != null ? parseInt(data.voice, 10) : null
+    const episodeChanged = data.seasonIndex !== currentTurboSeasonIndex ||
+                           data.episodeIndex !== currentTurboEpisodeIndex
+
+    // Voice-only change: same episode, different dubbing — switch audio track directly
+    if (!episodeChanged && incomingVoiceIndex != null && !isNaN(incomingVoiceIndex) &&
+        incomingVoiceIndex !== currentTurboVoiceIndex) {
+      console.log('[party][viewer] turbo voice-only switch', JSON.stringify({ from: currentTurboVoiceIndex, to: incomingVoiceIndex }))
+      currentTurboVoiceIndex = incomingVoiceIndex
+      sendPlayerCommand('audiotrack', incomingVoiceIndex)
+      return
+    }
+    if (!episodeChanged) return  // nothing to do
+
+    // Episode changed — update tracking, then reload iframe
+    currentTurboSeasonIndex = data.seasonIndex
+    currentTurboEpisodeIndex = data.episodeIndex
+    if (incomingVoiceIndex != null && !isNaN(incomingVoiceIndex)) currentTurboVoiceIndex = incomingVoiceIndex
   } else {
     if (!data.playlistId) return
     if (data.playlistId === currentPlaylistId) return
@@ -770,11 +794,19 @@ function handlePlayerEvent(ev) {
   if (ev.event === 'play' || ev.event === 'started' || ev.event === 'start') isPlaying = true
   if (ev.event === 'pause' || ev.event === 'end') isPlaying = false
 
-  // Turbo episode change — sync to viewers and return (not a standard sync event)
+  // Turbo episode/voice change — sync to viewers and return (not a standard sync event)
   if (ev.event === 'turbo_episode') {
-    console.log('[party] turbo_episode', JSON.stringify({ seasonIndex: ev.seasonIndex, episodeIndex: ev.episodeIndex, playlistId: ev.playlistId }))
+    currentTurboSeasonIndex = ev.seasonIndex
+    currentTurboEpisodeIndex = ev.episodeIndex
+    currentTurboVoiceIndex = ev.voiceIndex
+    console.log('[party] turbo_episode', JSON.stringify({ seasonIndex: ev.seasonIndex, episodeIndex: ev.episodeIndex, voiceIndex: ev.voiceIndex, playlistId: ev.playlistId }))
     if (isHost) {
-      sendEpisodeSync({ seasonIndex: ev.seasonIndex, episodeIndex: ev.episodeIndex, playlistId: ev.playlistId, voice: null })
+      sendEpisodeSync({
+        seasonIndex: ev.seasonIndex,
+        episodeIndex: ev.episodeIndex,
+        playlistId: ev.playlistId,
+        voice: String(ev.voiceIndex),  // string — matches backend inMsg.Voice *string
+      })
     }
     return
   }
@@ -876,6 +908,9 @@ function switchPlayer(player) {
   currentTime = 0
   playerBaseUrl = null
   adapter = null
+  currentTurboSeasonIndex = null
+  currentTurboEpisodeIndex = null
+  currentTurboVoiceIndex = null
 
   // Clear previous player DOM
   const slot = document.getElementById('party-player-slot')
