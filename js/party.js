@@ -100,6 +100,7 @@ function vibixAdapter(frame) {
 
 // Turbo — actual postMessage format (discovered from runtime logs):
 //   Events: {event:'play'|'pause'|'time'|'seek'|..., time:seconds, data:..., duration:...}
+//           {event:'new', id:'contentId-seasonIdx-episodeIdx-voiceIdx'} — episode change
 //   Commands: {api:'play'}, {api:'pause'}, {api:'seek', set:seconds}
 const TURBO_EV_MAP = {
   inited:  'ready',    // player initialised → treat as ready
@@ -111,6 +112,23 @@ const TURBO_EV_MAP = {
   started: 'started',
   stop:    'end',
 }
+
+// Parse Turbo episode id: 'contentId-seasonIdx-episodeIdx-voiceIdx'
+// Trailing 3 numeric segments are indices (0-based); content id may contain dashes.
+function parseTurboEpisodeId(id) {
+  if (!id || typeof id !== 'string') return null
+  const parts = id.split('-')
+  // Walk from the end collecting numeric segments
+  const nums = []
+  for (let i = parts.length - 1; i >= 0 && nums.length < 3; i--) {
+    const n = parseInt(parts[i], 10)
+    if (!isNaN(n) && String(n) === parts[i]) nums.unshift(n)
+    else break
+  }
+  if (nums.length < 2) return null
+  return { seasonIndex: nums[0], episodeIndex: nums[1], voiceIndex: nums[2] ?? 0 }
+}
+
 function turboAdapter(frame) {
   return {
     send(command, value) {
@@ -123,6 +141,19 @@ function turboAdapter(frame) {
     },
     parse(data) {
       if (!data || typeof data.event !== 'string') return null
+      // Episode change event
+      if (data.event === 'new') {
+        const ep = parseTurboEpisodeId(data.id)
+        if (!ep) return null
+        return {
+          event: 'turbo_episode',
+          time: 0,
+          seasonIndex: ep.seasonIndex,
+          episodeIndex: ep.episodeIndex,
+          voiceIndex: ep.voiceIndex,
+          playlistId: data.id,  // raw id — used for dedup on viewers
+        }
+      }
       const event = TURBO_EV_MAP[data.event]
       if (!event) return null
       return { event, time: data.time ?? 0 }
@@ -178,6 +209,12 @@ function connect() {
     const usernameEl = document.getElementById('partyUsernameText')
     const usernameWrap = document.getElementById('partyUsername')
     if (usernameEl) { usernameEl.textContent = username; usernameWrap.style.display = '' }
+
+    // Turbo race: player may fire 'inited' before WS opens, so scheduleRequestSync
+    // was called against a closed socket. Re-schedule now that we're connected.
+    // The re-check inside scheduleRequestSync's callback handles the case where
+    // role_assigned arrives (isHost=true) within the delay window.
+    if (playerReady) scheduleRequestSync(600, 'ws_open_player_already_ready')
   }
 
   ws.onmessage = e => {
@@ -209,6 +246,7 @@ function scheduleRequestSync(delay = 0, reason = '') {
   clearTimeout(pendingRequestSyncTimer)
   pendingRequestSyncTimer = setTimeout(() => {
     pendingRequestSyncTimer = null
+    if (isHost) return  // role may have been assigned (via role_assigned) since we scheduled
     console.log('[party][viewer] request_sync', JSON.stringify({ reason }))
     wsSend({ type: 'request_sync' })
   }, delay)
@@ -537,20 +575,27 @@ function applyState(data) {
 }
 
 function applyEpisodeSync(data) {
-  if (!data || !data.playlistId) return
-  if (data.playlistId === currentPlaylistId) return
+  if (!data) return
+  // Turbo: identify episode by season/episode index; Vibix: by playlistId
+  if (playerType === 'turbo') {
+    if (data.seasonIndex == null && data.episodeIndex == null) return
+  } else {
+    if (!data.playlistId) return
+    if (data.playlistId === currentPlaylistId) return
+  }
 
   console.log('[party][viewer] applyEpisodeSync', JSON.stringify({
+    playerType,
     seasonIndex: data.seasonIndex ?? null,
     episodeIndex: data.episodeIndex ?? null,
-    playlistId: data.playlistId,
+    playlistId: data.playlistId ?? null,
     voice: data.voice ?? null,
   }))
 
   const iframe = getPlayerFrame()
   if (!iframe || !iframe.src) return
 
-  currentPlaylistId = data.playlistId
+  if (data.playlistId != null) currentPlaylistId = data.playlistId
   playerReady = false
   isPlaying = false  // player starts fresh after reload
   currentTime = 0
@@ -558,16 +603,30 @@ function applyEpisodeSync(data) {
   try {
     // Use stored base URL (original URL without season/episode/nc params)
     const base = playerBaseUrl || iframe.src.split('?')[0]
-    const sep = base.includes('?') ? '&' : '?'
 
-    // Build URL manually — episode[] brackets must NOT be percent-encoded
-    let newSrc = base
-    if (data.seasonIndex != null) newSrc += sep + 'season=' + (data.seasonIndex + 1)
-    const epSep = newSrc.includes('?') ? '&' : '?'
-    if (data.episodeIndex != null) newSrc += epSep + 'episode[]=' + (data.episodeIndex + 1)
-    // autoplay=true tells the player to start playing natively — works around browser autoplay policy
-    if (hostPlaying) newSrc += '&autoplay=true'
-    newSrc += '&nc=' + Date.now()
+    let newSrc
+    if (playerType === 'turbo') {
+      // Turbo uses plain ?season=X&episode=Y params (1-indexed, no brackets)
+      const url = new URL(base)
+      url.searchParams.delete('season')
+      url.searchParams.delete('episode')
+      url.searchParams.delete('nc')
+      url.searchParams.delete('autoplay')
+      if (data.seasonIndex != null) url.searchParams.set('season', data.seasonIndex + 1)
+      if (data.episodeIndex != null) url.searchParams.set('episode', data.episodeIndex + 1)
+      if (hostPlaying) url.searchParams.set('autoplay', 'true')
+      url.searchParams.set('nc', Date.now())
+      newSrc = url.toString()
+    } else {
+      // Vibix uses episode[] brackets which must NOT be percent-encoded
+      const sep = base.includes('?') ? '&' : '?'
+      newSrc = base
+      if (data.seasonIndex != null) newSrc += sep + 'season=' + (data.seasonIndex + 1)
+      const epSep = newSrc.includes('?') ? '&' : '?'
+      if (data.episodeIndex != null) newSrc += epSep + 'episode[]=' + (data.episodeIndex + 1)
+      if (hostPlaying) newSrc += '&autoplay=true'
+      newSrc += '&nc=' + Date.now()
+    }
 
     console.log('[party][viewer] reloading iframe for episode', newSrc)
     iframe.src = newSrc
@@ -710,6 +769,15 @@ function handlePlayerEvent(ev) {
 
   if (ev.event === 'play' || ev.event === 'started' || ev.event === 'start') isPlaying = true
   if (ev.event === 'pause' || ev.event === 'end') isPlaying = false
+
+  // Turbo episode change — sync to viewers and return (not a standard sync event)
+  if (ev.event === 'turbo_episode') {
+    console.log('[party] turbo_episode', JSON.stringify({ seasonIndex: ev.seasonIndex, episodeIndex: ev.episodeIndex, playlistId: ev.playlistId }))
+    if (isHost) {
+      sendEpisodeSync({ seasonIndex: ev.seasonIndex, episodeIndex: ev.episodeIndex, playlistId: ev.playlistId, voice: null })
+    }
+    return
+  }
 
   if (!isHost) return
 
@@ -890,11 +958,13 @@ function startTurbo(embedUrl) {
 
   adapter = turboAdapter(iframe)
 
-  // Store base URL for episode switching (strip nc/autoplay params)
+  // Store base URL for episode switching (strip dynamic/episode params so applyEpisodeSync can rebuild cleanly)
   try {
     const url = new URL(embedUrl)
     url.searchParams.delete('nc')
     url.searchParams.delete('autoplay')
+    url.searchParams.delete('season')
+    url.searchParams.delete('episode')
     playerBaseUrl = url.toString()
     console.log('[party] turbo base url', playerBaseUrl)
   } catch {
