@@ -136,7 +136,6 @@ function turboAdapter(frame) {
       if (command === 'play')  msg = { api: 'play' }
       if (command === 'pause') msg = { api: 'pause' }
       if (command === 'seek')       msg = { api: 'seek', set: value }
-      if (command === 'file')       msg = { api: 'file', set: value }
       if (!msg) { console.log('[party] turbo: unsupported command', command); return }
       frame.contentWindow.postMessage(msg, '*')
     },
@@ -581,27 +580,50 @@ function applyState(data) {
 
 function applyEpisodeSync(data) {
   if (!data) return
-  // Turbo: voice is embedded in episode id (format: contentId-S-E-V).
-  // Navigate via {api:'file', set:episodeId} — handles both episode and voice change
-  // without reloading the iframe.
+  // Turbo: reload iframe with ?season=X&episode=Y&translation=V
+  // Voice is the last segment of the episode id (contentId-S-E-V), passed as translation param.
   if (playerType === 'turbo') {
-    if (!data.playlistId) return
-    if (data.playlistId === currentPlaylistId) return
+    if (data.seasonIndex == null && data.episodeIndex == null) return
 
     const incomingVoiceIndex = data.voice != null ? parseInt(data.voice, 10) : null
     const episodeChanged = data.seasonIndex !== currentTurboSeasonIndex ||
                            data.episodeIndex !== currentTurboEpisodeIndex
+    const voiceChanged = incomingVoiceIndex != null && !isNaN(incomingVoiceIndex) &&
+                         incomingVoiceIndex !== currentTurboVoiceIndex
 
-    currentPlaylistId = data.playlistId
+    if (!episodeChanged && !voiceChanged) return
+
+    currentPlaylistId = data.playlistId ?? currentPlaylistId
     currentTurboSeasonIndex = data.seasonIndex
     currentTurboEpisodeIndex = data.episodeIndex
     if (incomingVoiceIndex != null && !isNaN(incomingVoiceIndex)) currentTurboVoiceIndex = incomingVoiceIndex
 
-    console.log('[party][viewer] turbo file command', JSON.stringify({
-      episodeId: data.playlistId, episodeChanged,
-      seasonIndex: data.seasonIndex, episodeIndex: data.episodeIndex, voiceIndex: incomingVoiceIndex,
-    }))
-    sendPlayerCommand('file', data.playlistId)
+    const iframe = getPlayerFrame()
+    if (!iframe) return
+
+    playerReady = false
+    isPlaying = false
+    currentTime = 0
+
+    try {
+      const url = new URL(playerBaseUrl || iframe.src.split('?')[0])
+      url.searchParams.delete('season')
+      url.searchParams.delete('episode')
+      url.searchParams.delete('translation')
+      url.searchParams.delete('nc')
+      url.searchParams.delete('autoplay')
+      if (data.seasonIndex != null) url.searchParams.set('season', data.seasonIndex + 1)
+      if (data.episodeIndex != null) url.searchParams.set('episode', data.episodeIndex + 1)
+      if (incomingVoiceIndex != null && !isNaN(incomingVoiceIndex)) url.searchParams.set('translation', incomingVoiceIndex)
+      if (hostPlaying) url.searchParams.set('autoplay', 'true')
+      url.searchParams.set('nc', Date.now())
+      const newSrc = url.toString()
+      console.log('[party][viewer] turbo iframe reload', JSON.stringify({ episodeChanged, voiceChanged, voiceIndex: incomingVoiceIndex, newSrc }))
+      iframe.src = newSrc
+    } catch (err) {
+      console.log('[party][viewer] turbo reload failed', String(err))
+      playerReady = true
+    }
     return
   }
 
