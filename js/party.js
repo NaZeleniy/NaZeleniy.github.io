@@ -6,10 +6,12 @@ if (!roomId) {
   roomId = 'room-' + Math.random().toString(36).slice(2, 12)
   params.set('room', roomId)
   history.replaceState(null, '', '?' + params.toString())
-  localStorage.setItem('nz_host_room_' + roomId, '1')
+  // sessionStorage is per-tab — prevents other tabs in the same browser from
+  // claiming the creator role when testing or when the creator opens their own link
+  sessionStorage.setItem('nz_host_room_' + roomId, '1')
 }
 
-const isCreator = localStorage.getItem('nz_host_room_' + roomId) === '1'
+const isCreator = sessionStorage.getItem('nz_host_room_' + roomId) === '1'
 
 if (!movieId) {
   document.getElementById('partyTitle').textContent = 'ID фильма не указан'
@@ -690,6 +692,12 @@ function handlePlayerEvent(ev) {
     return
   }
 
+  // Turbo (Playerjs) may not send a 'ready' event — treat first 'time' tick as implicit ready
+  if (!playerReady && ev.event === 'timeupdate') {
+    console.log('[party] implicit ready via first timeupdate')
+    onPlayerReady()
+  }
+
   if (ev.time != null) currentTime = ev.time
 
   if (ev.event === 'play' || ev.event === 'started' || ev.event === 'start') isPlaying = true
@@ -885,16 +893,16 @@ function startTurbo(embedUrl) {
     playerBaseUrl = embedUrl
   }
 
-  // Fallback: if the player doesn't send a 'ready' event within 2s of load,
-  // mark it ready so buffered sync events can be applied.
+  // Fallback: if neither 'ready' nor 'time' events arrive within 800ms of load,
+  // mark as ready so buffered sync can be applied.
   iframe.addEventListener('load', () => {
     console.log('[party] turbo iframe loaded')
     setTimeout(() => {
       if (!playerReady) {
-        console.log('[party] turbo ready fallback (no ready event received)')
+        console.log('[party] turbo ready fallback (no ready/time events received)')
         onPlayerReady()
       }
-    }, 2000)
+    }, 800)
   })
 
   console.log('[party] turbo iframe created', embedUrl)
