@@ -136,7 +136,6 @@ function turboAdapter(frame) {
       if (command === 'play')  msg = { api: 'play' }
       if (command === 'pause') msg = { api: 'pause' }
       if (command === 'seek')       msg = { api: 'seek', set: value }
-      if (command === 'new')        msg = { api: 'new',  set: value }
       if (!msg) { console.log('[party] turbo: unsupported command', command); return }
       frame.contentWindow.postMessage(msg, '*')
     },
@@ -608,12 +607,11 @@ function applyEpisodeSync(data) {
     if (voiceIndex != null && !isNaN(voiceIndex)) currentTurboVoiceIndex = voiceIndex
     if (data.playlistId != null) currentPlaylistId = data.playlistId
 
-    // Voice-only change — try {api:'new', set:episodeId}. The player builds the
-    // stream URL internally from the episode id, so this may be the only way
-    // to switch voice without a full iframe reload.
-    if (!episodeChanged && data.playlistId) {
-      console.log('[turbo] voice command', { voiceIndex, episodeId: data.playlistId })
-      sendPlayerCommand('new', data.playlistId)
+    // Voice-only change — Turbo generates stream URLs server-side with session tokens;
+    // no postMessage command or URL param can switch voice from outside the iframe.
+    // State is already updated above; viewer stays on current voice (known limitation).
+    if (!episodeChanged) {
+      console.log('[turbo] voice-only change: not supported via external API', { voiceIndex })
       return
     }
 
