@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#000000"/>
+  <title>Войти — NaZeleniy</title>
+  <link rel="icon" type="image/png" href="img/icons/favicon.png"/>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous"/>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+
+  <div class="login-page" x-data="loginApp()" x-init="init()">
+
+    <a href="/" class="login-back">
+      <i class="fas fa-arrow-left"></i>
+      На главную
+    </a>
+
+    <div class="login-card">
+
+      <div class="login-logo">
+        <i class="fab fa-telegram"></i>
+      </div>
+
+      <h1 class="login-title">Войти через Telegram</h1>
+      <p class="login-subtitle">Откройте бота и подтвердите вход</p>
+
+      <!-- idle -->
+      <template x-if="step === 'idle'">
+        <button class="login-start-btn" @click="start()">
+          <i class="fab fa-telegram"></i>
+          Получить ссылку для входа
+        </button>
+      </template>
+
+      <!-- loading -->
+      <template x-if="step === 'loading'">
+        <div class="login-spinner">
+          <i class="fas fa-circle-notch fa-spin"></i>
+        </div>
+      </template>
+
+      <!-- waiting -->
+      <template x-if="step === 'waiting'">
+        <div class="login-waiting">
+          <div id="qrcode" class="login-qr"></div>
+
+          <a :href="botUrl" target="_blank" rel="noopener" class="login-tg-btn">
+            <i class="fab fa-telegram"></i>
+            Открыть Telegram
+          </a>
+
+          <div class="login-status">
+            <i class="fas fa-circle-notch fa-spin"></i>
+            Ожидаем подтверждения…
+            <span class="login-timer" x-text="'(' + timeLeft + 'с)'"></span>
+          </div>
+        </div>
+      </template>
+
+      <!-- done -->
+      <template x-if="step === 'done'">
+        <div class="login-done">
+          <i class="fas fa-check-circle"></i>
+          <span>Вход выполнен! Перенаправляем…</span>
+        </div>
+      </template>
+
+      <!-- error -->
+      <template x-if="step === 'error'">
+        <div class="login-error">
+          <i class="fas fa-exclamation-circle"></i>
+          <span x-text="errorMsg"></span>
+          <button class="login-retry-btn" @click="reset()">Попробовать снова</button>
+        </div>
+      </template>
+
+    </div>
+
+  </div>
+
+  <script>
+    function loginApp() {
+      return {
+        step: 'idle',
+        token: '',
+        botUrl: '',
+        errorMsg: '',
+        timeLeft: 300,
+        _pollTimer: null,
+        _countdownTimer: null,
+
+        init() {
+          // если уже залогинен — на главную
+          fetch('/api/me').then(r => {
+            if (r.ok) location.href = '/'
+          })
+        },
+
+        async start() {
+          this.step = 'loading'
+          try {
+            const res = await fetch('/auth/telegram/start', { method: 'POST' })
+            if (!res.ok) throw new Error('server error')
+            const data = await res.json()
+            this.token  = data.token
+            this.botUrl = data.bot_url
+            this.step   = 'waiting'
+            this.$nextTick(() => this._renderQR())
+            this._startPolling()
+            this._startCountdown()
+          } catch {
+            this.errorMsg = 'Не удалось получить ссылку. Попробуйте снова.'
+            this.step = 'error'
+          }
+        },
+
+        _renderQR() {
+          const el = document.getElementById('qrcode')
+          if (!el || !this.botUrl) return
+          el.innerHTML = ''
+          new QRCode(el, {
+            text:          this.botUrl,
+            width:         180,
+            height:        180,
+            colorDark:     '#27ae60',
+            colorLight:    '#000000',
+            correctLevel:  QRCode.CorrectLevel.M,
+          })
+        },
+
+        _startPolling() {
+          this._pollTimer = setInterval(async () => {
+            try {
+              const res  = await fetch('/auth/telegram/status?token=' + this.token)
+              const data = await res.json()
+              if (data.status === 'ok') {
+                this._stopTimers()
+                this.step = 'done'
+                setTimeout(() => location.href = '/', 800)
+              }
+            } catch { /* ignore network blips */ }
+          }, 2000)
+        },
+
+        _startCountdown() {
+          this.timeLeft = 300
+          this._countdownTimer = setInterval(() => {
+            this.timeLeft--
+            if (this.timeLeft <= 0) {
+              this._stopTimers()
+              this.errorMsg = 'Время ожидания истекло. Попробуйте снова.'
+              this.step = 'error'
+            }
+          }, 1000)
+        },
+
+        _stopTimers() {
+          clearInterval(this._pollTimer)
+          clearInterval(this._countdownTimer)
+        },
+
+        reset() {
+          this._stopTimers()
+          this.token    = ''
+          this.botUrl   = ''
+          this.timeLeft = 300
+          this.step     = 'idle'
+        },
+      }
+    }
+  </script>
+
+</body>
+</html>
