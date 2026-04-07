@@ -9,10 +9,12 @@ async function initAuthButton() {
   try {
     const res = await fetch(AUTH_API + '/api/me', { credentials: 'include' })
     if (res.ok) {
+      const data = await res.json()
+      const name = data.name || 'Профиль'
       container.innerHTML = `
-        <button class="auth-btn auth-btn--out" onclick="authLogout()">
+        <button class="auth-btn auth-btn--out" onclick="authLogout()" title="Выйти">
           <i class="fab fa-telegram"></i>
-          <span>Выйти</span>
+          <span>${name}</span>
         </button>`
     } else {
       renderLoginBtn(container)
