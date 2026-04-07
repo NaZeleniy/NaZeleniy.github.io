@@ -205,6 +205,7 @@ function renderMovie(movie) {
         <a class="rating-link" href="https://www.imdb.com/title/${movie.imdbId}" target="_blank" rel="noopener noreferrer" title="Оценок: ${movie.ratingImdbVoteCount || 0}">
           <img src="/img/logo/logo_imdb.svg" alt="IMDb" class="rating-logo-img"/>
           <span class="${ratingClass(movie.ratingImdb)}">${movie.ratingImdb.toFixed(1)}</span>
+          <img src="/img/logo/link.png" alt="link" class="rating-link-icon"/>
         </a>
       </div>`
   }
