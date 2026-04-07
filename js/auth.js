@@ -1,9 +1,13 @@
+const AUTH_API = window.location.hostname.endsWith('github.io')
+  ? 'https://nazeleniy.mooo.com'
+  : ''
+
 async function initAuthButton() {
   const container = document.getElementById('auth-btn')
   if (!container) return
 
   try {
-    const res = await fetch('/api/me')
+    const res = await fetch(AUTH_API + '/api/me', { credentials: 'include' })
     if (res.ok) {
       container.innerHTML = `
         <button class="auth-btn auth-btn--out" onclick="authLogout()">
@@ -27,7 +31,7 @@ function renderLoginBtn(container) {
 }
 
 async function authLogout() {
-  await fetch('/auth/logout', { method: 'POST' })
+  await fetch(AUTH_API + '/auth/logout', { method: 'POST', credentials: 'include' })
   location.reload()
 }
 

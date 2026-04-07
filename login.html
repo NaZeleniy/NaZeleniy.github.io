@@ -84,6 +84,10 @@
   </div>
 
   <script>
+    const _API = window.location.hostname.endsWith('github.io')
+      ? 'https://nazeleniy.mooo.com'
+      : ''
+
     function loginApp() {
       return {
         step: 'idle',
@@ -96,7 +100,7 @@
 
         init() {
           // если уже залогинен — на главную
-          fetch('/api/me').then(r => {
+          fetch(_API + '/api/me', { credentials: 'include' }).then(r => {
             if (r.ok) location.href = '/'
           })
         },
@@ -104,7 +108,7 @@
         async start() {
           this.step = 'loading'
           try {
-            const res = await fetch('/auth/telegram/start', { method: 'POST' })
+            const res = await fetch(_API + '/auth/telegram/start', { method: 'POST', credentials: 'include' })
             if (!res.ok) throw new Error('server error')
             const data = await res.json()
             this.token  = data.token
@@ -136,7 +140,7 @@
         _startPolling() {
           this._pollTimer = setInterval(async () => {
             try {
-              const res  = await fetch('/auth/telegram/status?token=' + this.token)
+              const res  = await fetch(_API + '/auth/telegram/status?token=' + this.token, { credentials: 'include' })
               const data = await res.json()
               if (data.status === 'ok') {
                 this._stopTimers()
