@@ -203,13 +203,17 @@ function renderMovie(movie) {
       </div>`
   }
   if (movie.ratingImdb > 0) {
-    ratingsHtml += `
-      <div class="rating-container">
-        <a class="rating-link" href="https://www.imdb.com/title/${movie.imdbId}" target="_blank" rel="noopener noreferrer" title="Оценок: ${movie.ratingImdbVoteCount || 0}">
+    const imdbHref = movie.imdbId ? `https://www.imdb.com/title/${movie.imdbId}` : null
+    const imdbInner = `
           <img src="/img/logo/logo_imdb.svg" alt="IMDb" class="rating-logo-img"/>
           <span class="${ratingClass(movie.ratingImdb)}">${movie.ratingImdb.toFixed(1)}</span>
-          <img src="/img/logo/link.png" alt="link" class="rating-link-icon"/>
-        </a>
+          ${imdbHref ? `<img src="/img/logo/link.png" alt="link" class="rating-link-icon"/>` : ''}`
+    ratingsHtml += `
+      <div class="rating-container">
+        ${imdbHref
+          ? `<a class="rating-link" href="${imdbHref}" target="_blank" rel="noopener noreferrer" title="Оценок: ${movie.ratingImdbVoteCount || 0}">${imdbInner}</a>`
+          : `<span class="rating-link" title="Оценок: ${movie.ratingImdbVoteCount || 0}">${imdbInner}</span>`
+        }
       </div>`
   }
 
