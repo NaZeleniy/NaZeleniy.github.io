@@ -6,9 +6,9 @@
   <meta name="theme-color" content="#000000"/>
   <title>NaZeleniy — Настройки</title>
   <link rel="icon" type="image/png" href="img/icons/favicon.png"/>
-  <link rel="stylesheet" href="css/style.css?v=1775640662"/>
+  <link rel="stylesheet" href="css/style.css?v=1775640848"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous"/>
-  <script src="js/settings.js?v=1775640662"></script>
+  <script src="js/settings.js?v=1775640848"></script>
   <script>
     function settingsPage() {
       return {
@@ -53,12 +53,15 @@
           </button>
         </div>
 
-        <div class="settings-row">
+        <div class="settings-row settings-row--sub" :class="{ 'settings-row--disabled': !s.bgEffect }">
           <div class="settings-label">
             <span>Смена фона при наведении</span>
             <span class="settings-hint">Постер меняется при наведении на карточку</span>
           </div>
-          <button class="toggle" :class="{ on: s.bgPosterHover }" @click="update('bgPosterHover', !s.bgPosterHover)" role="switch" :aria-checked="s.bgPosterHover">
+          <button class="toggle" :class="{ on: s.bgPosterHover && s.bgEffect }"
+                  @click="s.bgEffect && update('bgPosterHover', !s.bgPosterHover)"
+                  :disabled="!s.bgEffect" role="switch"
+                  :aria-checked="s.bgPosterHover && s.bgEffect">
             <span class="toggle-thumb"></span>
           </button>
         </div>
@@ -79,7 +82,7 @@
     </div>
   </main>
 
-  <script src="js/header.js?v=1775640662"></script>
+  <script src="js/header.js?v=1775640848"></script>
   <script>renderHeader('settings')</script>
 </body>
 </html>

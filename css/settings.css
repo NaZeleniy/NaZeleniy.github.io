@@ -45,6 +45,29 @@
 
 .settings-row:last-child { border-bottom: none; }
 
+.settings-row--sub {
+  padding-left: 36px;
+  background: rgba(255,255,255,0.02);
+}
+
+.settings-row--sub::before {
+  content: '';
+  position: absolute;
+  left: 20px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+  border-radius: 1px;
+}
+
+.settings-row--sub { position: relative; }
+
+.settings-row--disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 .settings-label {
   display: flex;
   flex-direction: column;
