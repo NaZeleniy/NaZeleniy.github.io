@@ -14,9 +14,12 @@ const Settings = (() => {
   function apply(s) {
     const h = document.documentElement
     h.dataset.bgEffect = s.bgEffect ? '1' : '0'
+    const isTV = window.matchMedia('(min-width: 1400px)').matches
     h.style.setProperty('--card-min',
-      s.cardSize === 'small' ? '160px' :
-      s.cardSize === 'large' ? '320px' : '250px')
+      isTV
+        ? (s.cardSize === 'small' ? '120px' : s.cardSize === 'large' ? '220px' : '170px')
+        : (s.cardSize === 'small' ? '160px' : s.cardSize === 'large' ? '320px' : '250px')
+    )
   }
 
   apply(get())

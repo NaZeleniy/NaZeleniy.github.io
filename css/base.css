@@ -1,0 +1,58 @@
+/* ── CSS Variables ────────────────────────────────────── */
+:root {
+  --accent:            #27ae60;
+  --accent-hover:      #1e8449;
+  --accent-light:      #2ecc71;
+  --accent-dim:        rgba(39, 174, 96, 0.15);
+  --accent-glow:       rgba(39, 174, 96, 0.4);
+
+  --bg:                #000000;
+  --bg-secondary:      #1e1e1e;
+  --bg-tertiary:       #2d2d2d;
+  --bg-card:           rgba(30, 30, 30, 0.7);
+
+  --text:              #ffffff;
+  --text-secondary:    #cccccc;
+  --text-muted:        #999999;
+
+  --border:            #444444;
+  --border-hover:      #666666;
+
+  --sidebar-w:         80px;
+  --sidebar-w-open:    220px;
+  --radius:            10px;
+  --transition:        0.3s ease;
+}
+
+/* ── Reset / Base ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding-left: var(--sidebar-w);
+  transition: padding-left var(--transition);
+}
+
+a { text-decoration: none; color: inherit; }
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+  color: inherit;
+}
+
+/* ── Scrollbar ────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #494949; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #666; }
+
+/* ── Alpine cloak ─────────────────────────────────────── */
+[x-cloak] { display: none !important; }

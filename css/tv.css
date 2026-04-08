@@ -1,0 +1,31 @@
+/* ── TV / Large screen (≥1400px) ─────────────────────── */
+@media (min-width: 1400px) {
+  .movie-card:focus,
+  .movie-card:focus-visible {
+    outline: 4px solid var(--accent);
+    outline-offset: 4px;
+    box-shadow: 0 0 0 4px var(--accent), 0 0 32px var(--accent-glow);
+    transform: translateY(-5px) scale(1.03);
+  }
+
+  .nav-link:focus,
+  .nav-link:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+    background: rgba(39, 174, 96, 0.15);
+  }
+
+  .type-btn:focus,
+  .type-btn:focus-visible,
+  .search-input:focus,
+  .player-option:focus,
+  .player-option:focus-visible,
+  .player-select-trigger:focus,
+  .player-select-trigger:focus-visible,
+  .watch-party-btn:focus,
+  .watch-party-btn:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+    box-shadow: 0 0 16px var(--accent-glow);
+  }
+}

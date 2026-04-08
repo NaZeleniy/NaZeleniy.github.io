@@ -1,15 +1,16 @@
 function renderHeader(activePage) {
   _renderSidebar(activePage)
   if (activePage !== 'settings') _renderSearch(activePage)
+  _initSpatialNav()
 }
 
 function _renderSidebar(activePage) {
   const links = [
     { href: '/',             icon: 'fa-home', label: 'Главная',    page: 'index'    },
     { href: 'top.html',      icon: 'fa-fire', label: 'Популярное', page: 'top'      },
-    { href: 'settings.html', icon: 'fa-cog',  label: 'Настройки',  page: 'settings' },
-    { href: 'faq.html',      icon: 'fa-circle-question', label: 'FAQ',        page: 'faq'      },
     { href: 'login.html',    icon: 'fa-user', label: 'Войти',      page: 'login'    },
+    { href: 'settings.html', icon: 'fa-cog',  label: 'Настройки',  page: 'settings' },
+    { href: 'faq.html',      icon: 'fa-circle-question', label: 'FAQ', page: 'faq'  },
   ]
 
   const linksHtml = links.map(l => `
@@ -35,6 +36,49 @@ function _renderSidebar(activePage) {
       document.body.insertBefore(div, document.body.firstChild)
     }
   }
+}
+
+function _initSpatialNav() {
+  const script = document.createElement('script')
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/js-spatial-navigation/2.1.1/spatial_navigation.min.js'
+  script.onload = () => {
+    SpatialNavigation.init()
+
+    SpatialNavigation.add({
+      id: 'sidebar',
+      selector: '.side-panel .nav-link, .side-panel .toggle-btn',
+      restrict: 'self-only',
+      leaveFor: { right: '@content' },
+    })
+
+    SpatialNavigation.add({
+      id: 'content',
+      selector: [
+        '.movie-card',
+        '.type-btn',
+        '.search-input',
+        '.search-icon-btn',
+        '.player-option',
+        '.player-select-trigger',
+        '.player-summary',
+        '.watch-party-btn',
+        'details summary',
+      ].join(', '),
+      enterTo: 'last-focused',
+      leaveFor: { left: '@sidebar' },
+    })
+
+    // Перехват Enter/OK на карточках и кнопках
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        const el = document.activeElement
+        if (el && el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA' && el.tagName !== 'BUTTON') {
+          el.click()
+        }
+      }
+    })
+  }
+  document.head.appendChild(script)
 }
 
 function _renderSearch(activePage) {
