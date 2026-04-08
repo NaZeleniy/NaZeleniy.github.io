@@ -98,6 +98,8 @@
 .main-content {
   max-width: 100%;
   padding: 0 12px 60px;
+  min-height: 100vh;
+  overflow-anchor: none;
 }
 
 /* ── Dynamic background poster ───────────────────────── */

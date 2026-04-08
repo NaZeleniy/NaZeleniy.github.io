@@ -98,7 +98,7 @@ function _initSpatialNav() {
     })
 
     document.addEventListener('sn:focused', e => {
-      e.target.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      e.target.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
     })
 
     // hover = focus: мышь и TV используют одинаковый UX
