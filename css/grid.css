@@ -46,20 +46,19 @@
   border-radius: var(--radius);
   overflow: hidden;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-  transition: transform var(--transition), box-shadow var(--transition);
+  transition: transform var(--transition), box-shadow var(--transition), outline-color var(--transition);
   cursor: pointer;
   position: relative;
+  outline: 4px solid transparent;
 }
 
-.movie-card:hover {
+.movie-card:hover,
+.movie-card:focus,
+.movie-card:focus-visible {
   transform: translateY(-5px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), 0 0 20px var(--accent-glow);
-}
-
-.movie-card:focus-visible {
-  outline: 2px solid #fff;
+  outline: 4px solid var(--accent);
   outline-offset: 2px;
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
 }
 
 .movie-poster-container {

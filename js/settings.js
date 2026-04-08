@@ -24,5 +24,7 @@ const Settings = (() => {
 
   apply(get())
 
+  window.matchMedia('(min-width: 1400px)').addEventListener('change', () => apply(get()))
+
   return { get, save, apply }
 })()

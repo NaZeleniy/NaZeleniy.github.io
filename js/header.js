@@ -39,8 +39,12 @@ function _renderSidebar(activePage) {
 }
 
 function _initSpatialNav() {
+  if (window._spatialNavInit) return
+  window._spatialNavInit = true
+
   const script = document.createElement('script')
   script.src = 'https://cdnjs.cloudflare.com/ajax/libs/js-spatial-navigation/2.1.1/spatial_navigation.min.js'
+  script.onerror = () => { window._spatialNavInit = false }
   script.onload = () => {
     SpatialNavigation.init()
 
@@ -66,14 +70,48 @@ function _initSpatialNav() {
       ].join(', '),
       enterTo: 'last-focused',
       leaveFor: { left: '@sidebar' },
+      straightOnly: true,
+      straightOverlapThreshold: 0.5, // фоллбэк: если перекрытие >50% — считается "прямым"
     })
 
-    // Перехват Enter/OK на карточках и кнопках
+    document.addEventListener('sn:focused', e => {
+      e.target.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    })
+
+    // hover = focus: мышь и TV используют одинаковый UX
+    // Guard: один раз на элемент, пока мышь не уйдёт на другой
+    let _hoverTarget = null
+    document.addEventListener('mouseover', e => {
+      const card = e.target.closest('.movie-card, .nav-link, .type-btn, .player-option')
+      if (card && card !== _hoverTarget) {
+        _hoverTarget = card
+        card.focus({ preventScroll: true })
+      }
+    })
+    document.addEventListener('mouseout', e => {
+      if (!e.currentTarget.contains(e.relatedTarget)) _hoverTarget = null
+    })
+
+    SpatialNavigation.focus('content') || SpatialNavigation.focus('sidebar')
+
+    // Enter/OK на карточках и кнопках
     document.addEventListener('keydown', e => {
       if (e.key === 'Enter') {
         const el = document.activeElement
-        if (el && el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA' && el.tagName !== 'BUTTON') {
+        if (
+          el &&
+          !['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) &&
+          !el.isContentEditable
+        ) {
           el.click()
+        }
+      }
+
+      // Back: только Backspace (Escape оставляем браузеру/Alpine — не ломает десктоп)
+      if (e.key === 'Backspace') {
+        const el = document.activeElement
+        if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(el?.tagName) && !el?.isContentEditable) {
+          history.back()
         }
       }
     })
