@@ -233,6 +233,7 @@ function app() {
     },
 
     async fetchTop() {
+      if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
       this.searchType = 'top'
       this.currentPage = 1
       this.totalPages = 1
@@ -283,6 +284,7 @@ function app() {
       this._scrollObserver = new IntersectionObserver(async entries => {
         if (!entries[0].isIntersecting || this._topLoading || this._topDone) return
         this._topLoading = true
+        this._scrollObserver.unobserve(sentinel)
         const nextPage = this._topPage + 1
         try {
           const [r1, r2] = await Promise.all([
@@ -303,6 +305,7 @@ function app() {
           this._topDone = true
         } finally {
           this._topLoading = false
+          if (!this._topDone) this._scrollObserver.observe(sentinel)
         }
       }, { rootMargin: '2000px' })
       this._scrollObserver.observe(sentinel)
