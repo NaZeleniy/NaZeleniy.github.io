@@ -30,6 +30,7 @@
 html {
   scroll-behavior: smooth;
   overflow-anchor: none;
+  overflow-y: scroll;
 }
 
 body {
