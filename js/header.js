@@ -1,7 +1,30 @@
 function renderHeader(activePage) {
   _renderSidebar(activePage)
   if (activePage !== 'settings') _renderSearch(activePage)
+  _initTVDetect()
   _initSpatialNav()
+}
+
+let _isTVMode = false
+
+function _initTVDetect() {
+  document.addEventListener('keydown', e => {
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      if (!_isTVMode) {
+        _isTVMode = true
+        document.body.classList.add('tv-mode')
+        if (typeof Settings !== 'undefined') Settings.apply(Settings.get())
+      }
+    }
+  })
+
+  document.addEventListener('mousemove', () => {
+    if (_isTVMode) {
+      _isTVMode = false
+      document.body.classList.remove('tv-mode')
+      if (typeof Settings !== 'undefined') Settings.apply(Settings.get())
+    }
+  })
 }
 
 function _renderSidebar(activePage) {
