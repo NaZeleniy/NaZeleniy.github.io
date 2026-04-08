@@ -1,19 +1,19 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <script src="js/version.js?v=1775642731"></script>
+  <script src="js/version.js?v=1775643007"></script>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="theme-color" content="#000000"/>
   <meta name="turbo-verification" content="7f6ffaa6bb0b408017b62254211691b5"/>
   <title>NaZeleniy — Поиск фильмов</title>
   <link rel="icon" type="image/png" href="img/icons/favicon.png"/>
-  <link rel="stylesheet" href="css/style.css?v=1775642731"/>
+  <link rel="stylesheet" href="css/style.css?v=1775643007"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous"/>
-  <script src="js/settings.js?v=1775642731"></script>
-  <script src="js/history.js?v=1775642731"></script>
-  <script defer src="js/api.js?v=1775642731"></script>
-  <script defer src="js/app.js?v=1775642731"></script>
+  <script src="js/settings.js?v=1775643007"></script>
+  <script src="js/history.js?v=1775643007"></script>
+  <script defer src="js/api.js?v=1775643007"></script>
+  <script defer src="js/app.js?v=1775643007"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <!-- Yandex.Metrika counter  -->
   <script type="text/javascript">
@@ -36,44 +36,13 @@
 
     <div id="app-search"></div>
 
-    <!-- History -->
+    <!-- History header -->
     <div x-cloak x-show="!query && !loading && history.length > 0" x-transition>
       <div class="section-header">
         <h2 class="section-title">История просмотров</h2>
         <button class="section-clear-btn" @click="clearHistory()" title="Очистить историю">
           <i class="fas fa-trash-alt"></i>
         </button>
-      </div>
-      <div class="grid">
-        <template x-for="movie in history" :key="movie.kinopoiskId">
-          <a class="movie-card" :href="'movie.html?id=' + movie.kinopoiskId"
-             @mouseenter="onCardEnter(movie)"
-             @click="sessionStorage.setItem('moviePreview', JSON.stringify(movie))">
-            <div class="movie-poster-container">
-              <img
-                class="movie-poster"
-                :src="posterUrl(movie.posterUrlPreview || movie.posterUrl)"
-                :alt="movie.nameRu || movie.nameEn || 'Постер'"
-                loading="lazy"
-                @load="$el.classList.add('loaded')"
-                @error="$el.src='/img/placeholder.svg'; $el.classList.add('loaded')"
-                :class="!(movie.posterUrlPreview || movie.posterUrl) && 'loaded'"
-              />
-            </div>
-            <div class="movie-badge-rating" x-show="movie.ratingKinopoisk > 0" :style="`background:${ratingBg(movie.ratingKinopoisk)}`">
-              <span x-text="(movie.ratingKinopoisk || 0).toFixed(1)"></span>
-            </div>
-            <button class="movie-badge-remove" @click.prevent="removeFromHistory(movie.kinopoiskId)">
-              <i class="fas fa-times"></i>
-            </button>
-            <div class="movie-badge-type" x-text="movieType(movie)"></div>
-            <div class="movie-info">
-              <h3 class="movie-title" x-text="movie.nameRu || movie.nameEn || 'Без названия'"></h3>
-              <span class="movie-original-title" x-show="origTitle(movie)" x-text="origTitle(movie)"></span>
-              <span class="movie-year" x-text="movie.year || ''"></span>
-            </div>
-          </a>
-        </template>
       </div>
     </div>
 
@@ -82,8 +51,8 @@
       <i class="fas fa-circle-notch fa-spin"></i>
     </div>
 
-    <div class="grid" x-show="!loading && movies.length > 0" x-transition>
-      <template x-for="(movie, i) in movies" :key="movie.kinopoiskId || movie.filmId || i">
+    <div class="grid" x-show="!loading && (movies.length > 0 || (!query && history.length > 0))" x-transition>
+      <template x-for="(movie, i) in (!query && history.length > 0 ? history : movies)" :key="movie.kinopoiskId || movie.filmId || i">
         <a class="movie-card" :href="'movie.html?id=' + (movie.kinopoiskId || movie.filmId)"
            @mouseenter="onCardEnter(movie)"
            @click="sessionStorage.setItem('moviePreview', JSON.stringify(movie))">
@@ -93,13 +62,17 @@
               :src="posterUrl(movie.posterUrlPreview || movie.posterUrl)"
               :alt="movie.nameRu || movie.nameEn || 'Постер'"
               loading="lazy"
-              @load="$el.style.opacity = 1"
-              style="opacity:0; transition: opacity 0.6s ease-in-out"
+              @load="$el.classList.add('loaded')"
+              @error="$el.src='/img/placeholder.svg'; $el.classList.add('loaded')"
+              :class="!(movie.posterUrlPreview || movie.posterUrl) && 'loaded'"
             />
           </div>
           <div class="movie-badge-rating" x-show="movie.ratingKinopoisk > 0" :style="`background:${ratingBg(movie.ratingKinopoisk)}`">
             <span x-text="(movie.ratingKinopoisk || 0).toFixed(1)"></span>
           </div>
+          <button class="movie-badge-remove" x-show="movie._isHistory" @click.prevent="removeFromHistory(movie.kinopoiskId)">
+            <i class="fas fa-times"></i>
+          </button>
           <div class="movie-badge-type" x-text="movieType(movie)"></div>
           <div class="movie-info">
             <h3 class="movie-title" x-text="movie.nameRu || movie.nameEn || 'Без названия'"></h3>
@@ -119,8 +92,8 @@
 
   </main>
 
-  <script src="js/header.js?v=1775642731"></script>
+  <script src="js/header.js?v=1775643007"></script>
   <script>renderHeader('index')</script>
-  <script src="js/auth.js?v=1775642731"></script>
+  <script src="js/auth.js?v=1775643007"></script>
 </body>
 </html>

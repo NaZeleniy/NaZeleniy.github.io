@@ -24,7 +24,8 @@ function app() {
     history: [],
 
     _loadHistory() {
-      this.history = typeof historyGet === 'function' ? historyGet() : []
+      this.history = (typeof historyGet === 'function' ? historyGet() : [])
+        .map(m => ({ ...m, _isHistory: true }))
     },
 
     _setBgPoster(url) {
