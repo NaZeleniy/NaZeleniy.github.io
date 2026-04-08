@@ -9,6 +9,7 @@ function _renderSidebar(activePage) {
     { href: 'top.html',      icon: 'fa-fire', label: 'Популярное', page: 'top'      },
     { href: 'settings.html', icon: 'fa-cog',  label: 'Настройки',  page: 'settings' },
     { href: 'faq.html',      icon: 'fa-circle-question', label: 'FAQ',        page: 'faq'      },
+    { href: 'login.html',    icon: 'fa-user', label: 'Войти',      page: 'login'    },
   ]
 
   const linksHtml = links.map(l => `
@@ -24,6 +25,16 @@ function _renderSidebar(activePage) {
       </button>
       <nav class="nav-links">${linksHtml}</nav>
     </aside>`
+
+  if (!document.querySelector('.bg-poster')) {
+    const saved = localStorage.getItem('nz_bg_poster')
+    if (saved) {
+      const div = document.createElement('div')
+      div.className = 'bg-poster visible'
+      div.style.backgroundImage = `url(${saved})`
+      document.body.insertBefore(div, document.body.firstChild)
+    }
+  }
 }
 
 function _renderSearch(activePage) {

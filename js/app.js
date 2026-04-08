@@ -8,7 +8,7 @@ function app() {
     loading: true,
     totalPages: 1,
     currentPage: 1,
-    bgPoster: '',
+    bgPoster: localStorage.getItem('nz_bg_poster') || '',
     _topPage: 1,
     _topDone: false,
     _topLoading: false,
@@ -27,13 +27,18 @@ function app() {
       this.history = typeof historyGet === 'function' ? historyGet() : []
     },
 
+    _setBgPoster(url) {
+      this.bgPoster = url
+      if (url) localStorage.setItem('nz_bg_poster', url)
+    },
+
     init() {
       this.searchType = 'name'
       this.loading = false
       this._loadHistory()
       if (this.history.length > 0) {
         const first = this.history[0]
-        this.bgPoster = posterUrl(first.posterUrlPreview || first.posterUrl)
+        this._setBgPoster(posterUrl(first.posterUrlPreview || first.posterUrl))
       }
     },
 
@@ -57,7 +62,7 @@ function app() {
     },
 
     onCardEnter(movie) {
-      this.bgPoster = posterUrl(movie.posterUrlPreview || movie.posterUrl)
+      this._setBgPoster(posterUrl(movie.posterUrlPreview || movie.posterUrl))
       this.prefetch(movie)
     },
 
@@ -256,7 +261,7 @@ function app() {
       }
       if (this.movies.length > 0) {
         const first = this.movies[0]
-        this.bgPoster = posterUrl(first.posterUrlPreview || first.posterUrl)
+        this._setBgPoster(posterUrl(first.posterUrlPreview || first.posterUrl))
       }
       this.prefetchPosters(this.movies)
       setTimeout(() => this.initTopScroll(), 0)

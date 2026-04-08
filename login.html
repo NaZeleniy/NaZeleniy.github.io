@@ -13,6 +13,8 @@
 </head>
 <body>
 
+  <div id="app-sidebar"></div>
+
   <div class="login-page" x-data="loginApp()" x-init="init()">
 
     <a href="/" class="login-back">
@@ -88,6 +90,8 @@
 
   </div>
 
+  <script src="js/header.js"></script>
+  <script>renderHeader('login')</script>
   <script>
     const _API = window.location.hostname.endsWith('github.io')
       ? 'https://nazeleniy.mooo.com'

@@ -185,7 +185,10 @@ function renderMovie(movie) {
 
   const bgEl = document.getElementById('bg-poster')
   const bgUrl = posterUrl(movie.posterUrlPreview || movie.posterUrl)
-  if (bgEl && bgUrl) bgEl.style.backgroundImage = `url(${bgUrl})`
+  if (bgEl && bgUrl) {
+    bgEl.style.backgroundImage = `url(${bgUrl})`
+    localStorage.setItem('nz_bg_poster', bgUrl)
+  }
 
   let ratingsHtml = ''
   if (movie.ratingKinopoisk > 0) {
