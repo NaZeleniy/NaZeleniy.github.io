@@ -52,7 +52,13 @@
   outline: 4px solid transparent;
 }
 
-.movie-card:hover,
+/* Мышь — только подъём и свечение, без рамки */
+.movie-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), 0 0 20px var(--accent-glow);
+}
+
+/* TV/клавиатура — подъём + зелёная рамка */
 .movie-card:focus,
 .movie-card:focus-visible {
   transform: translateY(-5px);
