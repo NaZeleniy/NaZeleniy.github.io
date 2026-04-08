@@ -124,20 +124,14 @@
   position: absolute;
   top: 8px;
   left: 8px;
-  display: flex;
-  align-items: center;
-  gap: 3px;
   background: rgba(0, 0, 0, 0.55);
-  color: #fdcb6e;
+  color: #fff;
   font-size: 0.9rem;
   font-weight: 700;
   padding: 4px 8px;
   border-radius: 5px;
-  backdrop-filter: blur(4px);
   line-height: 1;
 }
-
-.movie-badge-rating .fa-star { font-size: 0.75rem; }
 
 .movie-badge-remove {
   position: absolute;

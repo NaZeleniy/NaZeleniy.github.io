@@ -73,6 +73,12 @@ function app() {
       return (orig && orig !== movie.nameRu) ? orig : ''
     },
 
+    ratingBg(r) {
+      if (r >= 7.0) return '#27ae60'
+      if (r < 5.0)  return '#e74c3c'
+      return '#7f8c8d'
+    },
+
     movieType(movie) {
       switch (movie.type) {
         case 'TV_SERIES':
