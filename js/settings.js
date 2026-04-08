@@ -1,6 +1,6 @@
 const Settings = (() => {
   const KEY = 'nz_settings'
-  const DEFAULTS = { bgEffect: true, cardSize: 'medium' }
+  const DEFAULTS = { bgEffect: true, cardSize: 'medium', bgPosterHover: true }
 
   function get() {
     try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(KEY) || '{}') } }

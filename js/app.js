@@ -62,7 +62,9 @@ function app() {
     },
 
     onCardEnter(movie) {
-      this._setBgPoster(posterUrl(movie.posterUrlPreview || movie.posterUrl))
+      if (Settings.get().bgPosterHover) {
+        this._setBgPoster(posterUrl(movie.posterUrlPreview || movie.posterUrl))
+      }
       this.prefetch(movie)
     },
 
