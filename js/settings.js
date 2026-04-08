@@ -14,7 +14,7 @@ const Settings = (() => {
   function apply(s) {
     const h = document.documentElement
     h.dataset.bgEffect = s.bgEffect ? '1' : '0'
-    const isTV = document.body.classList.contains('tv-mode')
+    const isTV = document.body?.classList.contains('tv-mode') ?? false
     h.style.setProperty('--card-min',
       isTV
         ? (s.cardSize === 'small' ? '120px' : s.cardSize === 'large' ? '220px' : '170px')
