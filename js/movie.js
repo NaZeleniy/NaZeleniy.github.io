@@ -53,15 +53,32 @@ function selectPlayer(name, url, type) {
   playerUpdateUI(name)
 
   if (type === 'turbo') {
-    // Создаём свежий iframe как в party.js — старый может нести стейт от предыдущих навигаций
     const fresh = document.createElement('iframe')
     fresh.id = 'player-frame'
     fresh.frameBorder = '0'
     fresh.allowFullscreen = true
     fresh.setAttribute('allow', 'autoplay; fullscreen')
-    const onLoad = () => {
-      fresh.removeEventListener('load', onLoad)
-      clearTimeout(fallbackTimer)
+
+    let done = false
+    const markReady = () => {
+      if (done) return
+      done = true
+      clearTimeout(errorTimer)
+      clearTimeout(forceTimer)
+      window.removeEventListener('message', onMsg)
+      playerSetState('ready', gen)
+    }
+
+    // Путь 1: любое postMessage от плеера = он уже работает
+    const onMsg = e => {
+      let d = e.data
+      if (typeof d === 'string') { try { d = JSON.parse(d) } catch { return } }
+      if (d && typeof d.event === 'string') markReady()
+    }
+    window.addEventListener('message', onMsg)
+
+    // Путь 2: load + 500ms (плеер инициализируется чуть после load)
+    fresh.addEventListener('load', () => {
       setTimeout(() => {
         if (!fresh.contentWindow) return
         fresh.contentWindow.postMessage({ api: 'ready' }, '*')
@@ -69,19 +86,25 @@ function selectPlayer(name, url, type) {
           fresh.contentWindow.postMessage({ api: 'addEventListener', value: ev }, '*')
         }
       }, 300)
-      playerSetState('ready', gen)
-    }
-    fresh.addEventListener('load', onLoad)
+      setTimeout(markReady, 500)
+    })
+
+    // Путь 3: форс-ready через 15 секунд (хуже чем ошибка — покажем что есть)
+    const forceTimer = setTimeout(markReady, 15000)
+
+    // Ошибка только если совсем ничего за 60 секунд (не должно срабатывать)
+    const errorTimer = setTimeout(() => {
+      if (!done) { done = true; window.removeEventListener('message', onMsg); playerSetState('error', gen) }
+    }, 60000)
+
     fresh.src = url
     frame.parentNode.replaceChild(fresh, frame)
-    // Запасной таймер: если load не пришёл за 60 секунд — ошибка
-    const fallbackTimer = setTimeout(() => {
-      fresh.removeEventListener('load', onLoad)
-      playerSetState('error', gen)
-    }, 60000)
+
     _playerCleanup = () => {
-      fresh.removeEventListener('load', onLoad)
-      clearTimeout(fallbackTimer)
+      done = true
+      window.removeEventListener('message', onMsg)
+      clearTimeout(forceTimer)
+      clearTimeout(errorTimer)
     }
     return
   }
