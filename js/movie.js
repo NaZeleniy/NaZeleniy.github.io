@@ -229,6 +229,12 @@ function preconnectPlayerDomains(players) {
     } else {
       try { origins.add(new URL(p.url).origin) } catch {}
     }
+    if (p.type === 'turbo') {
+      const l = document.createElement('link')
+      l.rel = 'prefetch'
+      l.href = p.url
+      document.head.appendChild(l)
+    }
   }
   for (const origin of origins) {
     if (document.querySelector(`link[rel="preconnect"][href="${origin}"]`)) continue
@@ -280,8 +286,6 @@ function initPlayerLazyLoad(players) {
     if (!details.open) return
     startFirstPlayer()
   }, { once: true })
-
-  details.open = true
 }
 
 function renderMovie(movie) {
