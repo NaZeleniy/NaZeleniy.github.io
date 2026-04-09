@@ -25,6 +25,7 @@ function togglePlayerDropdown() {
 }
 
 let _playerGen = 0
+let _playerCleanup = null
 
 function playerSetState(state, gen) {
   if (gen !== undefined && gen !== _playerGen) return
@@ -43,19 +44,27 @@ function playerUpdateUI(name) {
 }
 
 function selectPlayer(name, url, type) {
+  if (_playerCleanup) { _playerCleanup(); _playerCleanup = null }
+
   const gen = ++_playerGen
   const frame = document.getElementById('player-frame')
+
+  // Полностью сбрасываем iframe, чтобы остановить текущую загрузку
+  frame.removeAttribute('srcdoc')
+  frame.removeAttribute('src')
+
   playerSetState('loading', gen)
   playerUpdateUI(name)
 
   if (type === 'vibix') {
     const h = Math.round(document.querySelector('.player-wrapper').offsetHeight)
-    frame.srcdoc = vibixSrcdoc(url, h)
     const onLoad = () => {
       frame.removeEventListener('load', onLoad)
       playerSetState('ready', gen)
     }
     frame.addEventListener('load', onLoad)
+    frame.srcdoc = vibixSrcdoc(url, h)
+    _playerCleanup = () => frame.removeEventListener('load', onLoad)
     return
   }
 
@@ -72,6 +81,7 @@ function selectPlayer(name, url, type) {
     const onMsg = e => { if (e.data === 'khL') done(true) }
     const timer = setTimeout(() => done(false), 3000)
     window.addEventListener('message', onMsg)
+    _playerCleanup = () => { clearTimeout(timer); window.removeEventListener('message', onMsg); window.khF = null }
   } else {
     let attempts = 0
     const maxAttempts = 6
@@ -90,6 +100,10 @@ function selectPlayer(name, url, type) {
       frame.src = frame.src
     }, 5000)
     frame.addEventListener('load', onLoad)
+    _playerCleanup = () => {
+      clearInterval(interval)
+      frame.removeEventListener('load', onLoad)
+    }
   }
 }
 
@@ -170,6 +184,10 @@ function initPlayerLazyLoad(players) {
 }
 
 function renderMovie(movie) {
+  // Сброс состояния плеера при каждом перерендере (preview → full data)
+  if (_playerCleanup) { _playerCleanup(); _playerCleanup = null }
+  _playerGen = 0
+
   historyAdd(movie)
   const title = movie.nameRu || movie.nameEn || 'Без названия'
   document.title = title + ' — NaZeleniy'
