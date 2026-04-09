@@ -70,7 +70,21 @@ function selectPlayer(name, url, type) {
 
   frame.src = url
 
-  if (type === 'flixcdn') {
+  if (type === 'turbo') {
+    const onLoad = () => {
+      frame.removeEventListener('load', onLoad)
+      setTimeout(() => {
+        if (!frame.contentWindow) return
+        frame.contentWindow.postMessage({ api: 'ready' }, '*')
+        for (const ev of ['play', 'pause', 'time', 'end', 'ready']) {
+          frame.contentWindow.postMessage({ api: 'addEventListener', value: ev }, '*')
+        }
+      }, 300)
+      playerSetState('ready', gen)
+    }
+    frame.addEventListener('load', onLoad)
+    _playerCleanup = () => frame.removeEventListener('load', onLoad)
+  } else if (type === 'flixcdn') {
     if (typeof window.khS !== 'undefined') window.khS = false
     if (typeof khCL === 'function') { window.khF = frame; setTimeout(khCL, 0) }
     const done = success => {
@@ -149,7 +163,7 @@ function playerSectionHtml(movie) {
       ${partyBtn}
     </div>
     <div class="player-wrapper">
-      <iframe id="player-frame" frameborder="0" allowfullscreen></iframe>
+      <iframe id="player-frame" frameborder="0" allowfullscreen allow="autoplay; fullscreen"></iframe>
       <div class="player-loading">
         <i class="fas fa-circle-notch fa-spin"></i>
       </div>
