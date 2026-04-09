@@ -30,6 +30,7 @@ let _playerCleanup = null
 function playerSetState(state, gen) {
   if (gen !== undefined && gen !== _playerGen) return
   const wrapper = document.querySelector('.player-wrapper')
+  if (!wrapper) return
   wrapper.classList.remove('loading', 'ready', 'error')
   if (state) wrapper.classList.add(state)
 }
@@ -69,8 +70,10 @@ function selectPlayer(name, url, type) {
       playerSetState('ready', gen)
     }
 
-    // Путь 1: любое postMessage от плеера = он уже работает
+    // Путь 1: postMessage от плеера = он уже работает
+    // Проверяем что сообщение именно от нашего iframe (после его загрузки)
     const onMsg = e => {
+      if (e.source !== fresh.contentWindow) return
       let d = e.data
       if (typeof d === 'string') { try { d = JSON.parse(d) } catch { return } }
       if (d && typeof d.event === 'string') markReady()
