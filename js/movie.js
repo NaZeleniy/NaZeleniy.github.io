@@ -221,6 +221,24 @@ function playerSectionHtml(movie) {
   </details>`
 }
 
+function preconnectPlayerDomains(players) {
+  const origins = new Set()
+  for (const p of players) {
+    if (p.type === 'vibix') {
+      origins.add('https://graphicslab.io')
+    } else {
+      try { origins.add(new URL(p.url).origin) } catch {}
+    }
+  }
+  for (const origin of origins) {
+    if (document.querySelector(`link[rel="preconnect"][href="${origin}"]`)) continue
+    const l = document.createElement('link')
+    l.rel = 'preconnect'
+    l.href = origin
+    document.head.appendChild(l)
+  }
+}
+
 function initPlayerLazyLoad(players) {
   const details = document.querySelector('.player-section')
   if (!details) return
@@ -231,16 +249,39 @@ function initPlayerLazyLoad(players) {
     return
   }
 
+  preconnectPlayerDomains(players)
+
   const dropdown = document.getElementById('playerDropdown')
   dropdown.innerHTML = players.map(p =>
     `<div class="player-option" data-name="${p.name}"
       onclick="selectPlayer('${p.name}','${p.url}','${p.type}')">${p.name}</div>`
   ).join('')
 
+  let started = false
+  const startFirstPlayer = () => {
+    if (started) return
+    started = true
+    selectPlayer(players[0].name, players[0].url, players[0].type)
+  }
+
+  // Начинаем загрузку при наведении (до клика), с debounce 200ms
+  const summary = details.querySelector('summary')
+  if (summary) {
+    let hoverTimer = null
+    summary.addEventListener('pointerenter', () => {
+      hoverTimer = setTimeout(startFirstPlayer, 200)
+    }, { once: true })
+    summary.addEventListener('pointerleave', () => {
+      clearTimeout(hoverTimer)
+    }, { once: true })
+  }
+
   details.addEventListener('toggle', () => {
     if (!details.open) return
-    selectPlayer(players[0].name, players[0].url, players[0].type)
+    startFirstPlayer()
   }, { once: true })
+
+  details.open = true
 }
 
 function renderMovie(movie) {
