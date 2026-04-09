@@ -47,14 +47,48 @@ function selectPlayer(name, url, type) {
   if (_playerCleanup) { _playerCleanup(); _playerCleanup = null }
 
   const gen = ++_playerGen
-  const frame = document.getElementById('player-frame')
-
-  // Полностью сбрасываем iframe, чтобы остановить текущую загрузку
-  frame.removeAttribute('srcdoc')
-  frame.removeAttribute('src')
+  let frame = document.getElementById('player-frame')
 
   playerSetState('loading', gen)
   playerUpdateUI(name)
+
+  if (type === 'turbo') {
+    // Создаём свежий iframe как в party.js — старый может нести стейт от предыдущих навигаций
+    const fresh = document.createElement('iframe')
+    fresh.id = 'player-frame'
+    fresh.frameBorder = '0'
+    fresh.allowFullscreen = true
+    fresh.setAttribute('allow', 'autoplay; fullscreen')
+    const onLoad = () => {
+      fresh.removeEventListener('load', onLoad)
+      clearTimeout(fallbackTimer)
+      setTimeout(() => {
+        if (!fresh.contentWindow) return
+        fresh.contentWindow.postMessage({ api: 'ready' }, '*')
+        for (const ev of ['play', 'pause', 'time', 'end', 'ready']) {
+          fresh.contentWindow.postMessage({ api: 'addEventListener', value: ev }, '*')
+        }
+      }, 300)
+      playerSetState('ready', gen)
+    }
+    fresh.addEventListener('load', onLoad)
+    fresh.src = url
+    frame.parentNode.replaceChild(fresh, frame)
+    // Запасной таймер: если load не пришёл за 60 секунд — ошибка
+    const fallbackTimer = setTimeout(() => {
+      fresh.removeEventListener('load', onLoad)
+      playerSetState('error', gen)
+    }, 60000)
+    _playerCleanup = () => {
+      fresh.removeEventListener('load', onLoad)
+      clearTimeout(fallbackTimer)
+    }
+    return
+  }
+
+  // Для не-turbo плееров сбрасываем src/srcdoc у существующего iframe
+  frame.removeAttribute('srcdoc')
+  frame.removeAttribute('src')
 
   if (type === 'vibix') {
     const h = Math.round(document.querySelector('.player-wrapper').offsetHeight)
@@ -70,21 +104,7 @@ function selectPlayer(name, url, type) {
 
   frame.src = url
 
-  if (type === 'turbo') {
-    const onLoad = () => {
-      frame.removeEventListener('load', onLoad)
-      setTimeout(() => {
-        if (!frame.contentWindow) return
-        frame.contentWindow.postMessage({ api: 'ready' }, '*')
-        for (const ev of ['play', 'pause', 'time', 'end', 'ready']) {
-          frame.contentWindow.postMessage({ api: 'addEventListener', value: ev }, '*')
-        }
-      }, 300)
-      playerSetState('ready', gen)
-    }
-    frame.addEventListener('load', onLoad)
-    _playerCleanup = () => frame.removeEventListener('load', onLoad)
-  } else if (type === 'flixcdn') {
+  if (type === 'flixcdn') {
     if (typeof window.khS !== 'undefined') window.khS = false
     if (typeof khCL === 'function') { window.khF = frame; setTimeout(khCL, 0) }
     const done = success => {
