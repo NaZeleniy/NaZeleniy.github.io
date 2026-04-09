@@ -26,6 +26,7 @@ function togglePlayerDropdown() {
 
 let _playerGen = 0
 let _playerCleanup = null
+let _players = []
 
 function playerSetState(state, gen) {
   if (gen !== undefined && gen !== _playerGen) return
@@ -70,10 +71,8 @@ function selectPlayer(name, url, type) {
       playerSetState('ready', gen)
     }
 
-    // Путь 1: postMessage от плеера = он уже работает
-    // Проверяем что сообщение именно от нашего iframe (после его загрузки)
+    // Путь 1: postMessage от плеера (в т.ч. из вложенных iframe внутри плеера)
     const onMsg = e => {
-      if (e.source !== fresh.contentWindow) return
       let d = e.data
       if (typeof d === 'string') { try { d = JSON.parse(d) } catch { return } }
       if (d && typeof d.event === 'string') markReady()
@@ -255,6 +254,7 @@ function initPlayerLazyLoad(players) {
     return
   }
 
+  _players = players
   preconnectPlayerDomains(players)
 
   const dropdown = document.getElementById('playerDropdown')
