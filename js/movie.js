@@ -352,7 +352,7 @@ function renderMovie(movie) {
   ratingsHtml += nzVotes > 0
     ? `<div class="rating-container" id="nz-rating-display">
         <div class="rating-link nz-rating-link" title="Оценок на NaZeleniy: ${nzVotes}">
-          <span class="rating-logo-badge nz">NZ</span>
+          <img src="/img/logo/logo_na.svg" alt="NZ" class="rating-logo-img"/>
           <span class="${ratingClass(nzRating)}">${nzRating.toFixed(1)}</span>
         </div>
       </div>`
@@ -706,7 +706,7 @@ async function refreshNzRating() {
       el.style.display = ''
       el.innerHTML = `
         <div class="rating-link nz-rating-link" title="Оценок на NaZeleniy: ${data.ratingNazeleniyVoteCount}">
-          <span class="rating-logo-badge nz">NZ</span>
+          <img src="/img/logo/logo_na.svg" alt="NZ" class="rating-logo-img"/>
           <span class="${ratingClass(data.ratingNazeleniy)}">${(data.ratingNazeleniy || 0).toFixed(1)}</span>
         </div>`
     }
