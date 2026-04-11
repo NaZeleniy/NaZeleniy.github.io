@@ -51,8 +51,6 @@
   cursor: pointer;
   position: relative;
   outline: 4px solid transparent;
-  content-visibility: auto;
-  contain-intrinsic-size: 0 420px;
 }
 
 /* Мышь — только подъём и свечение, без рамки */
