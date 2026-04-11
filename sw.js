@@ -43,9 +43,13 @@ self.addEventListener('fetch', e => {
 async function cacheFirst(req) {
   const cached = await caches.match(req)
   if (cached) return cached
-  const res = await fetch(req)
-  if (res.ok) (await caches.open(CACHE)).put(req, res.clone())
-  return res
+  try {
+    const res = await fetch(req)
+    if (res.ok) (await caches.open(CACHE)).put(req, res.clone())
+    return res
+  } catch {
+    return new Response('', { status: 503, statusText: 'Service Unavailable' })
+  }
 }
 
 async function staleWhileRevalidate(req) {
