@@ -1,8 +1,21 @@
 function renderHeader(activePage) {
   _renderSidebar(activePage)
   if (activePage !== 'settings') _renderSearch(activePage)
+  _initAuthBtn()
   _initTVDetect()
   _initSpatialNav()
+}
+
+function _initAuthBtn() {
+  if (document.getElementById('auth-btn')) return // уже есть в HTML
+  const div = document.createElement('div')
+  div.id = 'auth-btn'
+  document.body.appendChild(div)
+  const s = document.createElement('script')
+  const ver = (document.querySelector('script[src*="header.js"]') || {}).src || ''
+  const v = (ver.match(/[?&]v=\d+/) || [''])[0]
+  s.src = 'js/auth.js' + v
+  document.body.appendChild(s)
 }
 
 let _isTVMode = false

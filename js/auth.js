@@ -13,7 +13,6 @@ async function initAuthButton() {
       const name = data.name || 'Профиль'
       container.innerHTML = `
         <button class="auth-btn auth-btn--out" onclick="authLogout()" title="Выйти">
-          <i class="fab fa-telegram"></i>
           <span>${name}</span>
         </button>`
     } else {
@@ -27,7 +26,6 @@ async function initAuthButton() {
 function renderLoginBtn(container) {
   container.innerHTML = `
     <a href="/login.html" class="auth-btn auth-btn--in">
-      <i class="fab fa-telegram"></i>
       <span>Войти</span>
     </a>`
 }
