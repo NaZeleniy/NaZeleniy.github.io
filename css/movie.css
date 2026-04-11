@@ -1078,42 +1078,26 @@ a.movie-poster-side img {
 
 .comments-moderation-warn i { flex-shrink: 0; font-size: 12px; opacity: 0.8; }
 
-/* ── Blur wrapper ─────────────────────────────────────────── */
-.comments-blur-wrap {
-  position: relative;
-}
-
-.comments-blur-wrap:not(.revealed) .comments-list,
-.comments-blur-wrap:not(.revealed) .comments-load-more-wrap {
-  filter: blur(6px);
-  user-select: none;
-  pointer-events: none;
-}
-
-.comments-blur-overlay {
-  position: absolute;
-  inset: 0;
+/* ── Show comments trigger ───────────────────────────────── */
+.comments-show-btn {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  cursor: pointer;
+  gap: 10px;
+  margin: 24px auto 0;
+  padding: 10px 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   color: var(--text-muted);
   font-size: 14px;
-  transition: color 0.15s;
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition), background var(--transition);
+  background: none;
 }
 
-.comments-blur-overlay i { font-size: 20px; }
-.comments-blur-overlay:hover { color: var(--text); }
-
-.comments-blur-wrap.revealed .comments-blur-overlay { display: none; }
-.comments-blur-wrap.revealed .comments-list,
-.comments-blur-wrap.revealed .comments-load-more-wrap {
-  filter: none;
-  user-select: auto;
-  pointer-events: auto;
-  transition: filter 0.3s ease;
+.comments-show-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
 }
 
 /* ── Inline message helpers ───────────────────────────────── */

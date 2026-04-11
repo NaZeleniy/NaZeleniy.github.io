@@ -787,33 +787,10 @@ function initComments(movie) {
   section.innerHTML = `
     <div class="comments-wrap">
       <div class="nz-section-title">Комментарии</div>
-      <div class="comments-inner">
-      <div class="comment-form">
-        <textarea class="comment-textarea" id="comment-input"
-          placeholder="Напишите комментарий..."
-          maxlength="1000"
-          oninput="document.getElementById('comment-char-count').textContent=this.value.length+'/1000'"></textarea>
-        <div class="comment-form-footer">
-          <span class="comment-char-count" id="comment-char-count">0 / 1000</span>
-          <button class="comment-submit-btn" onclick="doSubmitComment(${kpId})">Отправить</button>
-        </div>
-        <div class="comment-form-msg" id="comment-form-msg"></div>
-      </div>
-      <div class="comments-moderation-warn">
-        <i class="fas fa-exclamation-triangle"></i>
-        <span>Осторожно, комментарии временно не модерируются!</span>
-      </div>
-      <div class="comments-blur-wrap" id="comments-blur-wrap">
-        <div class="comments-list" id="comments-list"></div>
-        <div class="comments-load-more-wrap" id="comments-load-more-wrap" style="display:none">
-          <button class="comments-load-more-btn" onclick="doLoadMoreComments(${kpId})">Показать ещё</button>
-        </div>
-        <div class="comments-blur-overlay" onclick="nzUnblurComments(${kpId})" title="Нажмите, чтобы показать">
-          <i class="fas fa-eye"></i>
-          <span>Показать комментарии</span>
-        </div>
-      </div>
-      </div>
+      <button class="comments-show-btn" id="comments-show-btn" onclick="nzUnblurComments(${kpId})">
+        <i class="fas fa-eye"></i>
+        <span>Показать комментарии</span>
+      </button>
     </div>`
 }
 
@@ -835,10 +812,34 @@ async function _loadComments(kpId) {
 }
 
 function nzUnblurComments(kpId) {
-  const wrap = document.getElementById('comments-blur-wrap')
+  const wrap = document.querySelector('.comments-wrap')
   if (!wrap) return
-  wrap.classList.add('revealed')
-  if (kpId && _commentsOffset === 0) _loadComments(kpId)
+  wrap.innerHTML = `
+    <div class="nz-section-title">Комментарии</div>
+    <div class="comments-inner">
+      <div class="comment-form">
+        <textarea class="comment-textarea" id="comment-input"
+          placeholder="Напишите комментарий..."
+          maxlength="1000"
+          oninput="document.getElementById('comment-char-count').textContent=this.value.length+'/1000'"></textarea>
+        <div class="comment-form-footer">
+          <span class="comment-char-count" id="comment-char-count">0 / 1000</span>
+          <button class="comment-submit-btn" onclick="doSubmitComment(${kpId})">Отправить</button>
+        </div>
+        <div class="comment-form-msg" id="comment-form-msg"></div>
+      </div>
+      <div class="comments-moderation-warn">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>Осторожно, комментарии временно не модерируются!</span>
+      </div>
+      <div class="comments-list" id="comments-list">
+        <div class="similars-loading"><i class="fas fa-circle-notch fa-spin"></i></div>
+      </div>
+      <div class="comments-load-more-wrap" id="comments-load-more-wrap" style="display:none">
+        <button class="comments-load-more-btn" onclick="doLoadMoreComments(${kpId})">Показать ещё</button>
+      </div>
+    </div>`
+  _loadComments(kpId)
 }
 
 async function doSubmitComment(kpId) {
