@@ -931,7 +931,7 @@ async function loadMovie() {
   } catch {}
 
   try {
-    const r = await fetch(`${API_BASE}/api/movie/${movieId}`)
+    const r = await fetch(`${API_BASE}/api/movie/${movieId}`, { credentials: 'include' })
     if (!r.ok) throw new Error('Фильм не найден')
     const movie = await r.json()
     renderMovie(movie)
