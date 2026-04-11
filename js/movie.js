@@ -787,6 +787,7 @@ function initComments(movie) {
   section.innerHTML = `
     <div class="comments-wrap">
       <div class="nz-section-title">Комментарии</div>
+      <div class="comments-inner">
       <div class="comment-form">
         <textarea class="comment-textarea" id="comment-input"
           placeholder="Напишите комментарий..."
@@ -811,6 +812,7 @@ function initComments(movie) {
           <i class="fas fa-eye"></i>
           <span>Показать комментарии</span>
         </div>
+      </div>
       </div>
     </div>`
 }

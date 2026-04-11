@@ -940,6 +940,11 @@ a.movie-poster-side img {
   border-top: 1px solid var(--border);
 }
 
+.comments-inner {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
 .comment-form { margin-bottom: 24px; }
 
 .comment-textarea {
