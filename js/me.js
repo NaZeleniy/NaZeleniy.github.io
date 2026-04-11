@@ -49,10 +49,10 @@ async function loadMe() {
     ? `${ratings.length} ${pluralRatings(ratings.length)}`
     : 'нет оценок'
 
-  const grid = document.getElementById('me-ratings-grid')
+  const list = document.getElementById('me-ratings-grid')
 
   if (!ratings.length) {
-    grid.innerHTML = `
+    list.innerHTML = `
       <div class="me-empty">
         <i class="fas fa-star me-empty-icon"></i>
         <p>Вы ещё не оценили ни одного фильма</p>
@@ -60,23 +60,35 @@ async function loadMe() {
     return
   }
 
-  grid.innerHTML = ratings.map(item => {
-    const title = escapeHtml(item.nameRu || item.nameOriginal || `Фильм #${item.kp_id}`)
+  list.innerHTML = ratings.map(item => {
+    const title    = escapeHtml(item.nameRu || item.nameOriginal || `Фильм #${item.kp_id}`)
+    const original = item.nameOriginal && item.nameOriginal !== item.nameRu
+      ? `<span class="me-item-original">${escapeHtml(item.nameOriginal)}</span>`
+      : ''
     const imgSrc = item.posterUrl
       ? ME_API + '/proxy/poster?url=' + encodeURIComponent(item.posterUrl)
       : '/img/placeholder.svg'
     const color = ratingColor(item.rating)
+    const date  = item.created_at ? formatDate(item.created_at) : ''
     return `
-      <a href="/movie.html?id=${item.kp_id}" class="me-card">
-        <div class="me-card-poster">
-          <img src="${imgSrc}" alt="${title}" loading="lazy"/>
-          <span class="me-card-rating" style="background:${color}">${item.rating}</span>
+      <a href="/movie.html?id=${item.kp_id}" class="me-item">
+        <img class="me-item-poster" src="${imgSrc}" alt="${title}" loading="lazy"/>
+        <div class="me-item-info">
+          <span class="me-item-title">${title}</span>
+          ${original}
         </div>
-        <div class="me-card-info">
-          <span class="me-card-title">${title}</span>
+        <div class="me-item-meta">
+          ${date ? `<span class="me-item-date">${date}</span>` : ''}
+          <span class="me-item-rating" style="background:${color}">${item.rating}</span>
         </div>
       </a>`
   }).join('')
+}
+
+function formatDate(iso) {
+  try {
+    return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+  } catch { return '' }
 }
 
 function pluralRatings(n) {
