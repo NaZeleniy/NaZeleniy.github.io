@@ -892,10 +892,9 @@ a.movie-poster-side img {
   border: 1px solid rgba(255,255,255,0.06);
   border-radius: 10px;
   z-index: 10;
-  padding: 10px 6px;
+  padding: 6px 4px;
   animation: nzPickerIn 0.18s ease both;
   overflow: hidden;
-  --nz-r: 149; --nz-g: 165; --nz-b: 166;
 }
 
 @keyframes nzPickerIn {
@@ -909,45 +908,32 @@ a.movie-poster-side img {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  position: relative;
-  z-index: 1;
 }
 
 .nz-num {
   flex: 1;
   text-align: center;
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 400;
+  font-size: 22px;
+  font-weight: 300;
   font-variant-numeric: tabular-nums;
-  color: rgba(255,255,255,0.22);
-  padding: 7px 0;
+  color: rgba(255,255,255,0.3);
+  padding: 4px 0;
   line-height: 1;
   user-select: none;
-  transition: color 0.2s ease, text-shadow 0.2s ease;
+  transition: color 0.15s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
-.nz-num:hover {
-  color: rgba(255,255,255,0.48);
-}
-
-.nz-num.active {
-  color: rgb(var(--nz-r), var(--nz-g), var(--nz-b));
-  font-weight: 600;
-  text-shadow: 0 0 10px rgba(var(--nz-r), var(--nz-g), var(--nz-b), 0.6);
-}
+.nz-num:hover { color: rgba(255,255,255,0.65); }
 
 /* Message / errors */
 .nz-rate-msg {
-  margin-top: 6px;
+  margin-top: 4px;
   font-size: 11px;
   text-align: center;
   min-height: 14px;
   color: rgba(255,255,255,0.3);
-  position: relative;
-  z-index: 1;
-  width: 100%;
 }
 
 .nz-msg-error { color: rgba(231,76,60,0.85); }

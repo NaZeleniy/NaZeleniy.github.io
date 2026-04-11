@@ -633,35 +633,14 @@ function nzOpenPicker() {
 
 function nzInitSlider(startVal) {
   const numRow = document.getElementById('nz-num-row')
-  const picker = document.getElementById('nz-rate-picker')
   if (!numRow) return
 
   let val = startVal
-
-  function applyColors(v) {
-    const [r, g, b] = nzRatingColor(v)
-    if (picker) {
-      picker.style.setProperty('--nz-r', r)
-      picker.style.setProperty('--nz-g', g)
-      picker.style.setProperty('--nz-b', b)
-    }
-  }
-
-  function updateRow(v) {
-    numRow.querySelectorAll('.nz-num').forEach(el => {
-      el.className = 'nz-num' + (+el.dataset.v === v ? ' active' : '')
-    })
-  }
-
-  applyColors(val)
-  updateRow(val)
 
   numRow.addEventListener('click', async e => {
     const target = e.target.closest('.nz-num')
     if (!target) return
     val = +target.dataset.v
-    applyColors(val)
-    updateRow(val)
     if (_nzCloseHandler) {
       document.removeEventListener('click', _nzCloseHandler)
       _nzCloseHandler = null
