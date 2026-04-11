@@ -32,6 +32,8 @@ let _currentUserRating = null
 let _currentKpId = null
 let _commentsOffset = 0
 let _hasMoreComments = false
+let _nzDragging = false
+let _nzCloseHandler = null
 
 function playerSetState(state, gen) {
   if (gen !== undefined && gen !== _playerGen) return
@@ -568,6 +570,10 @@ function initRatingWidget(movie) {
 }
 
 function nzRenderRatingClosed() {
+  if (_nzCloseHandler) {
+    document.removeEventListener('click', _nzCloseHandler)
+    _nzCloseHandler = null
+  }
   const c = document.getElementById('nz-poster-rating')
   if (!c) return
   c.querySelector('.nz-rate-picker')?.remove()
@@ -597,16 +603,86 @@ function nzOpenPicker() {
   const c = document.getElementById('nz-poster-rating')
   if (!c) return
   c.querySelector('.nz-rate-picker')?.remove()
-  const nums = Array.from({ length: 10 }, (_, i) => i + 1).map(n =>
-    `<button class="nz-rate-num${n === _currentUserRating ? ' active' : ''}" onclick="doRate(${n})">${n}</button>`
-  ).join('')
+
+  const startVal = _currentUserRating || 5
+  const ticks = Array.from({ length: 10 }, (_, i) => i + 1)
+    .map(n => `<span class="${n === startVal ? 'active' : ''}">${n}</span>`).join('')
+
   const picker = document.createElement('div')
   picker.className = 'nz-rate-picker'
   picker.innerHTML = `
-    <div class="nz-rate-nums-row">${nums}</div>
-    <button class="nz-rate-cancel" onclick="nzRenderRatingClosed()">Отмена</button>
+    <div class="nz-slider-value" id="nz-slider-val">${startVal}</div>
+    <div class="nz-slider-wrap">
+      <div class="nz-slider-track" id="nz-slider-track">
+        <div class="nz-slider-fill" id="nz-slider-fill"></div>
+        <div class="nz-slider-thumb" id="nz-slider-thumb"></div>
+      </div>
+      <div class="nz-slider-ticks">${ticks}</div>
+    </div>
     <div class="nz-rate-msg" id="nz-rate-msg"></div>`
   c.appendChild(picker)
+  nzInitSlider(startVal)
+
+  // Закрыть по клику вне виджета
+  _nzCloseHandler = e => {
+    if (!c.contains(e.target)) nzRenderRatingClosed()
+  }
+  setTimeout(() => document.addEventListener('click', _nzCloseHandler), 0)
+}
+
+function nzInitSlider(startVal) {
+  const track  = document.getElementById('nz-slider-track')
+  const thumb  = document.getElementById('nz-slider-thumb')
+  const fill   = document.getElementById('nz-slider-fill')
+  const valEl  = document.getElementById('nz-slider-val')
+  if (!track) return
+
+  let val = startVal
+
+  function pct(v) { return ((v - 1) / 9) * 100 }
+  function valFromX(clientX) {
+    const r = track.getBoundingClientRect()
+    const p = Math.max(0, Math.min(1, (clientX - r.left) / r.width))
+    return Math.round(p * 9 + 1)
+  }
+  function setUI(v) {
+    const p = pct(v)
+    thumb.style.left = p + '%'
+    fill.style.width  = p + '%'
+    valEl.textContent = v
+    track.closest('.nz-rate-picker')?.querySelectorAll('.nz-slider-ticks span').forEach((s, i) => {
+      s.classList.toggle('active', i + 1 === v)
+    })
+  }
+
+  setUI(val)
+
+  track.addEventListener('pointerdown', e => {
+    _nzDragging = true
+    thumb.classList.add('dragging')
+    track.setPointerCapture(e.pointerId)
+    val = valFromX(e.clientX)
+    setUI(val)
+    e.preventDefault()
+  })
+
+  track.addEventListener('pointermove', e => {
+    if (!_nzDragging) return
+    const v = valFromX(e.clientX)
+    if (v !== val) { val = v; setUI(val) }
+  })
+
+  track.addEventListener('pointerup', async e => {
+    if (!_nzDragging) return
+    _nzDragging = false
+    thumb.classList.remove('dragging')
+    // убираем close-handler ДО async doRate, чтобы click не сработал раньше
+    if (_nzCloseHandler) {
+      document.removeEventListener('click', _nzCloseHandler)
+      _nzCloseHandler = null
+    }
+    await doRate(val)
+  })
 }
 
 async function doRate(value) {

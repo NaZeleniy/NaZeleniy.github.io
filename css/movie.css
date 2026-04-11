@@ -827,8 +827,8 @@ a.movie-poster-side img {
   right: 0;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px;
+  border-radius: 10px;
+  padding: 14px 14px 12px;
   z-index: 10;
   animation: nzFadeIn 0.14s ease;
 }
@@ -838,47 +838,80 @@ a.movie-poster-side img {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Сплошной ряд цифр */
-.nz-rate-nums-row {
+/* Большое число */
+.nz-slider-value {
+  text-align: center;
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--accent-light);
+  line-height: 1;
+  margin-bottom: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Трек */
+.nz-slider-wrap { padding: 0 6px; }
+
+.nz-slider-track {
+  position: relative;
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  margin-bottom: 10px;
+}
+
+.nz-slider-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  background: var(--accent);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.nz-slider-thumb {
+  position: absolute;
+  top: 50%;
+  left: 0%;
+  transform: translate(-50%, -50%);
+  width: 18px;
+  height: 18px;
+  background: var(--accent);
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.5);
+  pointer-events: none;
+  transition: box-shadow 0.15s;
+}
+
+.nz-slider-thumb.dragging {
+  box-shadow: 0 1px 6px rgba(0,0,0,0.5), 0 0 0 7px rgba(39,174,96,0.18);
+}
+
+/* Тики */
+.nz-slider-ticks {
   display: flex;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  overflow: hidden;
+  justify-content: space-between;
 }
 
-.nz-rate-num {
-  flex: 1;
-  height: 32px;
-  background: var(--bg-secondary);
-  border: none;
-  border-right: 1px solid var(--border);
+.nz-slider-ticks span {
+  font-size: 10px;
   color: var(--text-muted);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.1s, color 0.1s;
+  text-align: center;
+  min-width: 16px;
+  line-height: 1;
+  transition: color 0.1s, font-weight 0.1s;
+  pointer-events: none;
 }
 
-.nz-rate-num:last-child { border-right: none; }
-.nz-rate-num:hover  { background: var(--accent-dim); color: var(--accent-light); }
-.nz-rate-num.active { background: var(--accent); color: #fff; }
-
-.nz-rate-cancel {
-  display: block;
-  width: 100%;
-  margin-top: 7px;
-  padding: 4px;
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 12px;
-  cursor: pointer;
-  transition: color 0.15s;
+.nz-slider-ticks span.active {
+  color: var(--accent-light);
+  font-weight: 700;
 }
 
-.nz-rate-cancel:hover { color: var(--text); }
-
-.nz-rate-msg { margin-top: 6px; font-size: 12px; text-align: center; min-height: 16px; }
+.nz-rate-msg { margin-top: 8px; font-size: 12px; text-align: center; min-height: 16px; }
 
 /* ── Comments ─────────────────────────────────────────────── */
 .comments-wrap {
