@@ -759,7 +759,7 @@ function formatCommentDate(iso) {
 function renderCommentHtml(comment) {
   let u = window._nzUser
   if (!u) { try { const r = sessionStorage.getItem('nz_me'); if (r) u = JSON.parse(r) } catch {} }
-  const uid = u ? String(u.id ?? u.telegram_id ?? u.uuid ?? '') : ''
+  const uid = u ? String(u.user_id ?? '') : ''
   const isOwn = uid && comment.user_id != null && String(comment.user_id) === uid
   const deleteBtn = isOwn
     ? `<button class="comment-delete-btn" onclick="doDeleteComment('${comment.id}')" title="Удалить"><i class="fas fa-times"></i></button>`
