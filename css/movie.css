@@ -1131,10 +1131,10 @@ a.movie-poster-side img {
   z-index: 9999;
   opacity: 0;
   transition: opacity 0.25s, transform 0.25s;
-  pointer-events: none;
   white-space: nowrap;
 }
 
-.nz-toast.visible          { opacity: 1; transform: translateX(-50%) translateY(0); }
-.nz-toast.nz-toast-error   { border-color: #e74c3c; color: #e74c3c; }
-.nz-toast.nz-toast-success { border-color: var(--accent); color: var(--accent-light); }
+.nz-toast.visible          { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+.nz-toast.nz-toast-error              { border-color: #e74c3c; color: #e74c3c; }
+.nz-toast.nz-toast-error a            { color: #e74c3c; text-decoration: underline; pointer-events: auto; }
+.nz-toast.nz-toast-success            { border-color: var(--accent); color: var(--accent-light); }

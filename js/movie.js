@@ -667,8 +667,7 @@ async function doRate(value) {
     })
     if (r.status === 401) {
       nzRenderRatingClosed()
-      const msg = document.getElementById('nz-rate-msg')
-      if (msg) msg.innerHTML = `<span class="nz-msg-error">Войдите, чтобы оценить. <a href="login.html">Войти</a></span>`
+      showToast('Необходимо <a href="/login.html">авторизоваться</a>', 'error')
       return
     }
     if (!r.ok) throw new Error()
@@ -690,8 +689,7 @@ async function doDeleteRating() {
       credentials: 'include'
     })
     if (r.status === 401) {
-      const msg = document.getElementById('nz-rate-msg')
-      if (msg) msg.innerHTML = `<span class="nz-msg-error">Войдите, чтобы управлять оценкой. <a href="login.html">Войти</a></span>`
+      showToast('Необходимо <a href="/login.html">авторизоваться</a>', 'error')
       return
     }
     if (r.status === 204 || r.ok) {
@@ -823,7 +821,7 @@ async function doSubmitComment(kpId) {
       body: JSON.stringify({ text })
     })
     if (r.status === 401) {
-      msgEl.innerHTML = `<span class="nz-msg-error">Войдите, чтобы писать комментарии. <a href="login.html">Войти</a></span>`
+      showToast('Необходимо <a href="/login.html">авторизоваться</a>', 'error')
       return
     }
     if (!r.ok) {
@@ -857,7 +855,7 @@ async function doDeleteComment(commentId) {
       credentials: 'include'
     })
     if (r.status === 401) {
-      showToast('Войдите в аккаунт, чтобы удалять комментарии', 'error')
+      showToast('Необходимо <a href="/login.html">авторизоваться</a>', 'error')
       return
     }
     if (r.status === 404) {
@@ -905,7 +903,7 @@ function showToast(msg, type = 'info') {
   const toast = document.createElement('div')
   toast.id = 'nz-toast'
   toast.className = `nz-toast nz-toast-${type}`
-  toast.textContent = msg
+  toast.innerHTML = msg
   document.body.appendChild(toast)
   toast.offsetHeight // reflow
   toast.classList.add('visible')
