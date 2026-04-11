@@ -31,7 +31,7 @@ function _renderSidebar(activePage) {
   const links = [
     { href: '/',             icon: 'fa-home', label: 'Главная',    page: 'index'    },
     { href: 'top.html',      icon: 'fa-fire', label: 'Популярное', page: 'top'      },
-    { href: 'login.html',    icon: 'fa-user', label: 'Войти',      page: 'login'    },
+    { href: 'me.html',       icon: 'fa-user', label: 'Профиль',    page: 'me'       },
     { href: 'settings.html', icon: 'fa-cog',  label: 'Настройки',  page: 'settings' },
     { href: 'faq.html',      icon: 'fa-circle-question', label: 'FAQ', page: 'faq'  },
   ]
