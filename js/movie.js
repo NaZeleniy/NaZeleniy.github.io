@@ -570,6 +570,7 @@ function initRatingWidget(movie) {
 function nzRenderRatingClosed() {
   const c = document.getElementById('nz-poster-rating')
   if (!c) return
+  c.querySelector('.nz-rate-picker')?.remove()
   if (_currentUserRating) {
     c.innerHTML = `
       <div class="nz-rate-display">
@@ -595,16 +596,17 @@ function nzRenderRatingClosed() {
 function nzOpenPicker() {
   const c = document.getElementById('nz-poster-rating')
   if (!c) return
+  c.querySelector('.nz-rate-picker')?.remove()
   const nums = Array.from({ length: 10 }, (_, i) => i + 1).map(n =>
     `<button class="nz-rate-num${n === _currentUserRating ? ' active' : ''}" onclick="doRate(${n})">${n}</button>`
   ).join('')
-  c.innerHTML = `
-    <div class="nz-rate-picker">
-      <div class="nz-rate-picker-label">Выберите оценку</div>
-      <div class="nz-rate-grid">${nums}</div>
-      <button class="nz-rate-cancel" onclick="nzRenderRatingClosed()">Отмена</button>
-      <div class="nz-rate-msg" id="nz-rate-msg"></div>
-    </div>`
+  const picker = document.createElement('div')
+  picker.className = 'nz-rate-picker'
+  picker.innerHTML = `
+    <div class="nz-rate-nums-row">${nums}</div>
+    <button class="nz-rate-cancel" onclick="nzRenderRatingClosed()">Отмена</button>
+    <div class="nz-rate-msg" id="nz-rate-msg"></div>`
+  c.appendChild(picker)
 }
 
 async function doRate(value) {
