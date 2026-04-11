@@ -622,6 +622,7 @@ function nzOpenPicker() {
   picker.innerHTML = `
     <div class="nz-num-row" id="nz-num-row">${nums}</div>
     <div class="nz-rate-msg" id="nz-rate-msg"></div>`
+  c.innerHTML = ''
   c.appendChild(picker)
   nzInitSlider(_currentUserRating || 5)
 

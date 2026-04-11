@@ -884,22 +884,16 @@ a.movie-poster-side img {
 
 /* ── Picker ── */
 .nz-rate-picker {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  background: rgba(10, 10, 14, 0.95);
-  backdrop-filter: blur(18px) brightness(0.4);
-  -webkit-backdrop-filter: blur(18px) brightness(0.4);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.09);
   border-radius: 10px;
-  z-index: 10;
-  padding: 6px 4px;
-  animation: nzPickerIn 0.18s ease both;
-  overflow: hidden;
+  padding: 8px 6px;
+  animation: nzPickerIn 0.16s ease both;
 }
 
 @keyframes nzPickerIn {
-  from { opacity: 0; transform: translateY(-3px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* Number row */
