@@ -28,6 +28,11 @@ let _playerGen = 0
 let _playerCleanup = null
 let _players = []
 
+let _currentUserRating = null
+let _currentKpId = null
+let _commentsOffset = 0
+let _hasMoreComments = false
+
 function playerSetState(state, gen) {
   if (gen !== undefined && gen !== _playerGen) return
   const wrapper = document.querySelector('.player-wrapper')
@@ -340,6 +345,17 @@ function renderMovie(movie) {
       </div>`
   }
 
+  const nzVotes = movie.ratingNazeleniyVoteCount || 0
+  const nzRating = movie.ratingNazeleniy || 0
+  ratingsHtml += nzVotes > 0
+    ? `<div class="rating-container" id="nz-rating-display">
+        <div class="rating-link nz-rating-link" title="Оценок на NaZeleniy: ${nzVotes}">
+          <span class="rating-logo-badge nz">NZ</span>
+          <span class="${ratingClass(nzRating)}">${nzRating.toFixed(1)}</span>
+        </div>
+      </div>`
+    : `<div class="rating-container" id="nz-rating-display" style="display:none"></div>`
+
   const rows = []
   if (movie.nameOriginal && movie.nameOriginal !== movie.nameRu)       rows.push(['Оригинальное название', movie.nameOriginal])
   if (movie.year > 0)                                                  rows.push(['Год выпуска', movie.year])
@@ -388,6 +404,8 @@ function renderMovie(movie) {
     ${playerSectionHtml(movie)}
     <div id="sequels-section"></div>
     <div id="similars-section"></div>
+    <div id="nz-rating-section"></div>
+    <div id="comments-section"></div>
   `
   if (movie.kinopoiskId || movie.imdbId) initPlayerLazyLoad(movie.players || [])
 }
@@ -539,6 +557,289 @@ async function loadSimilars() {
   } catch { section.innerHTML = '' }
 }
 
+// ── NaZeleniy Rating Widget ────────────────────────────────
+
+function initRatingWidget(movie) {
+  const section = document.getElementById('nz-rating-section')
+  if (!section) return
+  const kpId = movie.kinopoiskId || movie.filmId
+  if (!kpId) return
+  _currentKpId = kpId
+  _currentUserRating = movie.userRating || null
+  section.innerHTML = renderRatingWidgetHtml(_currentUserRating)
+}
+
+function renderRatingWidgetHtml(userRating) {
+  const btns = Array.from({ length: 10 }, (_, i) => i + 1).map(n => {
+    const active = n === userRating ? ' active' : ''
+    return `<button class="nz-rating-btn${active}" onclick="doRate(${n})" title="${n}">${n}</button>`
+  }).join('')
+
+  const deleteBtn = userRating
+    ? `<button class="nz-rating-delete-btn" onclick="doDeleteRating()">Убрать оценку</button>`
+    : ''
+
+  const statusMsg = userRating
+    ? `<span class="nz-rating-selected-msg">Ваша оценка: ${userRating}</span>`
+    : `<span class="nz-rating-hint">Кликните, чтобы оценить</span>`
+
+  return `
+    <div class="nz-rating-widget">
+      <div class="nz-section-title">Ваша оценка</div>
+      <div class="nz-rating-row">
+        <div class="nz-rating-btns">${btns}</div>
+        ${deleteBtn}
+      </div>
+      <div class="nz-rating-status">${statusMsg}</div>
+      <div class="nz-rating-msg" id="nz-rating-msg"></div>
+    </div>`
+}
+
+async function doRate(value) {
+  if (!_currentKpId) return
+  const msgEl = document.getElementById('nz-rating-msg')
+  if (msgEl) msgEl.innerHTML = ''
+
+  try {
+    const r = await fetch(`${API_BASE}/api/ratings/${_currentKpId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ rating: value })
+    })
+    if (r.status === 401) {
+      if (msgEl) msgEl.innerHTML = `<span class="nz-msg-error">Войдите, чтобы оценить. <a href="login.html">Войти</a></span>`
+      return
+    }
+    if (!r.ok) throw new Error()
+    _currentUserRating = value
+    const section = document.getElementById('nz-rating-section')
+    if (section) section.innerHTML = renderRatingWidgetHtml(value)
+    refreshNzRating()
+  } catch {
+    if (msgEl) msgEl.innerHTML = `<span class="nz-msg-error">Ошибка, попробуйте ещё раз</span>`
+  }
+}
+
+async function doDeleteRating() {
+  if (!_currentKpId) return
+  try {
+    const r = await fetch(`${API_BASE}/api/ratings/${_currentKpId}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    })
+    if (r.status === 401) {
+      const msgEl = document.getElementById('nz-rating-msg')
+      if (msgEl) msgEl.innerHTML = `<span class="nz-msg-error">Войдите, чтобы управлять оценкой. <a href="login.html">Войти</a></span>`
+      return
+    }
+    if (r.status === 204 || r.ok) {
+      _currentUserRating = null
+      const section = document.getElementById('nz-rating-section')
+      if (section) section.innerHTML = renderRatingWidgetHtml(null)
+      refreshNzRating()
+    }
+  } catch {}
+}
+
+async function refreshNzRating() {
+  if (!_currentKpId) return
+  try {
+    const r = await fetch(`${API_BASE}/api/ratings/${_currentKpId}`, { credentials: 'include' })
+    if (!r.ok) return
+    const data = await r.json()
+    const el = document.getElementById('nz-rating-display')
+    if (!el) return
+    if ((data.ratingNazeleniyVoteCount || 0) > 0) {
+      el.style.display = ''
+      el.innerHTML = `
+        <div class="rating-link nz-rating-link" title="Оценок на NaZeleniy: ${data.ratingNazeleniyVoteCount}">
+          <span class="rating-logo-badge nz">NZ</span>
+          <span class="${ratingClass(data.ratingNazeleniy)}">${(data.ratingNazeleniy || 0).toFixed(1)}</span>
+        </div>`
+    }
+  } catch {}
+}
+
+// ── Comments ───────────────────────────────────────────────
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+function formatCommentDate(iso) {
+  const d = new Date(iso)
+  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function renderCommentHtml(comment) {
+  return `
+    <div class="comment-item" data-comment-id="${comment.id}">
+      <div class="comment-header">
+        <span class="comment-author">${escapeHtml(comment.display_name)}</span>
+        <span class="comment-date">${formatCommentDate(comment.created_at)}</span>
+        <button class="comment-delete-btn" onclick="doDeleteComment('${comment.id}')" title="Удалить">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <p class="comment-text">${escapeHtml(comment.text)}</p>
+    </div>`
+}
+
+function initComments(movie) {
+  const section = document.getElementById('comments-section')
+  if (!section) return
+  const kpId = movie.kinopoiskId || movie.filmId
+  if (!kpId) return
+
+  const comments = movie.comments || []
+  _commentsOffset = comments.length
+  _hasMoreComments = comments.length >= 20
+
+  const listHtml = comments.length
+    ? comments.map(renderCommentHtml).join('')
+    : '<div class="comments-empty">Комментариев пока нет. Будьте первым!</div>'
+
+  section.innerHTML = `
+    <div class="comments-wrap">
+      <div class="nz-section-title">Комментарии</div>
+      <div class="comment-form">
+        <textarea class="comment-textarea" id="comment-input"
+          placeholder="Напишите комментарий..."
+          maxlength="5000"
+          oninput="document.getElementById('comment-char-count').textContent=this.value.length+'/5000'"></textarea>
+        <div class="comment-form-footer">
+          <span class="comment-char-count" id="comment-char-count">0 / 5000</span>
+          <button class="comment-submit-btn" onclick="doSubmitComment(${kpId})">Отправить</button>
+        </div>
+        <div class="comment-form-msg" id="comment-form-msg"></div>
+      </div>
+      <div class="comments-list" id="comments-list">${listHtml}</div>
+      <div class="comments-load-more-wrap" id="comments-load-more-wrap"${_hasMoreComments ? '' : ' style="display:none"'}>
+        <button class="comments-load-more-btn" onclick="doLoadMoreComments(${kpId})">Показать ещё</button>
+      </div>
+    </div>`
+}
+
+async function doSubmitComment(kpId) {
+  const input = document.getElementById('comment-input')
+  const msgEl = document.getElementById('comment-form-msg')
+  if (!input || !msgEl) return
+
+  const text = input.value.trim()
+  if (text.length < 3) {
+    msgEl.innerHTML = '<span class="nz-msg-error">Комментарий слишком короткий (минимум 3 символа)</span>'
+    return
+  }
+
+  const btn = document.querySelector('.comment-submit-btn')
+  if (btn) btn.disabled = true
+  msgEl.innerHTML = ''
+
+  try {
+    const r = await fetch(`${API_BASE}/api/comments/${kpId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ text })
+    })
+    if (r.status === 401) {
+      msgEl.innerHTML = `<span class="nz-msg-error">Войдите, чтобы писать комментарии. <a href="login.html">Войти</a></span>`
+      return
+    }
+    if (!r.ok) {
+      msgEl.innerHTML = '<span class="nz-msg-error">Ошибка отправки комментария</span>'
+      return
+    }
+    const comment = await r.json()
+    input.value = ''
+    const counter = document.getElementById('comment-char-count')
+    if (counter) counter.textContent = '0 / 5000'
+
+    const listEl = document.getElementById('comments-list')
+    if (listEl) {
+      const emptyEl = listEl.querySelector('.comments-empty')
+      if (emptyEl) emptyEl.remove()
+      listEl.insertAdjacentHTML('afterbegin', renderCommentHtml(comment))
+    }
+    msgEl.innerHTML = '<span class="nz-msg-success">Комментарий добавлен</span>'
+    setTimeout(() => { if (msgEl) msgEl.innerHTML = '' }, 3000)
+  } catch {
+    msgEl.innerHTML = '<span class="nz-msg-error">Ошибка, попробуйте ещё раз</span>'
+  } finally {
+    if (btn) btn.disabled = false
+  }
+}
+
+async function doDeleteComment(commentId) {
+  try {
+    const r = await fetch(`${API_BASE}/api/comments/${commentId}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    })
+    if (r.status === 401) {
+      showToast('Войдите в аккаунт, чтобы удалять комментарии', 'error')
+      return
+    }
+    if (r.status === 404) {
+      showToast('Можно удалять только свои комментарии', 'error')
+      return
+    }
+    if (r.status === 204 || r.ok) {
+      const el = document.querySelector(`.comment-item[data-comment-id="${commentId}"]`)
+      if (el) el.remove()
+      const listEl = document.getElementById('comments-list')
+      if (listEl && !listEl.querySelector('.comment-item')) {
+        listEl.innerHTML = '<div class="comments-empty">Комментариев пока нет. Будьте первым!</div>'
+      }
+    }
+  } catch {}
+}
+
+async function doLoadMoreComments(kpId) {
+  const btn = document.querySelector('.comments-load-more-btn')
+  if (btn) btn.disabled = true
+  try {
+    const r = await fetch(`${API_BASE}/api/comments/${kpId}?limit=20&offset=${_commentsOffset}`, {
+      credentials: 'include'
+    })
+    if (!r.ok) return
+    const comments = await r.json()
+    _commentsOffset += comments.length
+    _hasMoreComments = comments.length >= 20
+    const listEl = document.getElementById('comments-list')
+    if (listEl && comments.length) {
+      const emptyEl = listEl.querySelector('.comments-empty')
+      if (emptyEl) emptyEl.remove()
+      listEl.insertAdjacentHTML('beforeend', comments.map(renderCommentHtml).join(''))
+    }
+    const moreWrap = document.getElementById('comments-load-more-wrap')
+    if (moreWrap) moreWrap.style.display = _hasMoreComments ? '' : 'none'
+  } catch {} finally {
+    if (btn) btn.disabled = false
+  }
+}
+
+function showToast(msg, type = 'info') {
+  const existing = document.getElementById('nz-toast')
+  if (existing) existing.remove()
+  const toast = document.createElement('div')
+  toast.id = 'nz-toast'
+  toast.className = `nz-toast nz-toast-${type}`
+  toast.textContent = msg
+  document.body.appendChild(toast)
+  toast.offsetHeight // reflow
+  toast.classList.add('visible')
+  setTimeout(() => {
+    toast.classList.remove('visible')
+    setTimeout(() => toast.remove(), 300)
+  }, 3000)
+}
+
 function renderError(message) {
   document.getElementById('movieContent').innerHTML = `
     <div class="empty-state">
@@ -565,7 +866,10 @@ async function loadMovie() {
   try {
     const r = await fetch(`${API_BASE}/api/movie/${movieId}`)
     if (!r.ok) throw new Error('Фильм не найден')
-    renderMovie(await r.json())
+    const movie = await r.json()
+    renderMovie(movie)
+    initRatingWidget(movie)
+    initComments(movie)
   } catch (e) {
     if (!document.getElementById('movieContent').children.length) {
       renderError(e.message || 'Ошибка загрузки фильма')
