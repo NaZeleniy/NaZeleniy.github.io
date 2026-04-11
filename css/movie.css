@@ -1068,18 +1068,20 @@ a.movie-poster-side img {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 0 0 14px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto 14px;
   padding: 8px 16px;
   background: rgba(231, 76, 60, 0.08);
   border: 1px solid rgba(231, 76, 60, 0.3);
   border-radius: 8px;
   font-size: 13px;
   color: #e07070;
+  white-space: nowrap;
   overflow: hidden;
 }
 
 .comments-moderation-warn i { flex-shrink: 0; font-size: 12px; opacity: 0.8; }
-.comments-moderation-warn span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; }
 
 /* ── Show comments trigger ───────────────────────────────── */
 .comments-show-btn {
