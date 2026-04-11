@@ -4,8 +4,9 @@ const CACHE = 'nz-1'
 const SKIP = /^\/api\/|^\/ws\/|^\/proxy\/poster/
 // URL с ?v= (версионированные ресурсы) — кеш-first навсегда
 const VERSIONED = /[?&]v=\d/
-// Внешние CDN
-const EXTERNAL = /cdn\.jsdelivr\.net|mc\.yandex\.ru|videoframe2\.com|s1obrut\.github\.io/
+// Внешние CDN (mc.yandex.ru не трогаем — adblock блокирует, пусть браузер сам разбирается)
+const EXTERNAL = /cdn\.jsdelivr\.net|videoframe2\.com|s1obrut\.github\.io/
+const NO_SW    = /mc\.yandex\.ru|cdnjs\.cloudflare\.com/
 
 self.addEventListener('install', () => self.skipWaiting())
 
@@ -23,6 +24,7 @@ self.addEventListener('fetch', e => {
   const url = new URL(request.url)
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return
   if (SKIP.test(url.pathname)) return
+  if (NO_SW.test(url.hostname)) return
 
   // Версионированные активы и внешние CDN — cache-first
   if (VERSIONED.test(request.url) || EXTERNAL.test(url.hostname)) {
