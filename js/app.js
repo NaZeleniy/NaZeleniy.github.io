@@ -9,7 +9,7 @@ function app() {
     totalPages: 1,
     currentPage: 1,
     bgPoster: localStorage.getItem('nz_bg_poster') || '',
-    _topPage: 1,
+    _topPage: 0,
     _topDone: false,
     _topLoading: false,
     _searchLoading: false,
@@ -164,8 +164,13 @@ function app() {
       this.search()
     },
 
-    async search() {
+    _scrollCleanup() {
       if (this._scrollObserver) { this._scrollObserver.disconnect(); this._scrollObserver = null }
+      if (this._scrollHandler) { window.removeEventListener('scroll', this._scrollHandler); this._scrollHandler = null }
+    },
+
+    async search() {
+      this._scrollCleanup()
       this.searched = true
       this.loading = true
       try {
@@ -195,31 +200,34 @@ function app() {
     },
 
     initSearchScroll() {
+      this._scrollCleanup()
       if (this.currentPage >= this.totalPages) return
-      const sentinel = document.getElementById('scroll-sentinel')
-      if (!sentinel) return
-      this._scrollObserver = new IntersectionObserver(async entries => {
-        if (!entries[0].isIntersecting || this._searchLoading || this.currentPage >= this.totalPages) return
-        this._searchLoading = true
-        this.currentPage++
-        try {
-          const r = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(this.query.trim())}&page=${this.currentPage}`)
-          if (!r.ok) throw new Error()
-          const data = await r.json()
-          const next = data.movies || []
-          this.prefetchPosters(next)
-          this.movies.push(...next)
-        } catch {
-          this.currentPage = this.totalPages
-        } finally {
-          this._searchLoading = false
+      const check = () => {
+        if (this._searchLoading || this.currentPage >= this.totalPages) return
+        if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 800) {
+          this._loadMoreSearch()
         }
-        if (this.currentPage >= this.totalPages) {
-          this._scrollObserver.disconnect()
-          this._scrollObserver = null
-        }
-      }, { rootMargin: '2000px' })
-      this._scrollObserver.observe(sentinel)
+      }
+      this._scrollHandler = check
+      window.addEventListener('scroll', this._scrollHandler, { passive: true })
+    },
+
+    async _loadMoreSearch() {
+      this._searchLoading = true
+      this.currentPage++
+      try {
+        const r = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(this.query.trim())}&page=${this.currentPage}`)
+        if (!r.ok) throw new Error()
+        const data = await r.json()
+        const next = data.movies || []
+        this.prefetchPosters(next)
+        this.movies.push(...next)
+      } catch {
+        this.currentPage = this.totalPages
+      } finally {
+        this._searchLoading = false
+        if (this.currentPage >= this.totalPages) this._scrollCleanup()
+      }
     },
 
     prefetchPosters(movies) {
@@ -240,7 +248,7 @@ function app() {
       this.query = ''
       this.suggestions = []
       this.showSuggestions = false
-      this._topPage = 2
+      this._topPage = 0
       this._topDone = false
       this.loading = true
       try {
@@ -278,37 +286,47 @@ function app() {
     },
 
     initTopScroll() {
-      if (this._scrollObserver) this._scrollObserver.disconnect()
-      const sentinel = document.getElementById('scroll-sentinel')
-      if (!sentinel) return
-      this._scrollObserver = new IntersectionObserver(async entries => {
-        if (!entries[0].isIntersecting || this._topLoading || this._topDone) return
-        this._topLoading = true
-        this._scrollObserver.unobserve(sentinel)
-        const nextPage = this._topPage + 1
-        try {
-          const [r1, r2] = await Promise.all([
-            fetch(`${API_BASE}/api/top?page=${nextPage}`),
-            fetch(`${API_BASE}/api/top?page=${nextPage + 1}`),
-          ])
-          this._topPage = nextPage + 1
-          const d1 = r1.ok ? await r1.json() : []
-          const d2 = r2.ok ? await r2.json() : []
-          const next = [...(Array.isArray(d1) ? d1 : []), ...(Array.isArray(d2) ? d2 : [])]
-          if (next.length === 0) {
-            this._topDone = true
-          } else {
-            this.prefetchPosters(next)
-            this.movies.push(...next)
-          }
-        } catch {
-          this._topDone = true
-        } finally {
-          this._topLoading = false
-          if (!this._topDone) this._scrollObserver.observe(sentinel)
+      this._scrollCleanup()
+      if (this._topDone) return
+      const check = () => {
+        if (this._topLoading || this._topDone) return
+        if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 800) {
+          this._loadMoreTop()
         }
-      }, { rootMargin: '2000px' })
-      this._scrollObserver.observe(sentinel)
+      }
+      this._scrollHandler = check
+      window.addEventListener('scroll', this._scrollHandler, { passive: true })
+      check()
+    },
+
+    async _loadMoreTop() {
+      this._topLoading = true
+      const nextPage = this._topPage + 1
+      try {
+        const [r1, r2] = await Promise.all([
+          fetch(`${API_BASE}/api/top?page=${nextPage}`),
+          fetch(`${API_BASE}/api/top?page=${nextPage + 1}`),
+        ])
+        this._topPage = nextPage + 1
+        const d1 = r1.ok ? await r1.json() : []
+        const d2 = r2.ok ? await r2.json() : []
+        const next = [...(Array.isArray(d1) ? d1 : []), ...(Array.isArray(d2) ? d2 : [])]
+        if (next.length === 0) {
+          this._topDone = true
+        } else {
+          this.prefetchPosters(next)
+          this.movies.push(...next)
+        }
+      } catch {
+        this._topDone = true
+      } finally {
+        this._topLoading = false
+        if (this._topDone) {
+          this._scrollCleanup()
+        } else {
+          this._scrollHandler?.()
+        }
+      }
     },
 
     async fetchRandom() {
