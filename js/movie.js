@@ -572,7 +572,7 @@ function initRatingWidget(movie) {
 function nzRatingColor(v) {
   if (v <= 4) return [231, 76, 60]
   if (v <= 6) return [149, 165, 166]
-  return [243, 156, 18]
+  return [39, 174, 96]
 }
 
 function nzRenderRatingClosed() {
@@ -619,9 +619,7 @@ function nzOpenPicker() {
   const picker = document.createElement('div')
   picker.id = 'nz-rate-picker'
   picker.className = 'nz-rate-picker'
-  picker.innerHTML = `
-    <div class="nz-num-row" id="nz-num-row">${nums}</div>
-    <div class="nz-rate-msg" id="nz-rate-msg"></div>`
+  picker.innerHTML = `<div class="nz-num-row" id="nz-num-row">${nums}</div>`
   c.innerHTML = ''
   c.appendChild(picker)
   nzInitSlider(_currentUserRating || 5)
