@@ -60,7 +60,7 @@ async function staleWhileRevalidate(req) {
   const fresh = fetch(req).then(res => {
     if (res.ok) cache.put(req, res.clone())
     return res
-  }).catch(() => cached)
+  }).catch(() => cached || new Response('', { status: 503, statusText: 'Service Unavailable' }))
   return cached || fresh
 }
 
@@ -70,6 +70,6 @@ async function networkWithFallback(req) {
     if (res.ok) (await caches.open(CACHE)).put(req, res.clone())
     return res
   } catch {
-    return caches.match(req)
+    return (await caches.match(req)) || new Response('', { status: 503, statusText: 'Service Unavailable' })
   }
 }

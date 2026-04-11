@@ -16,14 +16,20 @@ function escapeHtml(s) {
 }
 
 async function loadMe() {
-  const wrap = document.getElementById('me-content')
-
-  // 1. Проверяем авторизацию
-  let user = null
-  try {
-    const r = await fetch(ME_API + '/api/me', { credentials: 'include' })
-    if (r.ok) user = await r.json()
-  } catch {}
+  // 1. Проверяем авторизацию — сначала кеш, потом сеть
+  let user = window._nzUser || null
+  if (!user) {
+    try {
+      const raw = sessionStorage.getItem('nz_me')
+      if (raw) user = JSON.parse(raw)
+    } catch {}
+  }
+  if (!user) {
+    try {
+      const r = await fetch(ME_API + '/api/me', { credentials: 'include' })
+      if (r.ok) user = await r.json()
+    } catch {}
+  }
 
   if (!user) {
     location.replace('/login.html?next=' + encodeURIComponent(location.pathname + location.search))
@@ -70,6 +76,7 @@ async function loadMe() {
       : '/img/placeholder.svg'
     const color = ratingColor(item.rating)
     const date  = item.created_at ? formatDate(item.created_at) : ''
+    if (!item.kp_id) return ''
     return `
       <a href="/movie.html?id=${item.kp_id}" class="me-item">
         <img class="me-item-poster" src="${imgSrc}" alt="${title}" loading="lazy"/>
@@ -115,7 +122,9 @@ function pluralRatings(n) {
 
 async function meLogout() {
   await fetch(ME_API + '/auth/logout', { method: 'POST', credentials: 'include' })
-  location.href = '/login.html'
+  try { sessionStorage.removeItem('nz_me') } catch {}
+  window._nzUser = null
+  location.href = '/'
 }
 
 loadMe()
