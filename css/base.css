@@ -27,6 +27,10 @@
 /* ── Reset / Base ─────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Убираем outline глобально — TV-режим включает свои стили через body.tv-mode */
+:focus { outline: none; }
+:focus-visible { outline: none; }
+
 html {
   scroll-behavior: smooth;
   overflow-anchor: none;
