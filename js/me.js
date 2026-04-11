@@ -65,23 +65,19 @@ async function loadMe() {
   }
 
   grid.innerHTML = ratings.map(item => {
-    const m = item.movie || {}
-    const title = escapeHtml(m.nameRu || m.nameEn || 'Без названия')
-    const year = m.year ? `<span class="me-card-year">${m.year}</span>` : ''
-    const poster = m.posterUrlPreview || m.posterUrl
-    const imgSrc = poster
-      ? ME_API + '/proxy/poster?url=' + encodeURIComponent(poster)
+    const title = escapeHtml(item.nameRu || item.nameOriginal || `Фильм #${item.kp_id}`)
+    const imgSrc = item.posterUrl
+      ? ME_API + '/proxy/poster?url=' + encodeURIComponent(item.posterUrl)
       : '/img/placeholder.svg'
     const color = ratingColor(item.rating)
     return `
-      <a href="/movie.html?id=${item.kpId}" class="me-card movie-card">
+      <a href="/movie.html?id=${item.kp_id}" class="me-card">
         <div class="me-card-poster">
           <img src="${imgSrc}" alt="${title}" loading="lazy"/>
           <span class="me-card-rating" style="background:${color}">${item.rating}</span>
         </div>
         <div class="me-card-info">
           <span class="me-card-title">${title}</span>
-          ${year}
         </div>
       </a>`
   }).join('')
