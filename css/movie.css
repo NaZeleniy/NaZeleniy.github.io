@@ -1012,6 +1012,60 @@ a.movie-poster-side img {
 .comments-load-more-btn:hover   { border-color: var(--accent); color: var(--accent); }
 .comments-load-more-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* ── Moderation warning ───────────────────────────────────── */
+.comments-moderation-warn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 8px 12px;
+  background: rgba(231, 76, 60, 0.08);
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  border-radius: 8px;
+  font-size: 13px;
+  color: #e07070;
+}
+
+.comments-moderation-warn i { flex-shrink: 0; font-size: 12px; opacity: 0.8; }
+
+/* ── Blur wrapper ─────────────────────────────────────────── */
+.comments-blur-wrap {
+  position: relative;
+}
+
+.comments-blur-wrap:not(.revealed) .comments-list,
+.comments-blur-wrap:not(.revealed) .comments-load-more-wrap {
+  filter: blur(6px);
+  user-select: none;
+  pointer-events: none;
+}
+
+.comments-blur-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 14px;
+  transition: color 0.15s;
+}
+
+.comments-blur-overlay i { font-size: 20px; }
+.comments-blur-overlay:hover { color: var(--text); }
+
+.comments-blur-wrap.revealed .comments-blur-overlay { display: none; }
+.comments-blur-wrap.revealed .comments-list,
+.comments-blur-wrap.revealed .comments-load-more-wrap {
+  filter: none;
+  user-select: auto;
+  pointer-events: auto;
+  transition: filter 0.3s ease;
+}
+
 /* ── Inline message helpers ───────────────────────────────── */
 .nz-msg-error   { color: #e74c3c; }
 .nz-msg-success { color: var(--accent-light); }

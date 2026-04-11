@@ -729,11 +729,26 @@ function initComments(movie) {
         </div>
         <div class="comment-form-msg" id="comment-form-msg"></div>
       </div>
-      <div class="comments-list" id="comments-list">${listHtml}</div>
-      <div class="comments-load-more-wrap" id="comments-load-more-wrap"${_hasMoreComments ? '' : ' style="display:none"'}>
-        <button class="comments-load-more-btn" onclick="doLoadMoreComments(${kpId})">Показать ещё</button>
+      <div class="comments-moderation-warn">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>Осторожно, комментарии временно не модерируются!</span>
+      </div>
+      <div class="comments-blur-wrap" id="comments-blur-wrap">
+        <div class="comments-list" id="comments-list">${listHtml}</div>
+        <div class="comments-load-more-wrap" id="comments-load-more-wrap"${_hasMoreComments ? '' : ' style="display:none"'}>
+          <button class="comments-load-more-btn" onclick="doLoadMoreComments(${kpId})">Показать ещё</button>
+        </div>
+        <div class="comments-blur-overlay" onclick="nzUnblurComments()" title="Нажмите, чтобы показать">
+          <i class="fas fa-eye"></i>
+          <span>Показать комментарии</span>
+        </div>
       </div>
     </div>`
+}
+
+function nzUnblurComments() {
+  const wrap = document.getElementById('comments-blur-wrap')
+  if (wrap) wrap.classList.add('revealed')
 }
 
 async function doSubmitComment(kpId) {
