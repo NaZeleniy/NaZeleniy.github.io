@@ -376,7 +376,8 @@ function renderMovie(movie) {
        <img class="movie-poster" src="${posterSrc}" alt="${title}"
             onload="this.classList.add('loaded')"
             onerror="this.classList.add('loaded');this.onerror=null;this.src=(this.src!=='${posterFull}'?'${posterFull}':'/img/placeholder.svg')"/>
-     </a>`
+     </a>
+     <div id="nz-poster-rating" class="nz-poster-rating"></div>`
 
   const desc = movie.description || movie.shortDescription || ''
   const descHtml = desc
@@ -404,7 +405,6 @@ function renderMovie(movie) {
     ${playerSectionHtml(movie)}
     <div id="sequels-section"></div>
     <div id="similars-section"></div>
-    <div id="nz-rating-section"></div>
     <div id="comments-section"></div>
   `
   if (movie.kinopoiskId || movie.imdbId) initPlayerLazyLoad(movie.players || [])
@@ -560,46 +560,55 @@ async function loadSimilars() {
 // ── NaZeleniy Rating Widget ────────────────────────────────
 
 function initRatingWidget(movie) {
-  const section = document.getElementById('nz-rating-section')
-  if (!section) return
   const kpId = movie.kinopoiskId || movie.filmId
   if (!kpId) return
   _currentKpId = kpId
   _currentUserRating = movie.userRating || null
-  section.innerHTML = renderRatingWidgetHtml(_currentUserRating)
+  nzRenderRatingClosed()
 }
 
-function renderRatingWidgetHtml(userRating) {
-  const btns = Array.from({ length: 10 }, (_, i) => i + 1).map(n => {
-    const active = n === userRating ? ' active' : ''
-    return `<button class="nz-rating-btn${active}" onclick="doRate(${n})" title="${n}">${n}</button>`
-  }).join('')
-
-  const deleteBtn = userRating
-    ? `<button class="nz-rating-delete-btn" onclick="doDeleteRating()">Убрать оценку</button>`
-    : ''
-
-  const statusMsg = userRating
-    ? `<span class="nz-rating-selected-msg">Ваша оценка: ${userRating}</span>`
-    : `<span class="nz-rating-hint">Кликните, чтобы оценить</span>`
-
-  return `
-    <div class="nz-rating-widget">
-      <div class="nz-section-title">Ваша оценка</div>
-      <div class="nz-rating-row">
-        <div class="nz-rating-btns">${btns}</div>
-        ${deleteBtn}
+function nzRenderRatingClosed() {
+  const c = document.getElementById('nz-poster-rating')
+  if (!c) return
+  if (_currentUserRating) {
+    c.innerHTML = `
+      <div class="nz-rate-display">
+        <span class="nz-rate-star">★</span>
+        <span class="nz-rate-value">${_currentUserRating}</span>
+        <span class="nz-rate-label-sm">ваша оценка</span>
       </div>
-      <div class="nz-rating-status">${statusMsg}</div>
-      <div class="nz-rating-msg" id="nz-rating-msg"></div>
+      <div class="nz-rate-actions">
+        <button class="nz-rate-change-btn" onclick="nzOpenPicker()">Изменить</button>
+        <button class="nz-rate-remove-btn" onclick="doDeleteRating()" title="Убрать оценку">×</button>
+      </div>
+      <div class="nz-rate-msg" id="nz-rate-msg"></div>`
+  } else {
+    c.innerHTML = `
+      <button class="nz-rate-open-btn" onclick="nzOpenPicker()">
+        <i class="far fa-star"></i>
+        <span>Оценить фильм</span>
+      </button>
+      <div class="nz-rate-msg" id="nz-rate-msg"></div>`
+  }
+}
+
+function nzOpenPicker() {
+  const c = document.getElementById('nz-poster-rating')
+  if (!c) return
+  const nums = Array.from({ length: 10 }, (_, i) => i + 1).map(n =>
+    `<button class="nz-rate-num${n === _currentUserRating ? ' active' : ''}" onclick="doRate(${n})">${n}</button>`
+  ).join('')
+  c.innerHTML = `
+    <div class="nz-rate-picker">
+      <div class="nz-rate-picker-label">Выберите оценку</div>
+      <div class="nz-rate-grid">${nums}</div>
+      <button class="nz-rate-cancel" onclick="nzRenderRatingClosed()">Отмена</button>
+      <div class="nz-rate-msg" id="nz-rate-msg"></div>
     </div>`
 }
 
 async function doRate(value) {
   if (!_currentKpId) return
-  const msgEl = document.getElementById('nz-rating-msg')
-  if (msgEl) msgEl.innerHTML = ''
-
   try {
     const r = await fetch(`${API_BASE}/api/ratings/${_currentKpId}`, {
       method: 'POST',
@@ -608,16 +617,19 @@ async function doRate(value) {
       body: JSON.stringify({ rating: value })
     })
     if (r.status === 401) {
-      if (msgEl) msgEl.innerHTML = `<span class="nz-msg-error">Войдите, чтобы оценить. <a href="login.html">Войти</a></span>`
+      nzRenderRatingClosed()
+      const msg = document.getElementById('nz-rate-msg')
+      if (msg) msg.innerHTML = `<span class="nz-msg-error">Войдите, чтобы оценить. <a href="login.html">Войти</a></span>`
       return
     }
     if (!r.ok) throw new Error()
     _currentUserRating = value
-    const section = document.getElementById('nz-rating-section')
-    if (section) section.innerHTML = renderRatingWidgetHtml(value)
+    nzRenderRatingClosed()
     refreshNzRating()
   } catch {
-    if (msgEl) msgEl.innerHTML = `<span class="nz-msg-error">Ошибка, попробуйте ещё раз</span>`
+    nzRenderRatingClosed()
+    const msg = document.getElementById('nz-rate-msg')
+    if (msg) msg.innerHTML = `<span class="nz-msg-error">Ошибка, попробуйте ещё раз</span>`
   }
 }
 
@@ -629,14 +641,13 @@ async function doDeleteRating() {
       credentials: 'include'
     })
     if (r.status === 401) {
-      const msgEl = document.getElementById('nz-rating-msg')
-      if (msgEl) msgEl.innerHTML = `<span class="nz-msg-error">Войдите, чтобы управлять оценкой. <a href="login.html">Войти</a></span>`
+      const msg = document.getElementById('nz-rate-msg')
+      if (msg) msg.innerHTML = `<span class="nz-msg-error">Войдите, чтобы управлять оценкой. <a href="login.html">Войти</a></span>`
       return
     }
     if (r.status === 204 || r.ok) {
       _currentUserRating = null
-      const section = document.getElementById('nz-rating-section')
-      if (section) section.innerHTML = renderRatingWidgetHtml(null)
+      nzRenderRatingClosed()
       refreshNzRating()
     }
   } catch {}
@@ -710,10 +721,10 @@ function initComments(movie) {
       <div class="comment-form">
         <textarea class="comment-textarea" id="comment-input"
           placeholder="Напишите комментарий..."
-          maxlength="5000"
-          oninput="document.getElementById('comment-char-count').textContent=this.value.length+'/5000'"></textarea>
+          maxlength="1000"
+          oninput="document.getElementById('comment-char-count').textContent=this.value.length+'/1000'"></textarea>
         <div class="comment-form-footer">
-          <span class="comment-char-count" id="comment-char-count">0 / 5000</span>
+          <span class="comment-char-count" id="comment-char-count">0 / 1000</span>
           <button class="comment-submit-btn" onclick="doSubmitComment(${kpId})">Отправить</button>
         </div>
         <div class="comment-form-msg" id="comment-form-msg"></div>
@@ -758,7 +769,7 @@ async function doSubmitComment(kpId) {
     const comment = await r.json()
     input.value = ''
     const counter = document.getElementById('comment-char-count')
-    if (counter) counter.textContent = '0 / 5000'
+    if (counter) counter.textContent = '0 / 1000'
 
     const listEl = document.getElementById('comments-list')
     if (listEl) {

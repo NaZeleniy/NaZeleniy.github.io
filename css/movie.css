@@ -710,7 +710,8 @@ a.movie-poster-side img {
 
 @media (max-width: 700px) {
   .movie-layout { grid-template-columns: 1fr; }
-  .movie-layout-poster { display: none; }
+  .movie-layout-poster { position: static; }
+  a.movie-poster-side { display: none; }
 }
 
 @media (max-width: 620px) {
@@ -740,64 +741,152 @@ a.movie-poster-side img {
   margin-bottom: 16px;
 }
 
-/* ── Rating widget ────────────────────────────────────────── */
-.nz-rating-widget {
-  margin-top: 32px;
-  padding-top: 28px;
-  border-top: 1px solid var(--border);
-}
+/* ── Poster rating widget ─────────────────────────────────── */
+.nz-poster-rating { margin-top: 10px; }
 
-.nz-rating-row {
+/* Button: open picker */
+.nz-rate-open-btn {
+  width: 100%;
   display: flex;
   align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-
-.nz-rating-btns { display: flex; gap: 6px; flex-wrap: wrap; }
-
-.nz-rating-btn {
-  width: 38px;
-  height: 38px;
-  border-radius: 8px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
-}
-
-.nz-rating-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  transform: scale(1.12);
-}
-
-.nz-rating-btn.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-
-.nz-rating-delete-btn {
-  padding: 8px 14px;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 12px;
+  background: transparent;
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text-muted);
   font-size: 13px;
   cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.nz-rate-open-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.nz-rate-open-btn i { font-size: 13px; }
+
+/* Rated state */
+.nz-rate-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
+  background: var(--accent-dim);
+  border: 1px solid rgba(39,174,96,0.4);
+  border-radius: 8px;
+}
+
+.nz-rate-star  { color: var(--accent); font-size: 15px; line-height: 1; }
+.nz-rate-value { color: var(--accent-light); font-size: 22px; font-weight: 700; line-height: 1; }
+.nz-rate-label-sm { color: var(--text-muted); font-size: 11px; }
+
+.nz-rate-actions {
+  display: flex;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.nz-rate-change-btn {
+  flex: 1;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
   background: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
   transition: border-color 0.15s, color 0.15s;
 }
 
-.nz-rating-delete-btn:hover { border-color: #e74c3c; color: #e74c3c; }
+.nz-rate-change-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-.nz-rating-status { margin-top: 10px; font-size: 13px; }
-.nz-rating-hint   { color: var(--text-muted); }
-.nz-rating-selected-msg { color: var(--accent-light); font-weight: 500; }
-.nz-rating-msg { margin-top: 8px; font-size: 13px; min-height: 18px; }
+.nz-rate-remove-btn {
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: none;
+  color: var(--text-muted);
+  font-size: 15px;
+  cursor: pointer;
+  line-height: 1;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.nz-rate-remove-btn:hover { border-color: #e74c3c; color: #e74c3c; }
+
+/* Picker */
+.nz-rate-picker {
+  animation: nzFadeIn 0.14s ease;
+}
+
+@keyframes nzFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.nz-rate-picker-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.nz-rate-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+
+.nz-rate-num {
+  aspect-ratio: 1;
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s, color 0.1s, transform 0.08s;
+}
+
+.nz-rate-num:hover {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent-light);
+  transform: scale(1.1);
+  z-index: 1;
+  position: relative;
+}
+
+.nz-rate-num.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.nz-rate-cancel {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 5px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.nz-rate-cancel:hover { color: var(--text); }
+
+.nz-rate-msg { margin-top: 6px; font-size: 12px; text-align: center; min-height: 16px; }
 
 /* ── Comments ─────────────────────────────────────────────── */
 .comments-wrap {
