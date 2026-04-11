@@ -114,10 +114,11 @@ function _initSpatialNav() {
       e.target.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
     })
 
-    // hover = focus: мышь и TV используют одинаковый UX
+    // hover = focus: только в TV-режиме (пульт + стрелки)
     // Guard: один раз на элемент, пока мышь не уйдёт на другой
     let _hoverTarget = null
     document.addEventListener('mouseover', e => {
+      if (!_isTVMode) return
       const card = e.target.closest('.movie-card, .nav-link, .type-btn, .player-option')
       if (card && card !== _hoverTarget) {
         _hoverTarget = card
