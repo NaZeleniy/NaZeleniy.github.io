@@ -786,15 +786,17 @@ function initComments(movie) {
 
   section.innerHTML = `
     <div class="comments-wrap">
-      <div class="nz-section-title">Комментарии</div>
-      <div class="comments-moderation-warn">
-        <i class="fas fa-exclamation-triangle"></i>
-        <span>Осторожно, комментарии временно не модерируются!</span>
+      <div class="comments-inner">
+        <div class="nz-section-title">Комментарии</div>
+        <div class="comments-moderation-warn">
+          <i class="fas fa-exclamation-triangle"></i>
+          <span>Осторожно, комментарии временно не модерируются!</span>
+        </div>
+        <button class="comments-show-btn" id="comments-show-btn" onclick="nzUnblurComments(${kpId})">
+          <i class="fas fa-eye"></i>
+          <span>Показать комментарии</span>
+        </button>
       </div>
-      <button class="comments-show-btn" id="comments-show-btn" onclick="nzUnblurComments(${kpId})">
-        <i class="fas fa-eye"></i>
-        <span>Показать комментарии</span>
-      </button>
     </div>`
 }
 
