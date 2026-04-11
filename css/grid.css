@@ -61,12 +61,14 @@
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), 0 0 20px var(--accent-glow);
 }
 
-/* TV/клавиатура — подъём + зелёная рамка */
-.movie-card:focus,
+/* Убираем outline при клике мышью */
+.movie-card:focus {
+  outline: none;
+}
+
+/* Клавиатура (не TV) — тонкая рамка без подъёма */
 .movie-card:focus-visible {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), 0 0 20px var(--accent-glow);
-  outline: 4px solid var(--accent);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
