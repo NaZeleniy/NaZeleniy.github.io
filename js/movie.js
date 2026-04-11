@@ -569,6 +569,12 @@ function initRatingWidget(movie) {
   nzRenderRatingClosed()
 }
 
+function nzRatingColor(v) {
+  if (v <= 4) return [231, 76, 60]
+  if (v <= 6) return [149, 165, 166]
+  return [243, 156, 18]
+}
+
 function nzRenderRatingClosed() {
   if (_nzCloseHandler) {
     document.removeEventListener('click', _nzCloseHandler)
@@ -578,21 +584,24 @@ function nzRenderRatingClosed() {
   if (!c) return
   c.querySelector('.nz-rate-picker')?.remove()
   if (_currentUserRating) {
+    const [r, g, b] = nzRatingColor(_currentUserRating)
     c.innerHTML = `
-      <div class="nz-rate-display">
-        <span class="nz-rate-star">★</span>
-        <span class="nz-rate-value">${_currentUserRating}</span>
-        <span class="nz-rate-label-sm">ваша оценка</span>
-      </div>
-      <div class="nz-rate-actions">
-        <button class="nz-rate-change-btn" onclick="nzOpenPicker()">Изменить</button>
-        <button class="nz-rate-remove-btn" onclick="doDeleteRating()" title="Убрать оценку">×</button>
+      <div class="nz-rate-display" style="--nz-r:${r};--nz-g:${g};--nz-b:${b}">
+        <div class="nz-rate-display-left">
+          <div class="nz-rate-big-val">${_currentUserRating}</div>
+          <div class="nz-rate-display-label">ваша оценка</div>
+        </div>
+        <div class="nz-rate-display-divider"></div>
+        <div class="nz-rate-display-right">
+          <button class="nz-rate-change-btn" onclick="nzOpenPicker()">Изменить</button>
+          <button class="nz-rate-remove-btn" onclick="doDeleteRating()">Убрать</button>
+        </div>
       </div>
       <div class="nz-rate-msg" id="nz-rate-msg"></div>`
   } else {
     c.innerHTML = `
       <button class="nz-rate-open-btn" onclick="nzOpenPicker()">
-        <i class="far fa-star"></i>
+        <span class="nz-rate-open-icon">★</span>
         <span>Оценить фильм</span>
       </button>
       <div class="nz-rate-msg" id="nz-rate-msg"></div>`
@@ -609,9 +618,12 @@ function nzOpenPicker() {
     .map(n => `<span class="${n === startVal ? 'active' : ''}">${n}</span>`).join('')
 
   const picker = document.createElement('div')
+  picker.id = 'nz-rate-picker'
   picker.className = 'nz-rate-picker'
   picker.innerHTML = `
+    <div class="nz-picker-label">Ваша оценка</div>
     <div class="nz-slider-value" id="nz-slider-val">${startVal}</div>
+    <div class="nz-picker-mood" id="nz-slider-mood"></div>
     <div class="nz-slider-wrap">
       <div class="nz-slider-track" id="nz-slider-track">
         <div class="nz-slider-fill" id="nz-slider-fill"></div>
@@ -635,6 +647,7 @@ function nzInitSlider(startVal) {
   const thumb  = document.getElementById('nz-slider-thumb')
   const fill   = document.getElementById('nz-slider-fill')
   const valEl  = document.getElementById('nz-slider-val')
+  const picker = document.getElementById('nz-rate-picker')
   if (!track) return
 
   let val = startVal
@@ -645,37 +658,57 @@ function nzInitSlider(startVal) {
     const p = Math.max(0, Math.min(1, (clientX - r.left) / r.width))
     return Math.round(p * 9 + 1)
   }
-  function setUI(v) {
+  function setUI(v, animate) {
     const p = pct(v)
+    if (animate) {
+      thumb.style.transition = 'left 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), height 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s'
+      fill.style.transition  = 'width 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.35s'
+    } else {
+      thumb.style.transition = 'width 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), height 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s'
+      fill.style.transition  = 'background 0.35s'
+    }
     thumb.style.left = p + '%'
-    fill.style.width  = p + '%'
+    fill.style.width = p + '%'
     valEl.textContent = v
+    const [r, g, b] = nzRatingColor(v)
+    if (picker) {
+      picker.style.setProperty('--nz-r', r)
+      picker.style.setProperty('--nz-g', g)
+      picker.style.setProperty('--nz-b', b)
+    }
+    const moodEl = document.getElementById('nz-slider-mood')
+    if (moodEl) {
+      if (v <= 4) moodEl.textContent = 'не понравилось'
+      else if (v <= 6) moodEl.textContent = 'нейтрально'
+      else moodEl.textContent = 'понравилось'
+    }
     track.closest('.nz-rate-picker')?.querySelectorAll('.nz-slider-ticks span').forEach((s, i) => {
       s.classList.toggle('active', i + 1 === v)
     })
   }
 
-  setUI(val)
+  setUI(val, false)
 
   track.addEventListener('pointerdown', e => {
     _nzDragging = true
     thumb.classList.add('dragging')
     track.setPointerCapture(e.pointerId)
     val = valFromX(e.clientX)
-    setUI(val)
+    setUI(val, false)
     e.preventDefault()
   })
 
   track.addEventListener('pointermove', e => {
     if (!_nzDragging) return
     const v = valFromX(e.clientX)
-    if (v !== val) { val = v; setUI(val) }
+    if (v !== val) { val = v; setUI(val, false) }
   })
 
   track.addEventListener('pointerup', async e => {
     if (!_nzDragging) return
     _nzDragging = false
     thumb.classList.remove('dragging')
+    setUI(val, true)
     // убираем close-handler ДО async doRate, чтобы click не сработал раньше
     if (_nzCloseHandler) {
       document.removeEventListener('click', _nzCloseHandler)

@@ -742,133 +742,257 @@ a.movie-poster-side img {
 }
 
 /* ── Poster rating widget ─────────────────────────────────── */
-.nz-poster-rating { margin-top: 10px; }
+.nz-poster-rating {
+  margin-top: 10px;
+  position: relative;
+}
 
-/* Button: open picker */
+/* Open button */
 .nz-rate-open-btn {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  padding: 9px 12px;
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-muted);
-  font-size: 13px;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 10px;
+  color: rgba(255,255,255,0.38);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 500;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nz-rate-open-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-dim);
+  border-color: rgba(39,174,96,0.35);
+  color: rgba(255,255,255,0.65);
+  background: rgba(39,174,96,0.04);
+  box-shadow: 0 0 28px rgba(39,174,96,0.07), inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
-.nz-rate-open-btn i { font-size: 13px; }
+.nz-rate-open-icon {
+  font-size: 13px;
+  line-height: 1;
+  display: block;
+}
 
-/* Rated state */
+/* Rated display */
 .nz-rate-display {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 9px 12px;
-  background: var(--accent-dim);
-  border: 1px solid rgba(39,174,96,0.4);
-  border-radius: 8px;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(var(--nz-r, 39), var(--nz-g, 174), var(--nz-b, 96), 0.06);
+  border: 1px solid rgba(var(--nz-r, 39), var(--nz-g, 174), var(--nz-b, 96), 0.2);
+  border-radius: 10px;
+  overflow: hidden;
 }
 
-.nz-rate-star  { color: var(--accent); font-size: 15px; line-height: 1; }
-.nz-rate-value { color: var(--accent-light); font-size: 22px; font-weight: 700; line-height: 1; }
-.nz-rate-label-sm { color: var(--text-muted); font-size: 11px; }
+.nz-rate-display::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 30% 50%, rgba(var(--nz-r, 39), var(--nz-g, 174), var(--nz-b, 96), 0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
 
-.nz-rate-actions {
+.nz-rate-display-left {
   display: flex;
-  gap: 5px;
-  margin-top: 5px;
+  flex-direction: column;
+  align-items: center;
+  min-width: 42px;
+}
+
+.nz-rate-big-val {
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: rgb(var(--nz-r, 39), var(--nz-g, 174), var(--nz-b, 96));
+  text-shadow: 0 0 20px rgba(var(--nz-r, 39), var(--nz-g, 174), var(--nz-b, 96), 0.55);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.nz-rate-display-label {
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.22);
+  margin-top: 4px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.nz-rate-display-divider {
+  width: 1px;
+  height: 28px;
+  background: rgba(255,255,255,0.07);
+  flex-shrink: 0;
+}
+
+.nz-rate-display-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .nz-rate-change-btn {
-  flex: 1;
-  padding: 5px 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  padding: 4px 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 5px;
   background: none;
-  color: var(--text-muted);
-  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
+  transition: all 0.2s;
+  font-weight: 500;
+  text-align: center;
+  width: 100%;
 }
 
-.nz-rate-change-btn:hover { border-color: var(--accent); color: var(--accent); }
+.nz-rate-change-btn:hover {
+  border-color: rgba(255,255,255,0.22);
+  color: rgba(255,255,255,0.7);
+}
 
 .nz-rate-remove-btn {
-  padding: 5px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  padding: 3px 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 5px;
   background: none;
-  color: var(--text-muted);
-  font-size: 15px;
+  color: rgba(255,255,255,0.25);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   cursor: pointer;
-  line-height: 1;
-  transition: border-color 0.15s, color 0.15s;
+  transition: all 0.2s;
+  text-align: center;
+  width: 100%;
 }
 
-.nz-rate-remove-btn:hover { border-color: #e74c3c; color: #e74c3c; }
+.nz-rate-remove-btn:hover {
+  border-color: rgba(231,76,60,0.35);
+  color: rgba(231,76,60,0.7);
+}
 
-/* Picker — абсолютный оверлей */
+/* Picker — premium overlay */
 .nz-rate-picker {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 14px 14px 12px;
+  top: 0; left: 0; right: 0;
+  background: rgba(6, 6, 9, 0.94);
+  backdrop-filter: blur(20px) brightness(0.5) saturate(0.35);
+  -webkit-backdrop-filter: blur(20px) brightness(0.5) saturate(0.35);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
   z-index: 10;
-  animation: nzFadeIn 0.14s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 22px 16px 18px;
+  animation: nzPickerIn 0.22s cubic-bezier(0.4, 0, 0.2, 1) both;
+  overflow: hidden;
+  --nz-r: 149; --nz-g: 165; --nz-b: 166;
 }
 
-@keyframes nzFadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* Film grain */
+.nz-rate-picker::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: 3;
+  mix-blend-mode: overlay;
 }
 
-/* Большое число */
+@keyframes nzPickerIn {
+  from { opacity: 0; transform: scale(0.96) translateY(-4px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+.nz-picker-label {
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.18);
+  font-weight: 500;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Big cinematic score */
 .nz-slider-value {
-  text-align: center;
-  font-size: 42px;
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 64px;
   font-weight: 700;
-  color: var(--accent-light);
   line-height: 1;
-  margin-bottom: 16px;
+  letter-spacing: -0.04em;
+  color: rgb(var(--nz-r), var(--nz-g), var(--nz-b));
+  text-shadow:
+    0 0 24px rgba(var(--nz-r), var(--nz-g), var(--nz-b), 0.65),
+    0 0 60px rgba(var(--nz-r), var(--nz-g), var(--nz-b), 0.2);
+  transition: color 0.35s cubic-bezier(0.4,0,0.2,1), text-shadow 0.35s cubic-bezier(0.4,0,0.2,1);
+  position: relative;
+  z-index: 1;
   font-variant-numeric: tabular-nums;
+  margin-bottom: 4px;
 }
 
-/* Трек */
-.nz-slider-wrap { padding: 0 6px; }
+/* Emotional mood label */
+.nz-picker-mood {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(var(--nz-r), var(--nz-g), var(--nz-b), 0.45);
+  font-weight: 400;
+  margin-bottom: 22px;
+  transition: color 0.35s;
+  min-height: 11px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Slider */
+.nz-slider-wrap {
+  width: 100%;
+  padding: 0 2px;
+  position: relative;
+  z-index: 1;
+}
 
 .nz-slider-track {
   position: relative;
-  height: 4px;
-  background: var(--bg-tertiary);
+  height: 2px;
+  background: rgba(255,255,255,0.08);
   border-radius: 2px;
   cursor: pointer;
   touch-action: none;
   user-select: none;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
 
 .nz-slider-fill {
   position: absolute;
   left: 0; top: 0; bottom: 0;
-  background: var(--accent);
+  background: linear-gradient(
+    90deg,
+    rgba(var(--nz-r), var(--nz-g), var(--nz-b), 0.4) 0%,
+    rgba(var(--nz-r), var(--nz-g), var(--nz-b), 1) 100%
+  );
   border-radius: 2px;
   pointer-events: none;
+  transition: background 0.35s;
 }
 
 .nz-slider-thumb {
@@ -876,42 +1000,74 @@ a.movie-poster-side img {
   top: 50%;
   left: 0%;
   transform: translate(-50%, -50%);
-  width: 18px;
-  height: 18px;
-  background: var(--accent);
+  width: 20px;
+  height: 20px;
+  background: #fff;
   border-radius: 50%;
-  border: 2px solid #fff;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.5);
+  box-shadow:
+    0 0 0 2px rgba(var(--nz-r), var(--nz-g), var(--nz-b), 0.45),
+    0 0 18px rgba(var(--nz-r), var(--nz-g), var(--nz-b), 0.4),
+    0 2px 8px rgba(0,0,0,0.65);
   pointer-events: none;
-  transition: box-shadow 0.15s;
+  transition:
+    width  0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    height 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.35s;
+  will-change: left;
 }
 
 .nz-slider-thumb.dragging {
-  box-shadow: 0 1px 6px rgba(0,0,0,0.5), 0 0 0 7px rgba(39,174,96,0.18);
+  width: 26px;
+  height: 26px;
+  box-shadow:
+    0 0 0 3px rgba(var(--nz-r), var(--nz-g), var(--nz-b), 0.55),
+    0 0 32px rgba(var(--nz-r), var(--nz-g), var(--nz-b), 0.55),
+    0 0 70px rgba(var(--nz-r), var(--nz-g), var(--nz-b), 0.15),
+    0 2px 14px rgba(0,0,0,0.7);
 }
 
-/* Тики */
+/* Ticks */
 .nz-slider-ticks {
   display: flex;
   justify-content: space-between;
 }
 
 .nz-slider-ticks span {
-  font-size: 10px;
-  color: var(--text-muted);
+  font-size: 9px;
+  color: rgba(255,255,255,0.18);
   text-align: center;
-  min-width: 16px;
+  min-width: 14px;
   line-height: 1;
-  transition: color 0.1s, font-weight 0.1s;
+  transition:
+    color 0.25s,
+    font-weight 0.2s,
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    text-shadow 0.25s;
   pointer-events: none;
+  transform-origin: center bottom;
+  font-variant-numeric: tabular-nums;
 }
 
 .nz-slider-ticks span.active {
-  color: var(--accent-light);
+  color: rgb(var(--nz-r), var(--nz-g), var(--nz-b));
   font-weight: 700;
+  transform: scale(1.25) translateY(-1px);
+  text-shadow: 0 0 8px rgba(var(--nz-r), var(--nz-g), var(--nz-b), 0.6);
 }
 
-.nz-rate-msg { margin-top: 8px; font-size: 12px; text-align: center; min-height: 16px; }
+.nz-rate-msg {
+  margin-top: 10px;
+  font-size: 11px;
+  text-align: center;
+  min-height: 14px;
+  color: rgba(255,255,255,0.35);
+  position: relative;
+  z-index: 1;
+  width: 100%;
+}
+
+.nz-msg-error { color: #e74c3c; }
+.nz-msg-error a { color: var(--accent); }
 
 /* ── Comments ─────────────────────────────────────────────── */
 .comments-wrap {
