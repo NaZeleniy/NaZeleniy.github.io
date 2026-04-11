@@ -712,8 +712,7 @@ a.movie-poster-side img {
   .movie-layout { grid-template-columns: 1fr; }
   .movie-layout-poster { position: static; }
   a.movie-poster-side { display: none; }
-  #comments-section { display: block; }
-  .comments-wrap { grid-column: unset; max-width: 100%; }
+  .comments-wrap { max-width: 100%; }
 }
 
 @media (max-width: 620px) {
@@ -935,14 +934,7 @@ a.movie-poster-side img {
 .nz-msg-error a { color: var(--accent); }
 
 /* ── Comments ─────────────────────────────────────────────── */
-#comments-section {
-  display: grid;
-  grid-template-columns: 200px 1fr;
-  gap: 20px;
-}
-
 .comments-wrap {
-  grid-column: 2;
   margin-top: 32px;
   padding-top: 28px;
   border-top: 1px solid var(--border);

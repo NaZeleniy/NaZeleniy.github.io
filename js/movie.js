@@ -32,7 +32,6 @@ let _currentUserRating = null
 let _currentKpId = null
 let _commentsOffset = 0
 let _hasMoreComments = false
-let _nzDragging = false
 let _nzCloseHandler = null
 
 function playerSetState(state, gen) {
@@ -265,10 +264,15 @@ function initPlayerLazyLoad(players) {
   preconnectPlayerDomains(players)
 
   const dropdown = document.getElementById('playerDropdown')
-  dropdown.innerHTML = players.map(p =>
-    `<div class="player-option" data-name="${p.name}"
-      onclick="selectPlayer('${p.name}','${p.url}','${p.type}')">${p.name}</div>`
-  ).join('')
+  dropdown.innerHTML = ''
+  players.forEach(p => {
+    const opt = document.createElement('div')
+    opt.className = 'player-option'
+    opt.dataset.name = p.name
+    opt.textContent = p.name
+    opt.addEventListener('click', () => selectPlayer(p.name, p.url, p.type))
+    dropdown.appendChild(opt)
+  })
 
   let started = false
   const startFirstPlayer = () => {
@@ -366,7 +370,7 @@ function renderMovie(movie) {
   if (movie.filmLength > 0)                                            rows.push(['Длительность', movie.filmLength + ' мин'])
   if (movie.slogan && movie.slogan !== '-' && movie.slogan !== 'null') rows.push(['Слоган', '«' + movie.slogan + '»'])
 
-  const infoRowsHtml = rows.map(([k, v]) => `<li><strong>${k}:</strong> ${v}</li>`).join('\n')
+  const infoRowsHtml = rows.map(([k, v]) => `<li><strong>${k}:</strong> ${escapeHtml(String(v))}</li>`).join('\n')
 
   const ageHtml = (movie.ratingAgeLimits && movie.ratingAgeLimits !== 'age0')
     ? `<li class="rating-boxes"><div class="rating-box age"><strong>${formatAge(movie.ratingAgeLimits)}</strong></div></li>`
@@ -374,8 +378,9 @@ function renderMovie(movie) {
 
   const posterSrc = posterUrl(movie.posterUrlPreview || movie.posterUrl)
   const posterFull = posterUrl(movie.posterUrl || movie.posterUrlPreview)
+  const safeTitle = escapeHtml(title)
   const posterHtml = `<a class="movie-poster-side" href="${posterFull}" target="_blank" rel="noopener noreferrer">
-       <img class="movie-poster" src="${posterSrc}" alt="${title}"
+       <img class="movie-poster" src="${posterSrc}" alt="${safeTitle}"
             onload="this.classList.add('loaded')"
             onerror="this.classList.add('loaded');this.onerror=null;this.src=(this.src!=='${posterFull}'?'${posterFull}':'/img/placeholder.svg')"/>
      </a>
@@ -383,12 +388,12 @@ function renderMovie(movie) {
 
   const desc = movie.description || movie.shortDescription || ''
   const descHtml = desc
-    ? `<div class="content-info"><p class="content-description-text">${desc}</p></div>`
+    ? `<div class="content-info"><p class="content-description-text">${escapeHtml(desc)}</p></div>`
     : ''
 
   document.getElementById('movieContent').innerHTML = `
     <div class="content-header">
-      <h1 class="content-title">${title}</h1>
+      <h1 class="content-title">${safeTitle}</h1>
     </div>
     <div class="ratings-links">${ratingsHtml}</div>
     <div class="movie-layout">
@@ -636,9 +641,12 @@ function nzInitSlider(startVal) {
 
   let val = startVal
 
+  let _rating = false
   numRow.addEventListener('click', async e => {
+    if (_rating) return
     const target = e.target.closest('.nz-num')
     if (!target) return
+    _rating = true
     val = +target.dataset.v
     if (_nzCloseHandler) {
       document.removeEventListener('click', _nzCloseHandler)
