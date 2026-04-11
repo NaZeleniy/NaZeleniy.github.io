@@ -44,7 +44,7 @@ async function loadMe() {
   // 3. Загружаем оценки
   let ratings = []
   try {
-    const r = await fetch(ME_API + '/api/ratings', { credentials: 'include' })
+    const r = await fetch(ME_API + '/api/me/ratings', { credentials: 'include' })
     if (r.ok) ratings = await r.json()
   } catch {}
 
