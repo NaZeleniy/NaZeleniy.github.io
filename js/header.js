@@ -66,7 +66,7 @@ function _initSpatialNav() {
   window._spatialNavInit = true
 
   const script = document.createElement('script')
-  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/js-spatial-navigation/2.1.1/spatial_navigation.min.js'
+  script.src = 'https://cdn.jsdelivr.net/npm/js-spatial-navigation@2.1.1/spatial_navigation.min.js'
   script.onerror = () => { window._spatialNavInit = false }
   script.onload = () => {
     SpatialNavigation.init()

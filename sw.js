@@ -21,6 +21,7 @@ self.addEventListener('fetch', e => {
   const { request } = e
   if (request.method !== 'GET') return
   const url = new URL(request.url)
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return
   if (SKIP.test(url.pathname)) return
 
   // Версионированные активы и внешние CDN — cache-first
