@@ -620,11 +620,6 @@ function nzOpenPicker() {
   picker.id = 'nz-rate-picker'
   picker.className = 'nz-rate-picker'
   picker.innerHTML = `
-    <div class="nz-picker-label">Ваша оценка</div>
-    <div class="nz-picker-score-area">
-      <div class="nz-slider-value" id="nz-slider-val"></div>
-      <div class="nz-picker-mood" id="nz-slider-mood"></div>
-    </div>
     <div class="nz-num-row" id="nz-num-row">${nums}</div>
     <div class="nz-rate-msg" id="nz-rate-msg"></div>`
   c.appendChild(picker)
@@ -637,19 +632,11 @@ function nzOpenPicker() {
 }
 
 function nzInitSlider(startVal) {
-  const valEl  = document.getElementById('nz-slider-val')
-  const moodEl = document.getElementById('nz-slider-mood')
   const numRow = document.getElementById('nz-num-row')
   const picker = document.getElementById('nz-rate-picker')
   if (!numRow) return
 
   let val = startVal
-
-  function getMood(v) {
-    if (v <= 4) return 'плохо'
-    if (v <= 6) return 'нормально'
-    return 'отлично'
-  }
 
   function applyColors(v) {
     const [r, g, b] = nzRatingColor(v)
@@ -662,34 +649,10 @@ function nzInitSlider(startVal) {
 
   function updateRow(v) {
     numRow.querySelectorAll('.nz-num').forEach(el => {
-      const n = +el.dataset.v
-      const d = Math.abs(n - v)
-      el.className = 'nz-num' + (d === 0 ? ' active' : d === 1 ? ' near' : d === 2 ? ' close' : '')
+      el.className = 'nz-num' + (+el.dataset.v === v ? ' active' : '')
     })
   }
 
-  function animateScore(v) {
-    if (!valEl) return
-    valEl.style.transition = 'opacity 0.1s ease, transform 0.1s ease, filter 0.1s ease'
-    valEl.style.opacity = '0'
-    valEl.style.transform = 'scale(0.65)'
-    valEl.style.filter = 'blur(10px)'
-    if (moodEl) { moodEl.style.transition = 'opacity 0.1s ease'; moodEl.style.opacity = '0' }
-    setTimeout(() => {
-      valEl.textContent = v
-      applyColors(v)
-      if (moodEl) moodEl.textContent = getMood(v)
-      valEl.style.transition = 'opacity 0.22s ease, transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.22s ease'
-      valEl.style.opacity = '1'
-      valEl.style.transform = 'scale(1)'
-      valEl.style.filter = 'blur(0px)'
-      if (moodEl) { moodEl.style.transition = 'opacity 0.22s ease'; moodEl.style.opacity = '1' }
-    }, 105)
-  }
-
-  // Init without animation
-  if (valEl) valEl.textContent = val
-  if (moodEl) moodEl.textContent = getMood(val)
   applyColors(val)
   updateRow(val)
 
@@ -697,7 +660,7 @@ function nzInitSlider(startVal) {
     const target = e.target.closest('.nz-num')
     if (!target) return
     val = +target.dataset.v
-    animateScore(val)
+    applyColors(val)
     updateRow(val)
     if (_nzCloseHandler) {
       document.removeEventListener('click', _nzCloseHandler)

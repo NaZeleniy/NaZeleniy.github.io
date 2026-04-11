@@ -882,112 +882,33 @@ a.movie-poster-side img {
   color: rgba(231,76,60,0.65);
 }
 
-/* ── Picker — pure typography overlay ── */
+/* ── Picker ── */
 .nz-rate-picker {
   position: absolute;
   top: 0; left: 0; right: 0;
-  background: rgba(8, 8, 13, 0.96);
-  backdrop-filter: blur(24px) brightness(0.42) saturate(0.22);
-  -webkit-backdrop-filter: blur(24px) brightness(0.42) saturate(0.22);
+  background: rgba(10, 10, 14, 0.95);
+  backdrop-filter: blur(18px) brightness(0.4);
+  -webkit-backdrop-filter: blur(18px) brightness(0.4);
   border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 12px;
+  border-radius: 10px;
   z-index: 10;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px 10px 16px;
-  animation: nzPickerIn 0.2s cubic-bezier(0.4, 0, 0.2, 1) both;
+  padding: 10px 6px;
+  animation: nzPickerIn 0.18s ease both;
   overflow: hidden;
   --nz-r: 149; --nz-g: 165; --nz-b: 166;
 }
 
-/* Radial vignette */
-.nz-rate-picker::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(ellipse at 50% 38%, transparent 50%, rgba(0,0,0,0.5) 100%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* Film grain */
-.nz-rate-picker::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  opacity: 0.045;
-  pointer-events: none;
-  z-index: 0;
-  mix-blend-mode: overlay;
-}
-
 @keyframes nzPickerIn {
-  from { opacity: 0; transform: scale(0.97) translateY(-3px); }
-  to   { opacity: 1; transform: scale(1)    translateY(0); }
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Label */
-.nz-picker-label {
-  font-size: 8.5px;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.14);
-  font-weight: 500;
-  margin-bottom: 10px;
-  position: relative;
-  z-index: 1;
-}
-
-/* Score area (big number + mood) */
-.nz-picker-score-area {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  position: relative;
-  z-index: 1;
-  margin-bottom: 16px;
-}
-
-/* Big cinematic central number */
-.nz-slider-value {
-  font-family: 'Cinzel', Georgia, serif;
-  font-size: 60px;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.04em;
-  color: rgb(var(--nz-r), var(--nz-g), var(--nz-b));
-  text-shadow:
-    0 0 22px rgba(var(--nz-r), var(--nz-g), var(--nz-b), 0.62),
-    0 0 55px rgba(var(--nz-r), var(--nz-g), var(--nz-b), 0.18);
-  font-variant-numeric: tabular-nums;
-  will-change: opacity, transform, filter;
-  min-width: 1ch;
-  text-align: center;
-}
-
-/* Emotional label */
-.nz-picker-mood {
-  font-size: 8.5px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: rgba(var(--nz-r), var(--nz-g), var(--nz-b), 0.38);
-  font-weight: 400;
-  margin-top: 7px;
-  min-height: 10px;
-  will-change: opacity;
-}
-
-/* Number row — the entire interaction surface */
+/* Number row */
 .nz-num-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 0 2px;
   position: relative;
   z-index: 1;
 }
@@ -999,43 +920,27 @@ a.movie-poster-side img {
   font-size: 12px;
   font-weight: 400;
   font-variant-numeric: tabular-nums;
-  color: rgba(255,255,255,0.24);
-  padding: 10px 0;
+  color: rgba(255,255,255,0.22);
+  padding: 7px 0;
   line-height: 1;
   user-select: none;
-  transform-origin: center bottom;
-  transition:
-    color       0.28s cubic-bezier(0.4, 0, 0.2, 1),
-    transform   0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
-    text-shadow 0.28s ease;
+  transition: color 0.2s ease, text-shadow 0.2s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
 .nz-num:hover {
-  color: rgba(255,255,255,0.5);
-  transform: scale(1.2) translateY(-1px);
-}
-
-.nz-num.close {
-  color: rgba(255,255,255,0.34);
-}
-
-.nz-num.near {
-  color: rgba(255,255,255,0.58);
-  font-weight: 500;
-  transform: scale(1.2) translateY(-1px);
+  color: rgba(255,255,255,0.48);
 }
 
 .nz-num.active {
   color: rgb(var(--nz-r), var(--nz-g), var(--nz-b));
-  font-weight: 700;
-  transform: scale(1.42) translateY(-3px);
-  text-shadow: 0 0 14px rgba(var(--nz-r), var(--nz-g), var(--nz-b), 0.7);
+  font-weight: 600;
+  text-shadow: 0 0 10px rgba(var(--nz-r), var(--nz-g), var(--nz-b), 0.6);
 }
 
 /* Message / errors */
 .nz-rate-msg {
-  margin-top: 10px;
+  margin-top: 6px;
   font-size: 11px;
   text-align: center;
   min-height: 14px;
