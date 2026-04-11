@@ -730,8 +730,20 @@ function escapeHtml(str) {
 }
 
 function formatCommentDate(iso) {
-  const d = new Date(iso)
-  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+  try {
+    const d = new Date(iso)
+    const now = new Date()
+    const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+    const sameDay = (a, b) =>
+      a.getDate() === b.getDate() &&
+      a.getMonth() === b.getMonth() &&
+      a.getFullYear() === b.getFullYear()
+    if (sameDay(d, now)) return `Сегодня, ${time}`
+    const yesterday = new Date(now)
+    yesterday.setDate(now.getDate() - 1)
+    if (sameDay(d, yesterday)) return `Вчера, ${time}`
+    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) + ' ' + time
+  } catch { return '' }
 }
 
 function renderCommentHtml(comment) {
