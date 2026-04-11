@@ -26,11 +26,7 @@ async function loadMe() {
   } catch {}
 
   if (!user) {
-    wrap.innerHTML = `
-      <div class="me-unauth">
-        <i class="fas fa-user-lock me-unauth-icon"></i>
-        <p>Чтобы видеть профиль, необходимо <a href="/login.html">авторизоваться</a></p>
-      </div>`
+    location.replace('/login.html?next=' + encodeURIComponent(location.pathname + location.search))
     return
   }
 
