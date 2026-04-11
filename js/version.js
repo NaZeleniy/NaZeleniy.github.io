@@ -1,7 +1,7 @@
 // Если браузер закэшировал старый HTML — форсируем перезагрузку.
 // Версия обновляется автоматически pre-commit хуком вместе с остальными ?v=
 ;(function () {
-  var V = 'v=1775933830'
+  var V = 'v=1775934838'
   var key = 'nz_page_v'
   var stored = localStorage.getItem(key)
   if (stored !== V) {
@@ -10,5 +10,9 @@
     var url = location.href.replace(/[?&]_nocache=[^&]*/g, '')
     var sep = url.includes('?') ? '&' : '?'
     location.replace(url + sep + '_nocache=' + Date.now())
+  } else if (location.search.includes('_nocache')) {
+    // убираем _nocache из адресной строки без перезагрузки
+    var clean = location.href.replace(/[?&]_nocache=[^&]*/g, '').replace(/[?&]$/, '')
+    history.replaceState(null, '', clean)
   }
 })()

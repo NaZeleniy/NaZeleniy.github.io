@@ -509,8 +509,9 @@ async function loadSequels() {
       const name  = m.nameRu || m.nameEn || m.nameOriginal || 'Без названия'
       const thumb = posterUrl(m.posterUrlPreview || m.posterUrl)
       const meta  = typeLabel[m.relationType] || m.relationType || ''
+      const preview = JSON.stringify({ filmId: id, nameRu: m.nameRu, nameEn: m.nameEn, posterUrl: m.posterUrl, posterUrlPreview: m.posterUrlPreview, year: m.year }).replace(/'/g, '&#39;')
       return `
-        <a class="similar-card" href="movie.html?id=${id}">
+        <a class="similar-card" href="movie.html?id=${id}" onclick="sessionStorage.setItem('moviePreview','${preview}')">
           <div class="similar-poster-wrap">
             <img src="${thumb}" alt="${name}" loading="lazy" onerror="this.src='/img/placeholder.svg'"/>
           </div>
@@ -544,8 +545,9 @@ async function loadSimilars() {
       const name  = m.nameRu || m.nameEn || m.nameOriginal || 'Без названия'
       const thumb = posterUrl(m.posterUrlPreview || m.posterUrl)
       const meta  = [m.year, m.nameEn && m.nameEn !== m.nameRu ? m.nameEn : null].filter(Boolean).join(' · ')
+      const preview = JSON.stringify({ filmId: id, nameRu: m.nameRu, nameEn: m.nameEn, posterUrl: m.posterUrl, posterUrlPreview: m.posterUrlPreview, year: m.year }).replace(/'/g, '&#39;')
       return `
-        <a class="similar-card" href="movie.html?id=${id}">
+        <a class="similar-card" href="movie.html?id=${id}" onclick="sessionStorage.setItem('moviePreview','${preview}')">
           <div class="similar-poster-wrap">
             <img src="${thumb}" alt="${name}" loading="lazy" onerror="this.src='/img/placeholder.svg'"/>
           </div>
@@ -570,7 +572,7 @@ function initRatingWidget(movie) {
   const kpId = movie.kinopoiskId || movie.filmId
   if (!kpId) return
   _currentKpId = kpId
-  _currentUserRating = movie.userRating || null
+  _currentUserRating = null
   nzRenderRatingClosed()
 }
 
@@ -706,6 +708,14 @@ async function refreshNzRating() {
     const r = await fetch(`${API_BASE}/api/ratings/${_currentKpId}`, { credentials: 'include' })
     if (!r.ok) return
     const data = await r.json()
+
+    // обновляем userRating из этого же запроса
+    const newRating = data.user_rating ?? data.userRating ?? null
+    if (newRating !== _currentUserRating) {
+      _currentUserRating = newRating
+      nzRenderRatingClosed()
+    }
+
     const el = document.getElementById('nz-rating-display')
     if (!el) return
     if ((data.ratingNazeleniyVoteCount || 0) > 0) {
@@ -770,13 +780,8 @@ function initComments(movie) {
   const kpId = movie.kinopoiskId || movie.filmId
   if (!kpId) return
 
-  const comments = movie.comments || []
-  _commentsOffset = comments.length
-  _hasMoreComments = comments.length >= 20
-
-  const listHtml = comments.length
-    ? comments.map(renderCommentHtml).join('')
-    : '<div class="comments-empty">Комментариев пока нет. Будьте первым!</div>'
+  _commentsOffset = 0
+  _hasMoreComments = false
 
   section.innerHTML = `
     <div class="comments-wrap">
@@ -797,8 +802,10 @@ function initComments(movie) {
         <span>Осторожно, комментарии временно не модерируются!</span>
       </div>
       <div class="comments-blur-wrap" id="comments-blur-wrap">
-        <div class="comments-list" id="comments-list">${listHtml}</div>
-        <div class="comments-load-more-wrap" id="comments-load-more-wrap"${_hasMoreComments ? '' : ' style="display:none"'}>
+        <div class="comments-list" id="comments-list">
+          <div class="similars-loading"><i class="fas fa-circle-notch fa-spin"></i></div>
+        </div>
+        <div class="comments-load-more-wrap" id="comments-load-more-wrap" style="display:none">
           <button class="comments-load-more-btn" onclick="doLoadMoreComments(${kpId})">Показать ещё</button>
         </div>
         <div class="comments-blur-overlay" onclick="nzUnblurComments()" title="Нажмите, чтобы показать">
@@ -807,6 +814,25 @@ function initComments(movie) {
         </div>
       </div>
     </div>`
+
+  _loadComments(kpId)
+}
+
+async function _loadComments(kpId) {
+  try {
+    const r = await fetch(`${API_BASE}/api/comments/${kpId}?limit=20&offset=0`, { credentials: 'include' })
+    if (!r.ok) return
+    const comments = await r.json()
+    _commentsOffset = comments.length
+    _hasMoreComments = comments.length >= 20
+    const listEl = document.getElementById('comments-list')
+    if (!listEl) return
+    listEl.innerHTML = comments.length
+      ? comments.map(renderCommentHtml).join('')
+      : '<div class="comments-empty">Комментариев пока нет. Будьте первым!</div>'
+    const moreWrap = document.getElementById('comments-load-more-wrap')
+    if (moreWrap) moreWrap.style.display = _hasMoreComments ? '' : 'none'
+  } catch {}
 }
 
 function nzUnblurComments() {
@@ -953,11 +979,12 @@ async function loadMovie() {
   } catch {}
 
   try {
-    const r = await fetch(`${API_BASE}/api/movie/${movieId}`, { credentials: 'include' })
+    const r = await fetch(`${API_BASE}/api/movie/${movieId}`)
     if (!r.ok) throw new Error('Фильм не найден')
     const movie = await r.json()
     renderMovie(movie)
     initRatingWidget(movie)
+    if (window._nzUser || sessionStorage.getItem('nz_me')) refreshNzRating()
     initComments(movie)
   } catch (e) {
     if (!document.getElementById('movieContent').children.length) {

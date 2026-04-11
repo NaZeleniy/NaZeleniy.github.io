@@ -77,8 +77,9 @@ async function loadMe() {
     const color = ratingColor(item.rating)
     const date  = item.created_at ? formatDate(item.created_at) : ''
     if (!item.kp_id) return ''
+    const preview = JSON.stringify({ filmId: item.kp_id, nameRu: item.nameRu, nameEn: item.nameOriginal, posterUrl: item.posterUrl, posterUrlPreview: item.posterUrl }).replace(/'/g, '&#39;')
     return `
-      <a href="/movie.html?id=${item.kp_id}" class="me-item">
+      <a href="/movie.html?id=${item.kp_id}" class="me-item" onclick="sessionStorage.setItem('moviePreview','${preview}')">
         <img class="me-item-poster" src="${imgSrc}" alt="${title}" loading="lazy"/>
         <div class="me-item-info">
           <span class="me-item-title">${title}</span>
