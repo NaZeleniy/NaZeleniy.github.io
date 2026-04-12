@@ -417,11 +417,11 @@ function renderMovie(movie) {
   if (movie.kinopoiskId || movie.imdbId) initPlayerLazyLoad(movie.players || [])
 }
 
-async function loadStaff() {
+async function loadStaff(res) {
   const section = document.getElementById('cast-section')
   if (!section || !movieId) return
   try {
-    const r = await fetch(`${API_BASE}/api/staff/${movieId}`)
+    const r = res ? await res : await fetch(`${API_BASE}/api/staff/${movieId}`)
     if (!r.ok) return
     const staff = await r.json()
 
@@ -493,11 +493,11 @@ async function loadStaff() {
   } catch {}
 }
 
-async function loadSequels() {
+async function loadSequels(res) {
   const section = document.getElementById('sequels-section')
   if (!section || !movieId) return
   try {
-    const r = await fetch(`${API_BASE}/api/sequels/${movieId}`)
+    const r = res ? await res : await fetch(`${API_BASE}/api/sequels/${movieId}`)
     if (!r.ok) { section.innerHTML = ''; return }
     const items = await r.json()
     if (!items?.length) { section.innerHTML = ''; return }
@@ -530,12 +530,12 @@ async function loadSequels() {
   } catch { section.innerHTML = '' }
 }
 
-async function loadSimilars() {
+async function loadSimilars(res) {
   const section = document.getElementById('similars-section')
   if (!section || !movieId) return
   section.innerHTML = `<div class="similars-loading"><i class="fas fa-circle-notch fa-spin"></i></div>`
   try {
-    const r = await fetch(`${API_BASE}/api/similars/${movieId}`)
+    const r = res ? await res : await fetch(`${API_BASE}/api/similars/${movieId}`)
     if (!r.ok) { section.innerHTML = ''; return }
     const items = await r.json()
     if (!items?.length) { section.innerHTML = ''; return }
@@ -980,23 +980,28 @@ async function loadMovie() {
     }
   } catch {}
 
+  // Запускаем вторичные запросы немедленно, параллельно с основным
+  const staffRes    = fetch(`${API_BASE}/api/staff/${movieId}`)
+  const sequelsRes  = fetch(`${API_BASE}/api/sequels/${movieId}`)
+  const similarsRes = fetch(`${API_BASE}/api/similars/${movieId}`)
+
   try {
     const r = await fetch(`${API_BASE}/api/movie/${movieId}`)
     if (!r.ok) throw new Error('Фильм не найден')
     const movie = await r.json()
     renderMovie(movie)
     initRatingWidget(movie)
-    if (window._nzUser || sessionStorage.getItem('nz_me')) refreshNzRating()
+    // DOM готов — рендерим всё остальное без ожидания
+    refreshNzRating()
     initComments(movie)
+    loadStaff(staffRes)
+    loadSequels(sequelsRes)
+    loadSimilars(similarsRes)
   } catch (e) {
     if (!document.getElementById('movieContent').children.length) {
       renderError(e.message || 'Ошибка загрузки фильма')
     }
   }
-
-  loadStaff()
-  loadSequels()
-  loadSimilars()
 }
 
 loadMovie()
