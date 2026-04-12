@@ -86,7 +86,7 @@ function _initSpatialNav() {
 
     SpatialNavigation.add({
       id: 'sidebar',
-      selector: '.side-panel .nav-link, .side-panel .toggle-btn',
+      selector: '.side-panel .nav-link, .side-panel .toggle-btn, #auth-btn .auth-btn',
       restrict: 'self-only',
       leaveFor: { right: '@content' },
     })

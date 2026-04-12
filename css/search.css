@@ -217,5 +217,7 @@
 
 /* ── Mobile (≤620px) ──────────────────────────────────── */
 @media (max-width: 620px) {
-  .search-section { padding: 16px 0 12px; }
+  .search-section { padding: 8px 0 12px; }
+  .search-types { gap: 10px; }
+  .type-btn { font-size: 15px; }
 }

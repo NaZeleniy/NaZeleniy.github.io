@@ -1,4 +1,30 @@
 /* ── TV mode (класс выставляется JS при первом нажатии стрелки) ── */
+
+/* Сайдбар всегда раскрыт в TV-режиме (только не мобила) */
+@media (min-width: 621px) {
+  body.tv-mode {
+    padding-left: var(--sidebar-w-open);
+  }
+
+  body.tv-mode .side-panel {
+    width: var(--sidebar-w-open);
+    align-items: flex-start;
+  }
+
+  body.tv-mode .side-panel .nav-link .nav-text {
+    opacity: 1;
+  }
+}
+
+/* Auth button в TV-режиме */
+body.tv-mode .auth-btn:focus,
+body.tv-mode .auth-btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 16px var(--accent-glow);
+}
+
+
 body.tv-mode .movie-card:focus,
 body.tv-mode .movie-card:focus-visible {
   outline: 4px solid var(--accent);
