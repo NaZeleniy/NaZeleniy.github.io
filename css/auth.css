@@ -46,16 +46,7 @@
 
 /* ── Mobile ───────────────────────────────────────────── */
 @media (max-width: 620px) {
-  #auth-btn {
-    top: 10px;
-    right: 12px;
-  }
-
-  .auth-btn {
-    padding: 6px 10px;
-    font-size: 12px;
-    gap: 5px;
-  }
+  #auth-btn { display: none; }
 
   .login-back {
     left: 12px;

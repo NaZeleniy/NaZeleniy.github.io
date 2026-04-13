@@ -203,7 +203,7 @@
 }
 
 @media (max-width: 620px) {
-  .me-page { padding: 20px 12px 80px; gap: 20px; }
+  .me-page { padding: 8px 12px 80px; gap: 20px; }
   .me-header { padding: 16px; gap: 14px; }
   .me-avatar { width: 56px; height: 56px; font-size: 20px; }
   .me-username { font-size: 1.2rem; }

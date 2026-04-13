@@ -721,9 +721,8 @@ a.movie-poster-side img {
 }
 
 @media (max-width: 620px) {
-  /* top spacing — account for fixed auth button */
   .content-card {
-    padding: 54px 12px 80px;
+    padding: 12px 12px 80px;
     display: flex;
     flex-direction: column;
   }

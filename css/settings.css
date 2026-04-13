@@ -9,7 +9,7 @@
 }
 
 @media (max-width: 620px) {
-  .settings-page { padding: 8px 0 80px; gap: 20px; }
+  .settings-page { padding: 0 0 80px; gap: 20px; }
   .settings-title { font-size: 1.5rem; padding: 0 16px 8px; }
 }
 
