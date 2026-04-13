@@ -179,16 +179,18 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
     transition: opacity var(--transition);
   }
 
+  /* сбрасываем десктопные hover-эффекты на тач */
+  .nav-link,
   .nav-link:hover,
-  .nav-link:focus-visible,
-  .nav-link.active {
+  .nav-link:focus-visible {
     transform: none;
     border-left-color: transparent;
     background: none;
+    color: var(--text-muted);
   }
 
-  .nav-link.active::before,
-  .nav-link:hover::before {
+  /* только active-класс даёт подсветку */
+  .nav-link.active::before {
     opacity: 1;
   }
 
