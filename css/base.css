@@ -43,6 +43,7 @@ body {
   color: var(--text);
   min-height: 100vh;
   overflow-anchor: none;
+  overflow-x: hidden;
   padding-left: var(--sidebar-w);
   transition: padding-left var(--transition);
 }

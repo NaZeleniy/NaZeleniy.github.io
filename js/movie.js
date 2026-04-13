@@ -392,6 +392,9 @@ function renderMovie(movie) {
     : ''
 
   document.getElementById('movieContent').innerHTML = `
+    <button class="mob-back-btn" onclick="history.back()">
+      <i class="fas fa-chevron-left"></i> Назад
+    </button>
     <div class="content-header">
       <h1 class="content-title">${safeTitle}</h1>
     </div>

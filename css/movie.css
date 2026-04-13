@@ -1,4 +1,8 @@
 /* ── Movie Page ───────────────────────────────────────── */
+
+/* Кнопка "Назад" — только мобильный */
+.mob-back-btn { display: none; }
+
 .movie-page {
   max-width: 1100px;
   margin: 0 auto;
@@ -713,21 +717,56 @@ a.movie-poster-side img {
   .movie-layout-poster { position: static; }
   a.movie-poster-side { display: none; }
   .comments-wrap { max-width: 100%; }
+  .content-description-text { max-width: 100%; }
 }
 
 @media (max-width: 620px) {
-  .content-title { font-size: 1.4rem; }
-  .content-card { padding: 0 2px 72px; }
-  .ratings-links { margin: 5px 0; gap: 8px; }
-  .rating-link { padding: 3px 6px; font-size: 14px; }
+  /* top spacing — account for fixed auth button */
+  .content-card {
+    padding: 54px 12px 80px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* reorder mobile layout: title → ratings → player → info */
+  .content-header      { order: 1; min-height: unset; padding: 0 0 4px; }
+  .ratings-links       { order: 2; margin: 4px 0 8px; gap: 6px; }
+  .player-coming-soon  { order: 3; }
+  .player-section      { order: 4; }
+  .movie-layout        { order: 5; }
+  #sequels-section     { order: 6; }
+  #similars-section    { order: 7; }
+  #comments-section    { order: 8; }
+
+  .content-title { font-size: 1.35rem; line-height: 1.2; }
+  .rating-link { padding: 3px 6px; font-size: 13px; }
   .rating-boxes { flex-wrap: wrap; }
-  .rating-box { font-size: 14px; padding: 3px 6px; }
+  .rating-box { font-size: 13px; padding: 3px 6px; }
+
+  /* mobile back button */
+  .mob-back-btn {
+    order: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 0 0 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: fit-content;
+    transition: color var(--transition);
+  }
+
+  .mob-back-btn:hover { color: var(--accent); }
 }
 
 @media (max-width: 380px) {
   .movie-poster-container.desktop-only { display: none; }
   .info-content { flex-direction: column; }
   .content-description-text { max-width: 100%; }
+  .content-title { font-size: 1.15rem; }
 }
 
 /* ── NaZeleniy rating badge ───────────────────────────────── */

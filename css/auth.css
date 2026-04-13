@@ -52,9 +52,14 @@
   }
 
   .auth-btn {
-    padding: 6px 12px;
-    font-size: 13px;
-    gap: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    gap: 5px;
+  }
+
+  .login-back {
+    left: 12px;
+    top: 12px;
   }
 }
 
@@ -70,7 +75,7 @@
 .login-back {
   position: fixed;
   top: 16px;
-  left: 16px;
+  left: calc(var(--sidebar-w) + 12px);
   display: inline-flex;
   align-items: center;
   gap: 8px;
