@@ -153,13 +153,30 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
 
   .nav-link {
     flex-direction: column;
-    gap: 2px;
-    padding: 8px 12px;
+    gap: 3px;
+    padding: 8px 4px;
     border-left: none;
-    border-bottom: 3px solid transparent;
+    border-bottom: none;
     border-radius: 0;
     font-size: 10px;
     align-items: center;
+    justify-content: center;
+    flex: 1;
+    position: relative;
+  }
+
+  /* Активная метка — тонкая линия сверху, внутри элемента */
+  .nav-link::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 25%;
+    right: 25%;
+    height: 2px;
+    border-radius: 0 0 2px 2px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity var(--transition);
   }
 
   .nav-link:hover,
@@ -167,10 +184,25 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
   .nav-link.active {
     transform: none;
     border-left-color: transparent;
-    border-bottom-color: var(--accent);
+    background: none;
   }
 
-  .nav-link i { font-size: 20px; }
+  .nav-link.active::before,
+  .nav-link:hover::before {
+    opacity: 1;
+  }
+
+  .nav-link.active i,
+  .nav-link.active .nav-text {
+    color: var(--accent);
+  }
+
+  .nav-link i {
+    font-size: 20px;
+    min-width: unset;
+    text-align: center;
+    line-height: 1;
+  }
 
   .nav-link .nav-text { opacity: 1; font-size: 10px; }
 
