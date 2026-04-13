@@ -1,5 +1,5 @@
 const API_BASE = window.location.hostname.endsWith('github.io')
-  ? 'https://nazeleniy.mooo.com'
+  ? 'https://nazeleniy.site'
   : ''
 
 const PLACEHOLDER = '/img/placeholder.svg'

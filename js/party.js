@@ -196,7 +196,7 @@ const SYNC_COOLDOWN = 3000     // мс между принудительными
 const TIMEUPDATE_INTERVAL = 2500  // ms between timeupdate sends
 const HOST_SYNC_EVENTS = new Set(['play', 'pause', 'seek', 'timeupdate', 'started', 'start', 'file', 'playlist_changed', 'audiotrack_changed'])
 
-const wsHost = window.location.hostname.endsWith('github.io') ? 'nazeleniy.mooo.com' : location.host
+const wsHost = window.location.hostname.endsWith('github.io') ? 'nazeleniy.site' : location.host
 const wsUrl = (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + wsHost + '/ws/party?room=' + roomId
 
 function connect() {

@@ -1,5 +1,5 @@
 const AUTH_API = window.location.hostname.endsWith('github.io')
-  ? 'https://nazeleniy.mooo.com'
+  ? 'https://nazeleniy.site'
   : ''
 
 const _USER_CACHE_KEY = 'nz_me'

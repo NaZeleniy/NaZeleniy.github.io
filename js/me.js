@@ -1,5 +1,5 @@
 const ME_API = window.location.hostname.endsWith('github.io')
-  ? 'https://nazeleniy.mooo.com'
+  ? 'https://nazeleniy.site'
   : ''
 
 function ratingColor(r) {
