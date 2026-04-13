@@ -71,9 +71,7 @@ async function loadMe() {
     const original = item.nameOriginal && item.nameOriginal !== item.nameRu
       ? `<span class="me-item-original">${escapeHtml(item.nameOriginal)}</span>`
       : ''
-    const imgSrc = item.posterUrl
-      ? ME_API + '/proxy/poster?url=' + encodeURIComponent(item.posterUrl)
-      : '/img/placeholder.svg'
+    const imgSrc = item.posterUrl || '/img/placeholder.svg'
     const color = ratingColor(item.rating)
     const date  = item.created_at ? formatDate(item.created_at) : ''
     if (!item.kp_id) return ''
