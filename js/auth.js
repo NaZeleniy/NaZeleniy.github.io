@@ -1,7 +1,3 @@
-const AUTH_API = window.location.hostname.endsWith('github.io')
-  ? 'https://nazeleniy.site'
-  : ''
-
 const _USER_CACHE_KEY = 'nz_me'
 
 function _getCachedUser() {
@@ -30,7 +26,7 @@ async function initAuthButton() {
   }
 
   try {
-    const res = await fetch(AUTH_API + '/api/me', { credentials: 'include' })
+    const res = await fetch(API_BASE + '/api/me', { credentials: 'include' })
     if (res.ok) {
       const data = await res.json()
       window._nzUser = data
@@ -66,7 +62,7 @@ function renderLoginBtn(container) {
 }
 
 async function authLogout() {
-  await fetch(AUTH_API + '/auth/logout', { method: 'POST', credentials: 'include' })
+  await fetch(API_BASE + '/auth/logout', { method: 'POST', credentials: 'include' })
   _setCachedUser(null)
   window._nzUser = null
   location.href = '/'

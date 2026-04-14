@@ -1,7 +1,3 @@
-const ME_API = window.location.hostname.endsWith('github.io')
-  ? 'https://nazeleniy.site'
-  : ''
-
 function ratingColor(r) {
   if (!r) return '#999'
   if (r >= 7) return '#27ae60'
@@ -26,7 +22,7 @@ async function loadMe() {
   }
   if (!user) {
     try {
-      const r = await fetch(ME_API + '/api/me', { credentials: 'include' })
+      const r = await fetch(API_BASE + '/api/me', { credentials: 'include' })
       if (r.ok) user = await r.json()
     } catch {}
   }
@@ -46,7 +42,7 @@ async function loadMe() {
   // 3. Загружаем оценки
   let ratings = []
   try {
-    const r = await fetch(ME_API + '/api/me/ratings', { credentials: 'include' })
+    const r = await fetch(API_BASE + '/api/me/ratings', { credentials: 'include' })
     if (r.ok) ratings = await r.json()
   } catch {}
 
@@ -120,7 +116,7 @@ function pluralRatings(n) {
 }
 
 async function meLogout() {
-  await fetch(ME_API + '/auth/logout', { method: 'POST', credentials: 'include' })
+  await fetch(API_BASE + '/auth/logout', { method: 'POST', credentials: 'include' })
   try { sessionStorage.removeItem('nz_me') } catch {}
   window._nzUser = null
   location.href = '/'
