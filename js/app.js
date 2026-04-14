@@ -231,8 +231,9 @@ function app() {
     },
 
     prefetchPosters(movies) {
-      for (const movie of movies) {
-        const url = movie.posterUrlPreview || movie.posterUrl
+      const limit = 20
+      for (let i = 0; i < Math.min(movies.length, limit); i++) {
+        const url = movies[i].posterUrlPreview || movies[i].posterUrl
         if (url) {
           const img = new Image()
           img.src = posterUrl(url)

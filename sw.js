@@ -5,7 +5,7 @@ const SKIP = /^\/api\/|^\/ws\/|^\/proxy\/poster/
 // URL с ?v= (версионированные ресурсы) — кеш-first навсегда
 const VERSIONED = /[?&]v=\d/
 // Внешние CDN (mc.yandex.ru не трогаем — adblock блокирует, пусть браузер сам разбирается)
-const EXTERNAL = /cdn\.jsdelivr\.net|videoframe2\.com|s1obrut\.github\.io/
+const EXTERNAL = /videoframe2\.com|s1obrut\.github\.io/
 const NO_SW    = /mc\.yandex\.ru|cdnjs\.cloudflare\.com/
 
 self.addEventListener('install', () => self.skipWaiting())
