@@ -214,7 +214,7 @@ function playerSectionHtml(movie) {
       ${partyBtn}
     </div>
     <div class="player-wrapper">
-      <iframe id="player-frame" frameborder="0" allowfullscreen allow="autoplay; fullscreen"></iframe>
+      <iframe id="player-frame" frameborder="0" allow="autoplay; fullscreen"></iframe>
       <div class="player-loading">
         <i class="fas fa-circle-notch fa-spin"></i>
       </div>
