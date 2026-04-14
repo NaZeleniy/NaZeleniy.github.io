@@ -6,6 +6,7 @@ function app() {
     movies: [],
     searched: false,
     loading: true,
+    loadError: '',
     totalPages: 1,
     currentPage: 1,
     bgPoster: localStorage.getItem('nz_bg_poster') || '',
@@ -269,6 +270,7 @@ function app() {
       } catch (e) {
         console.error(e)
         this.movies = []
+        this.loadError = 'Ошибка загрузки: ' + (e.message || e)
       } finally {
         this.loading = false
       }
