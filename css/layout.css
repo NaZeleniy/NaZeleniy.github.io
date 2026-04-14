@@ -107,7 +107,7 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
 
 .bg-poster {
   position: fixed;
-  inset: -40px;
+  top: -40px; right: -40px; bottom: -40px; left: -40px;
   z-index: -1;
   background-size: cover;
   background-position: center;
@@ -126,7 +126,7 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
 
   .side-panel {
     width: 100%;
-    height: 56px;
+    height: calc(56px + env(safe-area-inset-bottom));
     flex-direction: row;
     top: auto;
     bottom: 0;
@@ -208,5 +208,5 @@ html[data-bg-effect="0"] .bg-poster { display: none; }
 
   .nav-link .nav-text { opacity: 1; font-size: 10px; }
 
-  .main-content { padding: 12px 10px 72px; }
+  .main-content { padding: 12px 10px calc(72px + env(safe-area-inset-bottom)); }
 }

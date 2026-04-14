@@ -163,6 +163,7 @@
   text-transform: uppercase;
   padding: 5px 8px 4px;
   border-radius: 5px;
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
   line-height: 1;
   display: flex;

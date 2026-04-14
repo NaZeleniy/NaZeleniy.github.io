@@ -206,6 +206,7 @@
   color: #f87171;
   border: 1px solid rgba(220, 38, 38, 0.5);
   border-radius: 6px;
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
   font-size: 13px;
   letter-spacing: 0.05em;
