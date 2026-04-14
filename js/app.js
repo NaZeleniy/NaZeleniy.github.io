@@ -15,6 +15,7 @@ function app() {
     _topLoading: false,
     _searchLoading: false,
     _prefetched: new Set(),
+    _seenIds: new Set(),
 
     suggestions: [],
     showSuggestions: false,
@@ -23,6 +24,15 @@ function app() {
     _suggestAbort: null,
 
     history: [],
+
+    _dedup(movies) {
+      return movies.filter(m => {
+        const id = m.kinopoiskId || m.filmId
+        if (!id || this._seenIds.has(id)) return false
+        this._seenIds.add(id)
+        return true
+      })
+    },
 
     _loadHistory() {
       this.history = (typeof historyGet === 'function' ? historyGet() : [])
@@ -252,6 +262,7 @@ function app() {
       this.showSuggestions = false
       this._topPage = 0
       this._topDone = false
+      this._seenIds = new Set()
       this.loading = true
       try {
         const [r1, r2] = await Promise.all([
@@ -262,10 +273,10 @@ function app() {
         const d1 = await r1.json()
         let d2 = []
         try { if (r2.ok) d2 = await r2.json() } catch {}
-        this.movies = [
+        this.movies = this._dedup([
           ...(Array.isArray(d1) ? d1 : []),
           ...(Array.isArray(d2) ? d2 : []),
-        ]
+        ])
         this._topPage = 2
       } catch (e) {
         console.error(e)
@@ -306,7 +317,7 @@ function app() {
         this._topPage = nextPage + 1
         const d1 = r1.ok ? await r1.json() : []
         const d2 = r2.ok ? await r2.json() : []
-        const next = [...(Array.isArray(d1) ? d1 : []), ...(Array.isArray(d2) ? d2 : [])]
+        const next = this._dedup([...(Array.isArray(d1) ? d1 : []), ...(Array.isArray(d2) ? d2 : [])])
         if (next.length === 0) {
           this._topDone = true
         } else {
