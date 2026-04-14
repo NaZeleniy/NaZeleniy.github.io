@@ -297,8 +297,6 @@ function app() {
 
     async _loadMoreTop() {
       this._topLoading = true
-      const sentinel = document.getElementById('scroll-sentinel')
-      if (sentinel && this._scrollObserver) this._scrollObserver.unobserve(sentinel)
       const nextPage = this._topPage + 1
       try {
         const [r1, r2] = await Promise.all([
@@ -319,15 +317,7 @@ function app() {
         this._topDone = true
       } finally {
         this._topLoading = false
-        if (this._topDone) {
-          this._scrollCleanup()
-        } else if (sentinel && this._scrollObserver) {
-          this.$nextTick(() => {
-            if (!this._topDone && this._scrollObserver) {
-              this._scrollObserver.observe(sentinel)
-            }
-          })
-        }
+        if (this._topDone) this._scrollCleanup()
       }
     },
 
