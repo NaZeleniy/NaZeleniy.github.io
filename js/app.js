@@ -285,19 +285,20 @@ function app() {
     initTopScroll() {
       this._scrollCleanup()
       if (this._topDone) return
-      const check = () => {
-        if (this._topLoading || this._topDone) return
-        if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 800) {
+      const sentinel = document.getElementById('scroll-sentinel')
+      if (!sentinel) return
+      this._scrollObserver = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting && !this._topLoading && !this._topDone) {
           this._loadMoreTop()
         }
-      }
-      this._scrollHandler = check
-      window.addEventListener('scroll', this._scrollHandler, { passive: true })
-      check()
+      }, { rootMargin: '400px' })
+      this._scrollObserver.observe(sentinel)
     },
 
     async _loadMoreTop() {
       this._topLoading = true
+      const sentinel = document.getElementById('scroll-sentinel')
+      if (sentinel && this._scrollObserver) this._scrollObserver.unobserve(sentinel)
       const nextPage = this._topPage + 1
       try {
         const [r1, r2] = await Promise.all([
@@ -320,8 +321,8 @@ function app() {
         this._topLoading = false
         if (this._topDone) {
           this._scrollCleanup()
-        } else {
-          this._scrollHandler?.()
+        } else if (sentinel && this._scrollObserver) {
+          this._scrollObserver.observe(sentinel)
         }
       }
     },
