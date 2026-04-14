@@ -181,6 +181,7 @@ function app() {
     },
 
     async search() {
+      if (this.loading) return
       this._scrollCleanup()
       this.searched = true
       this.loading = true
