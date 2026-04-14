@@ -253,25 +253,19 @@ function app() {
       this._topDone = false
       this.loading = true
       try {
-        const [r1, r2, r3, r4] = await Promise.all([
+        const [r1, r2] = await Promise.all([
           fetch(`${API_BASE}/api/top?page=1`),
           fetch(`${API_BASE}/api/top?page=2`),
-          fetch(`${API_BASE}/api/top?page=3`),
-          fetch(`${API_BASE}/api/top?page=4`),
         ])
         if (!r1.ok) throw new Error('upstream ' + r1.status)
         const d1 = await r1.json()
-        let d2 = [], d3 = [], d4 = []
+        let d2 = []
         try { if (r2.ok) d2 = await r2.json() } catch {}
-        try { if (r3.ok) d3 = await r3.json() } catch {}
-        try { if (r4.ok) d4 = await r4.json() } catch {}
         this.movies = [
           ...(Array.isArray(d1) ? d1 : []),
           ...(Array.isArray(d2) ? d2 : []),
-          ...(Array.isArray(d3) ? d3 : []),
-          ...(Array.isArray(d4) ? d4 : []),
         ]
-        this._topPage = 4
+        this._topPage = 2
       } catch (e) {
         console.error(e)
         this.movies = []
