@@ -291,7 +291,7 @@ function app() {
         if (entries[0].isIntersecting && !this._topLoading && !this._topDone) {
           this._loadMoreTop()
         }
-      }, { rootMargin: '400px' })
+      }, { rootMargin: '200px' })
       this._scrollObserver.observe(sentinel)
     },
 
@@ -322,7 +322,11 @@ function app() {
         if (this._topDone) {
           this._scrollCleanup()
         } else if (sentinel && this._scrollObserver) {
-          this._scrollObserver.observe(sentinel)
+          this.$nextTick(() => {
+            if (!this._topDone && this._scrollObserver) {
+              this._scrollObserver.observe(sentinel)
+            }
+          })
         }
       }
     },
