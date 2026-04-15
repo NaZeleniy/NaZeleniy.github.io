@@ -49,14 +49,19 @@ async function loadMe() {
 
   // 3. Загружаем оценки
   let ratings = []
+  let ratingsTotal = 0
   try {
     const r = await fetch(API_BASE + '/api/me/ratings', { credentials: 'include' })
-    if (r.ok) ratings = await r.json()
+    if (r.ok) {
+      const body = await r.json()
+      ratings = body.items || []
+      ratingsTotal = body.total ?? ratings.length
+    }
   } catch {}
 
   const countEl = document.getElementById('me-ratings-count')
-  countEl.textContent = ratings.length
-    ? `${ratings.length} ${pluralRatings(ratings.length)}`
+  countEl.textContent = ratingsTotal
+    ? `${ratingsTotal} ${pluralRatings(ratingsTotal)}`
     : 'нет оценок'
 
   const list = document.getElementById('me-ratings-grid')
@@ -71,17 +76,18 @@ async function loadMe() {
   }
 
   list.innerHTML = ratings.map(item => {
-    const title    = escapeHtml(item.nameRu || item.nameOriginal || `Фильм #${item.kp_id}`)
+    const id = item.kinopoiskId
+    if (!id) return ''
+    const title    = escapeHtml(item.nameRu || item.nameOriginal || `Фильм #${id}`)
     const original = item.nameOriginal && item.nameOriginal !== item.nameRu
       ? `<span class="me-item-original">${escapeHtml(item.nameOriginal)}</span>`
       : ''
     const imgSrc = item.posterUrl || '/img/placeholder.svg'
-    const color = ratingColor(item.rating)
-    const date  = item.created_at ? formatDate(item.created_at) : ''
-    if (!item.kp_id) return ''
-    const preview = JSON.stringify({ filmId: item.kp_id, nameRu: item.nameRu, nameEn: item.nameOriginal, posterUrl: item.posterUrl, posterUrlPreview: item.posterUrl }).replace(/'/g, '&#39;')
+    const color = ratingColor(item.userRating)
+    const date  = item.ratedAt ? formatDate(item.ratedAt) : ''
+    const preview = JSON.stringify({ filmId: id, nameRu: item.nameRu, nameEn: item.nameOriginal, posterUrl: item.posterUrl, posterUrlPreview: item.posterUrl }).replace(/'/g, '&#39;')
     return `
-      <a href="/movie/${item.kp_id}" class="me-item" onclick="sessionStorage.setItem('moviePreview','${preview}')">
+      <a href="/movie/${id}" class="me-item" onclick="sessionStorage.setItem('moviePreview','${preview}')">
         <img class="me-item-poster" src="${imgSrc}" alt="${title}" loading="lazy"/>
         <div class="me-item-info">
           <span class="me-item-title">${title}</span>
@@ -89,7 +95,7 @@ async function loadMe() {
         </div>
         <div class="me-item-meta">
           ${date ? `<span class="me-item-date">${date}</span>` : ''}
-          <span class="me-item-rating" style="background:${color}">${item.rating}</span>
+          <span class="me-item-rating" style="background:${color}">${item.userRating}</span>
         </div>
       </a>`
   }).join('')

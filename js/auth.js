@@ -37,7 +37,31 @@ function _setCachedUser(data) {
   } catch {}
 }
 
-async function _revalidateUser(container) {
+// quickCheck=true: GET /auth/check (Redis, быстро) — только проверяем сессию,
+// данные пользователя берём из уже отрендеренного кеша.
+// quickCheck=false: GET /api/me (DB) — нужен полный профиль (имя) для кнопки.
+async function _revalidateUser(container, quickCheck = false) {
+  if (quickCheck) {
+    try {
+      const res = await fetch(_apiBase() + '/auth/check', { credentials: 'include' })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.authenticated) {
+          // Обновляем timestamp — без этого кеш останется стейл и quickCheck
+          // сработает снова на каждой следующей странице
+          _setCachedUser(window._nzUser)
+        } else {
+          window._nzUser = null
+          _setCachedUser(null)
+          renderLoginBtn(container)
+        }
+      }
+    } catch {
+      // Ошибка сети — не сбрасываем кеш, пользователь может быть офлайн
+    }
+    return
+  }
+
   try {
     const res = await fetch(_apiBase() + '/api/me', { credentials: 'include' })
     if (res.ok) {
@@ -64,11 +88,11 @@ async function initAuthButton() {
   if (cached) {
     window._nzUser = cached.data
     _renderUserBtn(container, cached.data)
-    if (cached.stale) _revalidateUser(container) // обновляем в фоне, не блокируя рендер
+    if (cached.stale) _revalidateUser(container, true) // быстрая проверка сессии в фоне
     return
   }
 
-  await _revalidateUser(container)
+  await _revalidateUser(container) // нет кеша — нужен полный профиль с именем
 }
 
 function _escapeHtml(s) {
@@ -91,7 +115,10 @@ function renderLoginBtn(container) {
 }
 
 async function authLogout() {
-  await fetch(_apiBase() + '/auth/logout', { method: 'POST', credentials: 'include' })
+  try {
+    await fetch(_apiBase() + '/auth/logout', { method: 'POST', credentials: 'include' })
+  } catch {}
+  // Очищаем локальное состояние независимо от результата запроса
   _setCachedUser(null)
   window._nzUser = null
   // На защищённых страницах редиректим на главную, иначе просто перерисовываем кнопку
