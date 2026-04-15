@@ -65,13 +65,16 @@ function app() {
     },
 
     prefetch(movie) {
+      // На GitHub Pages /movie/{id} отдаёт 404.html как SPA-shell — GitHub Pages не умеет
+      // отвечать 200 на эти пути. Chrome логирует SW-внутренний запрос к серверу (404)
+      // в консоль вне зависимости от того, что SW вернул клиенту. SW кеширует shell при
+      // первой реальной навигации, поэтому prefetch здесь ничего не даёт.
+      if (location.hostname.endsWith('github.io')) return
       const id = movie.kinopoiskId || movie.filmId
       if (!id) return
       const href = '/movie/' + id
       if (this._prefetched.has(href)) return
       this._prefetched.add(href)
-      // fetch вместо <link rel="prefetch">: браузер не логирует 404 для programmatic fetch,
-      // а SW всё равно перехватит запрос и закешируёт 404.html как SPA-shell
       fetch(href, { credentials: 'omit' }).catch(() => {})
     },
 

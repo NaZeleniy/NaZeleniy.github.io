@@ -40,9 +40,7 @@ self.addEventListener('fetch', e => {
     return
   }
   if (/^\/movie\/\d+\/?$/.test(url.pathname)) {
-    // rewrite404: GitHub Pages отдаёт 404 как SPA-shell — переводим статус в 200,
-    // чтобы браузер не логировал ошибку в консоль ни при prefetch, ни при навигации
-    e.respondWith(staleWhileRevalidate(request, { allow404: true, rewrite404: true }))
+    e.respondWith(staleWhileRevalidate(request, { allow404: true }))
     return
   }
 
@@ -62,34 +60,16 @@ async function cacheFirst(req) {
   }
 }
 
-async function staleWhileRevalidate(req, { allow404 = false, rewrite404 = false } = {}) {
+async function staleWhileRevalidate(req, { allow404 = false } = {}) {
   const cache = await caches.open(CACHE)
   const cached = await cache.match(req)
-  const fresh = fetch(req).then(async res => {
-    if (res.ok) {
-      cache.put(req, res.clone())
-      return res
-    }
-    // GitHub Pages намеренно отдаёт 404.html как SPA-shell для /movie/{id}.
-    // rewrite404: переписываем статус в 200 — браузер не логирует 4xx в консоль.
-    if (allow404 && res.status === 404) {
-      const r = rewrite404 ? await to200(res) : res
-      cache.put(req, r.clone())
-      return r
-    }
+  const fresh = fetch(req).then(res => {
+    // Кешируем успешные ответы; для /movie/{id} кешируем и 404
+    // (GitHub Pages намеренно отдаёт 404.html — это наш app shell)
+    if (res.ok || (allow404 && res.status === 404)) cache.put(req, res.clone())
     return res
   }).catch(() => cached || new Response('', { status: 503, statusText: 'Service Unavailable' }))
   return cached || fresh
-}
-
-// Конвертирует Response в эквивалентный с status 200 (тот же body и content-type).
-async function to200(res) {
-  const body = await res.arrayBuffer()
-  return new Response(body, {
-    status: 200,
-    statusText: 'OK',
-    headers: { 'content-type': res.headers.get('content-type') || 'text/html; charset=utf-8' },
-  })
 }
 
 async function networkWithFallback(req) {
