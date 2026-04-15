@@ -47,20 +47,23 @@
 /* ── Auth Modal ───────────────────────────────────────── */
 .auth-modal {
   position: fixed;
-  inset: 0;
+  top: 0; right: 0; bottom: 0; left: 0; /* inset не поддерживается в старых браузерах */
   z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
 }
-.auth-modal[hidden] { display: none; }
+/* [hidden] по умолчанию display:none, но .auth-modal задаёт flex — нужен явный override */
+.auth-modal[hidden] { display: none !important; }
 
 .auth-modal-backdrop {
   position: absolute;
-  inset: 0;
+  top: 0; right: 0; bottom: 0; left: 0;
   background: rgba(0, 0, 0, 0.75);
+  -webkit-backdrop-filter: blur(4px); /* Safari */
   backdrop-filter: blur(4px);
+  overscroll-behavior: contain; /* скролл не проходит сквозь бэкдроп */
 }
 
 .auth-modal-card {
@@ -95,6 +98,13 @@
 .auth-modal-close:hover {
   background: var(--bg-tertiary);
   color: var(--text);
+}
+
+/* Маленькие экраны: уменьшаем отступы карточки чтобы QR (220px) влез */
+@media (max-width: 480px) {
+  .auth-modal { padding: 12px; }
+  .auth-modal-card { padding: 28px 16px; }
+  .login-qr { padding: 6px; }
 }
 
 /* ── Mobile ───────────────────────────────────────────── */

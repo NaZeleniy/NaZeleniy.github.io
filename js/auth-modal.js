@@ -1,12 +1,13 @@
 (function () {
   // ── Inject modal HTML ─────────────────────────────────────────────
   document.body.insertAdjacentHTML('beforeend', `
-    <div id="auth-modal" class="auth-modal" hidden>
+    <div id="auth-modal" class="auth-modal" hidden
+         role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
       <div class="auth-modal-backdrop"></div>
       <div class="auth-modal-card login-card">
         <button class="auth-modal-close" aria-label="Закрыть"><i class="fas fa-times"></i></button>
         <div class="login-logo"><i class="fab fa-telegram"></i></div>
-        <h2 class="login-title">Войти через Telegram</h2>
+        <h2 class="login-title" id="auth-modal-title">Войти через Telegram</h2>
         <p class="login-subtitle">Откройте бота и подтвердите вход</p>
         <div id="auth-modal-body"></div>
       </div>
@@ -16,9 +17,12 @@
   let _step = 'idle'
   let _token = '', _botUrl = '', _errorMsg = ''
   let _timeLeft = 300
-  let _pollTimer = null, _countdownTimer = null
+  let _pollTimer = null, _countdownTimer = null, _doneCbTimer = null
   let _successCb = null
+  let _prevFocus = null       // фокус до открытия — восстанавливаем при закрытии
+  let _bodyOverflow = ''      // сохранённое body.style.overflow
   let _qrLoading = false
+  let _qrPollTimer = null     // интервал ожидания QRCode — нужно очищать
 
   function _api() {
     if (typeof API_BASE !== 'undefined') return API_BASE
@@ -30,14 +34,31 @@
   // ── QR lazy loader ────────────────────────────────────────────────
   function _withQR(cb) {
     if (typeof QRCode !== 'undefined') { cb(); return }
+
+    // Очистить предыдущий опрос, если есть (предотвращает дублирующиеся интервалы)
+    if (_qrPollTimer) { clearInterval(_qrPollTimer); _qrPollTimer = null }
+
     if (!_qrLoading) {
       _qrLoading = true
       const s = document.createElement('script')
       s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'
       s.crossOrigin = 'anonymous'
+      s.onerror = () => { _qrLoading = false } // CDN недоступен — сбросить флаг
       document.head.appendChild(s)
     }
-    const t = setInterval(() => { if (typeof QRCode !== 'undefined') { clearInterval(t); cb() } }, 80)
+
+    let attempts = 0
+    const MAX_ATTEMPTS = 100 // 8 секунд при 80ms
+    _qrPollTimer = setInterval(() => {
+      attempts++
+      if (typeof QRCode !== 'undefined') {
+        clearInterval(_qrPollTimer); _qrPollTimer = null
+        cb()
+      } else if (attempts >= MAX_ATTEMPTS) {
+        clearInterval(_qrPollTimer); _qrPollTimer = null
+        // QR не загрузился — QR-блок просто останется пустым, кнопка Telegram всё равно есть
+      }
+    }, 80)
   }
 
   function _esc(s) {
@@ -59,10 +80,12 @@
       body.innerHTML = `<div class="login-spinner"><i class="fas fa-circle-notch fa-spin"></i></div>`
 
     } else if (_step === 'waiting') {
+      // Проверяем что URL пришёл с нашего бэкенда и является безопасным
+      const safeUrl = _botUrl && /^https:\/\//.test(_botUrl) ? _esc(_botUrl) : '#'
       body.innerHTML = `
         <div class="login-waiting">
           <div id="_am_qr" class="login-qr"></div>
-          <a href="${_esc(_botUrl)}" target="_blank" rel="noopener" class="login-tg-btn">
+          <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="login-tg-btn">
             <i class="fab fa-telegram"></i> Открыть Telegram
           </a>
           <div class="login-status">
@@ -79,11 +102,13 @@
         const el = document.getElementById('_am_qr')
         if (!el || !_botUrl) return
         el.innerHTML = ''
-        new QRCode(el, {
-          text: _botUrl, width: 200, height: 200,
-          colorDark: '#000', colorLight: '#fff',
-          correctLevel: QRCode.CorrectLevel.M,
-        })
+        try {
+          new QRCode(el, {
+            text: _botUrl, width: 200, height: 200,
+            colorDark: '#000', colorLight: '#fff',
+            correctLevel: QRCode.CorrectLevel.M,
+          })
+        } catch {}
       })
 
     } else if (_step === 'done') {
@@ -102,6 +127,10 @@
         </div>`
       document.getElementById('_am_r').onclick = _reset
     }
+
+    // Фокус на первой интерактивной кнопке в теле модалки
+    const btn = body.querySelector('button, a[href]')
+    if (btn) btn.focus()
   }
 
   // ── Flow ──────────────────────────────────────────────────────────
@@ -123,13 +152,17 @@
   function _startPolling() {
     _pollTimer = setInterval(async () => {
       try {
-        const res = await fetch(_api() + '/auth/telegram/status?token=' + _token, { credentials: 'include' })
+        const res = await fetch(
+          _api() + '/auth/telegram/status?token=' + encodeURIComponent(_token),
+          { credentials: 'include' }
+        )
         if (!res.ok) return
         const d = await res.json()
         if (d.status === 'ok') {
           _stopTimers(); _step = 'done'; _render()
           try { localStorage.removeItem('nz_me') } catch {}
-          setTimeout(() => {
+          _doneCbTimer = setTimeout(() => {
+            _doneCbTimer = null
             closeAuthModal()
             document.dispatchEvent(new CustomEvent('nz:auth-success'))
             if (typeof _successCb === 'function') { _successCb(); _successCb = null }
@@ -155,12 +188,30 @@
 
   function _stopTimers() {
     clearInterval(_pollTimer); clearInterval(_countdownTimer)
+    if (_qrPollTimer) { clearInterval(_qrPollTimer); _qrPollTimer = null }
+    if (_doneCbTimer) { clearTimeout(_doneCbTimer); _doneCbTimer = null }
     _pollTimer = null; _countdownTimer = null
   }
 
   function _reset() {
     _stopTimers(); _token = ''; _botUrl = ''; _timeLeft = 300; _step = 'idle'; _render()
   }
+
+  // ── Focus trap (Tab не уходит за бэкдроп) ────────────────────────
+  document.addEventListener('keydown', e => {
+    const m = _modal(); if (!m || m.hidden) return
+    if (e.key !== 'Tab') return
+    const focusable = Array.from(
+      m.querySelectorAll('button:not([disabled]), a[href], input, [tabindex]:not([tabindex="-1"])')
+    ).filter(el => !el.closest('[hidden]'))
+    if (!focusable.length) { e.preventDefault(); return }
+    const first = focusable[0], last = focusable[focusable.length - 1]
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus() }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus() }
+    }
+  })
 
   // ── Close on backdrop / ✕ / ESC ───────────────────────────────────
   document.addEventListener('click', e => {
@@ -175,11 +226,36 @@
   // ── Public API ────────────────────────────────────────────────────
   window.openAuthModal = function (onSuccess) {
     _successCb = onSuccess || null
+    _prevFocus = document.activeElement
+    _bodyOverflow = document.body.style.overflow
     _reset()
-    _modal().hidden = false
+
+    const m = _modal()
+    m.hidden = false
     document.body.style.overflow = 'hidden'
+
+    // Переиграть анимацию появления при каждом открытии
+    const card = m.querySelector('.auth-modal-card')
+    if (card) {
+      card.style.animation = 'none'
+      void card.offsetHeight // принудительный reflow
+      card.style.animation = ''
+    }
+
+    // Фокус в модалку (если _render ещё не поставил его на кнопку)
+    const btn = m.querySelector('.auth-modal-card button, .auth-modal-card a[href]')
+    if (btn) btn.focus()
   }
+
   window.closeAuthModal = function () {
-    _stopTimers(); _modal().hidden = true; document.body.style.overflow = ''
+    _stopTimers()
+    const m = _modal(); if (m) m.hidden = true
+    document.body.style.overflow = _bodyOverflow
+
+    // Вернуть фокус туда откуда открыли
+    if (_prevFocus && typeof _prevFocus.focus === 'function') {
+      try { _prevFocus.focus() } catch {}
+      _prevFocus = null
+    }
   }
 })()

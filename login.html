@@ -1,52 +1,62 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <script src="js/version.js?v=1776223101"></script>
+  <script src="js/version.js?v=1776223455"></script>
   <meta charset="UTF-8"/>
   <link rel="dns-prefetch" href="https://nazeleniy.site">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <meta name="theme-color" content="#000000"/>
   <title>Войти — NaZeleniy</title>
   <link rel="icon" type="image/png" href="img/icons/favicon.png"/>
-  <link rel="preload" href="css/style.css?v=1776223101" as="style">
-  <link rel="stylesheet" href="css/style.css?v=1776223101"/>
-  <link rel="preload" href="css/icons.css?v=1776223101" as="style">
-  <link rel="stylesheet" href="css/icons.css?v=1776223101"/>
+  <link rel="preload" href="css/style.css?v=1776223455" as="style">
+  <link rel="stylesheet" href="css/style.css?v=1776223455"/>
+  <link rel="preload" href="css/icons.css?v=1776223455" as="style">
+  <link rel="stylesheet" href="css/icons.css?v=1776223455"/>
+  <script defer src="js/alpine.min.js?v=1776223455"></script>
 </head>
 <body>
 
   <div id="app-sidebar"></div>
 
-  <script src="js/api.js?v=1776223101"></script>
-  <script src="js/header.js?v=1776223101"></script>
+  <script src="js/api.js?v=1776223455"></script>
+  <script src="js/header.js?v=1776223455"></script>
   <script>renderHeader('login')</script>
 
   <script>
+    var _LOGIN_CACHE_TTL = 15 * 60 * 1000 // должен совпадать с auth.js
+
     function _nextUrl() {
-      const raw = new URLSearchParams(location.search).get('next') || '/'
+      var raw = new URLSearchParams(location.search).get('next') || '/'
       try {
-        const u = new URL(raw, location.origin)
+        var u = new URL(raw, location.origin)
         return u.origin === location.origin ? u.pathname + u.search : '/'
-      } catch { return '/' }
+      } catch (e) { return '/' }
     }
 
-    // Если уже залогинен — сразу редиректим
+    // Если уже залогинен (кеш свежий) — сразу редиректим, не показывая модалку
     try {
-      const cached = localStorage.getItem('nz_me')
-      if (cached) {
-        const { data } = JSON.parse(cached)
-        if (data) { location.replace(_nextUrl()); }
+      var _cached = localStorage.getItem('nz_me')
+      if (_cached) {
+        var _parsed = JSON.parse(_cached)
+        if (_parsed.data && _parsed.ts && (Date.now() - _parsed.ts < _LOGIN_CACHE_TTL)) {
+          location.replace(_nextUrl())
+        }
       }
-    } catch {}
+    } catch (e) {}
 
     // После входа через модалку — редиректим на ?next=
-    document.addEventListener('nz:auth-success', () => location.replace(_nextUrl()), { once: true })
+    document.addEventListener('nz:auth-success', function () {
+      location.replace(_nextUrl())
+    }, { once: true })
 
     // Открываем модалку как только она готова
+    // Лимит 60 попыток = 3 секунды; если не загрузилась — не блокируем пользователя
+    var _tryOpenAttempts = 0
     function _tryOpen() {
       if (typeof openAuthModal === 'function') {
         openAuthModal()
-      } else {
+      } else if (_tryOpenAttempts < 60) {
+        _tryOpenAttempts++
         setTimeout(_tryOpen, 50)
       }
     }
