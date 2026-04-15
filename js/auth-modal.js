@@ -163,7 +163,20 @@
         const d = await res.json()
         if (d.status === 'ok') {
           _stopTimers(); _step = 'done'; _render()
-          try { localStorage.removeItem('nz_me') } catch {}
+
+          // Получаем данные пользователя сразу — до вызова successCb,
+          // чтобы window._nzUser был уже установлен когда callback запустится
+          try {
+            const meRes = await fetch(_api() + '/api/me', { credentials: 'include' })
+            if (meRes.ok) {
+              const meData = await meRes.json()
+              window._nzUser = meData
+              try {
+                localStorage.setItem('nz_me', JSON.stringify({ data: meData, ts: Date.now() }))
+              } catch {}
+            }
+          } catch {}
+
           _doneCbTimer = setTimeout(() => {
             _doneCbTimer = null
             closeAuthModal()

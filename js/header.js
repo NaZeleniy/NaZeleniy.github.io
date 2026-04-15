@@ -16,7 +16,7 @@ function _initAuthBtn() {
   const v = (ver.match(/[?&]v=\d+/) || [''])[0]
 
   const _load = src => { const s = document.createElement('script'); s.src = src; document.body.appendChild(s) }
-  _load('js/auth-modal.js' + v)
+  // auth.js сам загружает auth-modal.js если нужно — не грузим здесь чтобы избежать двойной загрузки
   _load('js/auth.js' + v)
 }
 

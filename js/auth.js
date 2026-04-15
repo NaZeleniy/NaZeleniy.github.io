@@ -145,8 +145,16 @@ async function authLogout() {
 
 initAuthButton()
 
-// После успешного входа через модалку — обновить кнопку в хедере
+// После успешного входа через модалку — обновить кнопку в хедере.
+// auth-modal.js уже сделал fetch /api/me и установил window._nzUser + кеш,
+// поэтому просто рендерим кнопку из готовых данных.
 document.addEventListener('nz:auth-success', () => {
-  _setCachedUser(null) // сбросим устаревший кеш, получим свежие данные
-  initAuthButton()
+  const container = document.getElementById('auth-btn')
+  if (!container) return
+  if (window._nzUser) {
+    _renderUserBtn(container, window._nzUser)
+  } else {
+    _setCachedUser(null)
+    initAuthButton()
+  }
 })

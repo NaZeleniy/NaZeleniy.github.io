@@ -26,7 +26,10 @@ async function loadMe() {
   if (!user) {
     try {
       const r = await fetch(API_BASE + '/api/me', { credentials: 'include' })
-      if (r.ok) user = await r.json()
+      if (r.ok) {
+        user = await r.json()
+        window._nzUser = user
+      }
     } catch {}
   }
 
