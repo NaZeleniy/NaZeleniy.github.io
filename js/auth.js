@@ -1,3 +1,15 @@
+// Если auth-modal.js не загружен (страницы с #auth-btn прямо в HTML),
+// подгружаем его — берём версию из собственного тега <script>
+if (typeof openAuthModal === 'undefined') {
+  ;(function () {
+    const src = (document.querySelector('script[src*="auth.js"]') || {}).src || ''
+    const v   = (src.match(/[?&]v=\d+/) || [''])[0]
+    const s   = document.createElement('script')
+    s.src     = 'js/auth-modal.js' + v
+    document.body.appendChild(s)
+  })()
+}
+
 const _USER_CACHE_KEY = 'nz_me'
 const _CACHE_TTL = 15 * 60 * 1000 // 15 минут
 
