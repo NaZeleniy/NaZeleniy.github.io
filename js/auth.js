@@ -1,30 +1,24 @@
 const _USER_CACHE_KEY = 'nz_me'
+const _CACHE_TTL = 15 * 60 * 1000 // 15 минут
 
 function _getCachedUser() {
   try {
-    const raw = sessionStorage.getItem(_USER_CACHE_KEY)
-    return raw ? JSON.parse(raw) : null
+    const raw = localStorage.getItem(_USER_CACHE_KEY)
+    if (!raw) return null
+    const { data, ts } = JSON.parse(raw)
+    if (!data) return null
+    return { data, stale: Date.now() - ts > _CACHE_TTL }
   } catch { return null }
 }
 
 function _setCachedUser(data) {
   try {
-    if (data) sessionStorage.setItem(_USER_CACHE_KEY, JSON.stringify(data))
-    else sessionStorage.removeItem(_USER_CACHE_KEY)
+    if (data) localStorage.setItem(_USER_CACHE_KEY, JSON.stringify({ data, ts: Date.now() }))
+    else localStorage.removeItem(_USER_CACHE_KEY)
   } catch {}
 }
 
-async function initAuthButton() {
-  const container = document.getElementById('auth-btn')
-  if (!container) return
-
-  const cached = _getCachedUser()
-  if (cached) {
-    window._nzUser = cached
-    _renderUserBtn(container, cached)
-    return
-  }
-
+async function _revalidateUser(container) {
   try {
     const res = await fetch(API_BASE + '/api/me', { credentials: 'include' })
     if (res.ok) {
@@ -34,12 +28,28 @@ async function initAuthButton() {
       _renderUserBtn(container, data)
     } else {
       window._nzUser = null
+      _setCachedUser(null)
       renderLoginBtn(container)
     }
   } catch {
-    window._nzUser = null
-    renderLoginBtn(container)
+    // При ошибке сети не сбрасываем кеш — пользователь может быть офлайн
+    if (!window._nzUser) renderLoginBtn(container)
   }
+}
+
+async function initAuthButton() {
+  const container = document.getElementById('auth-btn')
+  if (!container) return
+
+  const cached = _getCachedUser()
+  if (cached) {
+    window._nzUser = cached.data
+    _renderUserBtn(container, cached.data)
+    if (cached.stale) _revalidateUser(container) // обновляем в фоне, не блокируя рендер
+    return
+  }
+
+  await _revalidateUser(container)
 }
 
 function _escapeHtml(s) {

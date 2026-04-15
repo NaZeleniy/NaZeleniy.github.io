@@ -761,7 +761,7 @@ function formatCommentDate(iso) {
 
 function renderCommentHtml(comment) {
   let u = window._nzUser
-  if (!u) { try { const r = sessionStorage.getItem('nz_me'); if (r) u = JSON.parse(r) } catch {} }
+  if (!u) { try { const r = localStorage.getItem('nz_me'); if (r) { const p = JSON.parse(r); u = p.data || p } } catch {} }
   const uid = u ? String(u.user_id ?? '') : ''
   const isOwn = uid && comment.user_id != null && String(comment.user_id) === uid
   const deleteBtn = isOwn

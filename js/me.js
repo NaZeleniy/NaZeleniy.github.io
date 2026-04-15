@@ -16,8 +16,11 @@ async function loadMe() {
   let user = window._nzUser || null
   if (!user) {
     try {
-      const raw = sessionStorage.getItem('nz_me')
-      if (raw) user = JSON.parse(raw)
+      const raw = localStorage.getItem('nz_me')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        user = parsed.data || parsed // поддержка старого формата без обёртки
+      }
     } catch {}
   }
   if (!user) {
@@ -117,7 +120,7 @@ function pluralRatings(n) {
 
 async function meLogout() {
   await fetch(API_BASE + '/auth/logout', { method: 'POST', credentials: 'include' })
-  try { sessionStorage.removeItem('nz_me') } catch {}
+  try { localStorage.removeItem('nz_me') } catch {}
   window._nzUser = null
   location.href = '/'
 }
