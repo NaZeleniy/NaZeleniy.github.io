@@ -94,7 +94,13 @@ async function authLogout() {
   await fetch(_apiBase() + '/auth/logout', { method: 'POST', credentials: 'include' })
   _setCachedUser(null)
   window._nzUser = null
-  location.href = '/'
+  // На защищённых страницах редиректим на главную, иначе просто перерисовываем кнопку
+  const protected_ = ['/me']
+  if (protected_.some(p => location.pathname === p || location.pathname.startsWith(p + '/'))) {
+    location.href = '/'
+  } else {
+    initAuthButton()
+  }
 }
 
 initAuthButton()

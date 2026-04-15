@@ -949,7 +949,7 @@ async function doLoadMoreComments(kpId) {
 }
 
 function showAuthRequiredToast() {
-  showAuthRequiredToast()
+  showToast('Необходимо <a href="/login" onclick="event.preventDefault();openAuthModal()">авторизоваться</a>', 'error')
 }
 
 function showToast(msg, type = 'info') {
