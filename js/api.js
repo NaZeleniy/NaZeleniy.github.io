@@ -5,7 +5,9 @@ const API_BASE = window.location.hostname.endsWith('github.io')
 const PLACEHOLDER = '/img/placeholder.svg'
 
 function posterUrl(url) {
-  if (!url) return PLACEHOLDER
+  // KP API иногда возвращает свой URL-заглушки "no-poster.png", который сам отдаёт 404.
+  // Заменяем его на наш placeholder сразу, до того как браузер попытается загрузить.
+  if (!url || url.includes('no-poster')) return PLACEHOLDER
   return url
 }
 
