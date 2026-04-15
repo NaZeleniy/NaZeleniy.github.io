@@ -138,12 +138,15 @@
     _step = 'loading'; _render()
     try {
       const res = await fetch(_api() + '/auth/telegram/start', { method: 'POST', credentials: 'include' })
+      if (_step !== 'loading') return // модалка закрыта/сброшена пока шёл запрос
       if (!res.ok) throw new Error()
       const d = await res.json()
+      if (_step !== 'loading') return // повторная проверка после json()
       _token = d.token; _botUrl = d.bot_url
       _step = 'waiting'; _render()
       _startPolling(); _startCountdown()
     } catch {
+      if (_step !== 'loading') return // модалка закрыта/сброшена — не показывать ошибку
       _errorMsg = 'Не удалось получить ссылку. Попробуйте снова.'
       _step = 'error'; _render()
     }

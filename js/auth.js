@@ -13,6 +13,13 @@ if (typeof openAuthModal === 'undefined') {
 const _USER_CACHE_KEY = 'nz_me'
 const _CACHE_TTL = 15 * 60 * 1000 // 15 минут
 
+// Безопасный геттер: API_BASE может быть не определён если api.js загружается с defer
+// а auth.js — синхронный скрипт (index.html). Дублирует логику из auth-modal.js._api().
+function _apiBase() {
+  if (typeof API_BASE !== 'undefined') return API_BASE
+  return location.hostname.endsWith('github.io') ? 'https://nazeleniy.site' : ''
+}
+
 function _getCachedUser() {
   try {
     const raw = localStorage.getItem(_USER_CACHE_KEY)
@@ -32,7 +39,7 @@ function _setCachedUser(data) {
 
 async function _revalidateUser(container) {
   try {
-    const res = await fetch(API_BASE + '/api/me', { credentials: 'include' })
+    const res = await fetch(_apiBase() + '/api/me', { credentials: 'include' })
     if (res.ok) {
       const data = await res.json()
       window._nzUser = data
@@ -84,7 +91,7 @@ function renderLoginBtn(container) {
 }
 
 async function authLogout() {
-  await fetch(API_BASE + '/auth/logout', { method: 'POST', credentials: 'include' })
+  await fetch(_apiBase() + '/auth/logout', { method: 'POST', credentials: 'include' })
   _setCachedUser(null)
   window._nzUser = null
   location.href = '/'
