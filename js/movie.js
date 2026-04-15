@@ -676,7 +676,7 @@ async function doRate(value) {
     })
     if (r.status === 401) {
       nzRenderRatingClosed()
-      showToast('Необходимо <a href="/login">авторизоваться</a>', 'error')
+      showAuthRequiredToast()
       return
     }
     if (!r.ok) throw new Error()
@@ -698,7 +698,7 @@ async function doDeleteRating() {
       credentials: 'include'
     })
     if (r.status === 401) {
-      showToast('Необходимо <a href="/login">авторизоваться</a>', 'error')
+      showAuthRequiredToast()
       return
     }
     if (r.status === 204 || r.ok) {
@@ -872,7 +872,7 @@ async function doSubmitComment(kpId) {
       body: JSON.stringify({ text })
     })
     if (r.status === 401) {
-      showToast('Необходимо <a href="/login">авторизоваться</a>', 'error')
+      showAuthRequiredToast()
       return
     }
     if (!r.ok) {
@@ -906,7 +906,7 @@ async function doDeleteComment(commentId) {
       credentials: 'include'
     })
     if (r.status === 401) {
-      showToast('Необходимо <a href="/login">авторизоваться</a>', 'error')
+      showAuthRequiredToast()
       return
     }
     if (r.status === 404) {
@@ -946,6 +946,10 @@ async function doLoadMoreComments(kpId) {
   } catch {} finally {
     if (btn) btn.disabled = false
   }
+}
+
+function showAuthRequiredToast() {
+  showAuthRequiredToast()
 }
 
 function showToast(msg, type = 'info') {
