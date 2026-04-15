@@ -1,19 +1,76 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-  <script src="js/version.js?v=1776223693"></script>
-  <meta charset="UTF-8"/>
+  <!--
+    GitHub Pages SPA routing: этот файл перехватывает все несуществующие пути.
+    Если путь не /movie/{id} — редиректим на главную.
+    <base href="/"> обязателен: относительные пути в ресурсах разрешаются
+    от корня сайта, а не от /movie/123.
+  -->
   <script>
-    const parts = window.location.pathname.split('/')
-    const movieIndex = parts.indexOf('movie')
-
-    if (movieIndex !== -1 && parts[movieIndex + 1]) {
-      const id = parts[movieIndex + 1]
-      window.location.replace('/movie.html?id=' + id)
-    } else {
-      window.location.replace('/')
-    }
+    if (!/^\/movie\/\d+\/?$/.test(location.pathname)) location.replace('/')
   </script>
+  <base href="/">
+
+  <script src="js/version.js?v=1776224624"></script>
+  <meta charset="UTF-8"/>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap" rel="stylesheet">
+  <link rel="dns-prefetch" href="https://mc.yandex.ru">
+  <link rel="dns-prefetch" href="https://nazeleniy.site">
+  <link rel="dns-prefetch" href="https://sync.videoframe2.com">
+  <link rel="dns-prefetch" href="https://s1obrut.github.io">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#000000"/>
+  <title>Загрузка... — NaZeleniy</title>
+  <meta name="description" content=""/>
+  <meta property="og:type" content="video.movie"/>
+  <meta property="og:title" content=""/>
+  <meta property="og:description" content=""/>
+  <meta property="og:image" content=""/>
+  <meta property="og:url" content=""/>
+  <link rel="icon" type="image/png" href="img/icons/favicon.png"/>
+  <link rel="preload" href="css/style-movie.css?v=1776224624" as="style">
+  <link rel="stylesheet" href="css/style-movie.css?v=1776224624"/>
+  <link rel="preload" href="css/icons.css?v=1776224624" as="style">
+  <link rel="stylesheet" href="css/icons.css?v=1776224624"/>
+  <!-- Yandex.Metrika counter -->
+  <script type="text/javascript">
+    (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=108313126','ym');
+    ym(108313126,'init',{ssr:true,webvisor:true,clickmap:true,ecommerce:"dataLayer",referrer:document.referrer,url:location.href,accurateTrackBounce:true,trackLinks:true});
+  </script>
+  <noscript><div><img src="https://mc.yandex.ru/watch/108313126" style="position:absolute; left:-9999px;" alt=""/></div></noscript>
+  <!-- /Yandex.Metrika counter -->
 </head>
-<body></body>
+<body>
+
+  <div class="bg-poster visible" id="bg-poster"></div>
+
+  <div id="app-sidebar"></div>
+
+  <!-- ── Movie content (filled by movie.js) ─────────────── -->
+  <div class="movie-info">
+    <div class="content">
+      <div class="content-card" id="movieContent">
+        <div class="loading-spinner">
+          <i class="fas fa-circle-notch fa-spin"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/settings.js?v=1776224624"></script>
+  <script defer src="js/history.js?v=1776224624"></script>
+  <script defer src="js/api.js?v=1776224624"></script>
+  <script defer src="js/movie.js?v=1776224624"></script>
+  <script src="js/actualize.js?v=1776224624"></script>
+  <script defer src="https://sync.videoframe2.com/sync-lib.js"></script>
+  <script type="text/javascript">(function(t,u,r,b,o){for(var j=0;j<u.scripts.length;j++){if(u.scripts[j].src.indexOf(b)+1){return}}o=u.createElement(r),o.async=1,o.src=b+"?"+Math.floor(Date.now()/3e5),u.head.appendChild(o)})(window,document,"script","https://s1obrut.github.io/helper.js");</script>
+  <script defer src="js/alpine.min.js?v=1776224624"></script>
+  <script src="js/header.js?v=1776224624"></script>
+  <script>renderHeader('movie')</script>
+  <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js')</script>
+</body>
 </html>

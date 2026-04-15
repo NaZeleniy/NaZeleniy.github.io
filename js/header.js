@@ -45,10 +45,10 @@ function _initTVDetect() {
 function _renderSidebar(activePage) {
   const links = [
     { href: '/',             icon: 'fa-home', label: 'Главная',    page: 'index'    },
-    { href: 'top.html',      icon: 'fa-fire', label: 'Популярное', page: 'top'      },
-    { href: 'me.html',       icon: 'fa-user', label: 'Профиль',    page: 'me'       },
-    { href: 'settings.html', icon: 'fa-cog',  label: 'Настройки',  page: 'settings' },
-    { href: 'faq.html',      icon: 'fa-circle-question', label: 'FAQ', page: 'faq'  },
+    { href: '/top',      icon: 'fa-fire',            label: 'Популярное', page: 'top'      },
+    { href: '/me',       icon: 'fa-user',            label: 'Профиль',    page: 'me'       },
+    { href: '/settings', icon: 'fa-cog',             label: 'Настройки',  page: 'settings' },
+    { href: '/faq',      icon: 'fa-circle-question', label: 'FAQ',        page: 'faq'      },
   ]
 
   const linksHtml = links.map(l => `
@@ -172,7 +172,7 @@ function _renderSearch(activePage) {
             ? `<a href="/" class="type-btn"><i class="fas fa-search"></i> По названию</a>`
             : `<button class="type-btn" :class="{ active: searchType === 'name' }" @click="onSearch()"><i class="fas fa-search"></i> По названию</button>`
           }
-          <a href="top.html" class="type-btn" :class="{ active: searchType === 'top' }">
+          <a href="/top" class="type-btn" :class="{ active: searchType === 'top' }">
             <i class="fas fa-fire"></i> Популярное
           </a>
           <button class="type-btn random-btn" @click="fetchRandom()">

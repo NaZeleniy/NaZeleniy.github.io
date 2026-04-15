@@ -1,4 +1,8 @@
-const movieId = new URLSearchParams(window.location.search).get('id')
+// Поддержка обоих форматов: /movie/123 (чистый URL) и ?id=123 (обратная совместимость)
+const movieId = (() => {
+  const fromPath = location.pathname.match(/\/movie\/(\d+)/)
+  return fromPath ? fromPath[1] : new URLSearchParams(location.search).get('id')
+})()
 
 function ratingClass(r) {
   if (r >= 7.0) return 'rating-value high'
@@ -187,7 +191,7 @@ function playerSectionHtml(movie) {
 
   const hasParty = (movie.players || []).some(p => p.name === 'Vibix' || p.name === 'Turbo')
   const partyBtn = hasParty ? `
-      <a class="watch-party-btn" href="party.html?id=${id}" target="_blank" title="Совместный просмотр">
+      <a class="watch-party-btn" href="/party?id=${id}" target="_blank" title="Совместный просмотр">
         <i class="fas fa-users"></i>
         <span>Смотреть вместе</span>
       </a>` : ''
@@ -310,7 +314,7 @@ function renderMovie(movie) {
 
   const descMeta = (movie.description || movie.shortDescription || '').slice(0, 200)
   const ogImage = posterUrl(movie.posterUrl || movie.posterUrlPreview)
-  const ogUrl = 'https://nazeleniy.github.io/movie.html?id=' + (movie.kinopoiskId || movie.filmId || '')
+  const ogUrl = 'https://nazeleniy.github.io/movie/' + (movie.kinopoiskId || movie.filmId || '')
   document.querySelector('meta[name="description"]')?.setAttribute('content', descMeta)
   document.querySelector('meta[property="og:title"]')?.setAttribute('content', title)
   document.querySelector('meta[property="og:description"]')?.setAttribute('content', descMeta)
@@ -514,7 +518,7 @@ async function loadSequels(res) {
       const meta  = typeLabel[m.relationType] || m.relationType || ''
       const preview = JSON.stringify({ filmId: id, nameRu: m.nameRu, nameEn: m.nameEn, posterUrl: m.posterUrl, posterUrlPreview: m.posterUrlPreview, year: m.year }).replace(/'/g, '&#39;')
       return `
-        <a class="similar-card" href="movie.html?id=${id}" onclick="sessionStorage.setItem('moviePreview','${preview}')">
+        <a class="similar-card" href="/movie/${id}" onclick="sessionStorage.setItem('moviePreview','${preview}')">
           <div class="similar-poster-wrap">
             <img src="${thumb}" alt="${name}" loading="lazy" onerror="this.src='/img/placeholder.svg'"/>
           </div>
@@ -550,7 +554,7 @@ async function loadSimilars(res) {
       const meta  = [m.year, m.nameEn && m.nameEn !== m.nameRu ? m.nameEn : null].filter(Boolean).join(' · ')
       const preview = JSON.stringify({ filmId: id, nameRu: m.nameRu, nameEn: m.nameEn, posterUrl: m.posterUrl, posterUrlPreview: m.posterUrlPreview, year: m.year }).replace(/'/g, '&#39;')
       return `
-        <a class="similar-card" href="movie.html?id=${id}" onclick="sessionStorage.setItem('moviePreview','${preview}')">
+        <a class="similar-card" href="/movie/${id}" onclick="sessionStorage.setItem('moviePreview','${preview}')">
           <div class="similar-poster-wrap">
             <img src="${thumb}" alt="${name}" loading="lazy" onerror="this.src='/img/placeholder.svg'"/>
           </div>
@@ -672,7 +676,7 @@ async function doRate(value) {
     })
     if (r.status === 401) {
       nzRenderRatingClosed()
-      showToast('Необходимо <a href="/login.html">авторизоваться</a>', 'error')
+      showToast('Необходимо <a href="/login">авторизоваться</a>', 'error')
       return
     }
     if (!r.ok) throw new Error()
@@ -694,7 +698,7 @@ async function doDeleteRating() {
       credentials: 'include'
     })
     if (r.status === 401) {
-      showToast('Необходимо <a href="/login.html">авторизоваться</a>', 'error')
+      showToast('Необходимо <a href="/login">авторизоваться</a>', 'error')
       return
     }
     if (r.status === 204 || r.ok) {
@@ -868,7 +872,7 @@ async function doSubmitComment(kpId) {
       body: JSON.stringify({ text })
     })
     if (r.status === 401) {
-      showToast('Необходимо <a href="/login.html">авторизоваться</a>', 'error')
+      showToast('Необходимо <a href="/login">авторизоваться</a>', 'error')
       return
     }
     if (!r.ok) {
@@ -902,7 +906,7 @@ async function doDeleteComment(commentId) {
       credentials: 'include'
     })
     if (r.status === 401) {
-      showToast('Необходимо <a href="/login.html">авторизоваться</a>', 'error')
+      showToast('Необходимо <a href="/login">авторизоваться</a>', 'error')
       return
     }
     if (r.status === 404) {

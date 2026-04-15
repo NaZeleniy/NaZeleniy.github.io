@@ -35,7 +35,7 @@ async function loadMe() {
       openAuthModal(() => loadMe())
     } else {
       // fallback на случай если модалка ещё не загрузилась
-      location.replace('/login.html?next=' + encodeURIComponent(location.pathname + location.search))
+      location.replace('/login?next=' + encodeURIComponent(location.pathname + location.search))
     }
     return
   }
@@ -81,7 +81,7 @@ async function loadMe() {
     if (!item.kp_id) return ''
     const preview = JSON.stringify({ filmId: item.kp_id, nameRu: item.nameRu, nameEn: item.nameOriginal, posterUrl: item.posterUrl, posterUrlPreview: item.posterUrl }).replace(/'/g, '&#39;')
     return `
-      <a href="/movie.html?id=${item.kp_id}" class="me-item" onclick="sessionStorage.setItem('moviePreview','${preview}')">
+      <a href="/movie/${item.kp_id}" class="me-item" onclick="sessionStorage.setItem('moviePreview','${preview}')">
         <img class="me-item-poster" src="${imgSrc}" alt="${title}" loading="lazy"/>
         <div class="me-item-info">
           <span class="me-item-title">${title}</span>

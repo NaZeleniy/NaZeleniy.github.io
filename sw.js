@@ -33,8 +33,14 @@ self.addEventListener('fetch', e => {
   }
 
   // HTML страницы — stale-while-revalidate (сразу из кеша + обновить в фоне)
-  if (request.destination === 'document' || url.pathname.endsWith('.html') || url.pathname === '/') {
+  // destination === 'document' покрывает все навигационные запросы включая чистые URL (/top, /me и т.д.)
+  // /movie/{id} обрабатывается отдельно: GitHub Pages отдаёт 404.html со статусом 404 — кешируем его явно
+  if (request.destination === 'document' || url.pathname === '/' || url.pathname.endsWith('.html')) {
     e.respondWith(staleWhileRevalidate(request))
+    return
+  }
+  if (/^\/movie\/\d+\/?$/.test(url.pathname)) {
+    e.respondWith(staleWhileRevalidate(request, { allow404: true }))
     return
   }
 
@@ -54,11 +60,13 @@ async function cacheFirst(req) {
   }
 }
 
-async function staleWhileRevalidate(req) {
+async function staleWhileRevalidate(req, { allow404 = false } = {}) {
   const cache = await caches.open(CACHE)
   const cached = await cache.match(req)
   const fresh = fetch(req).then(res => {
-    if (res.ok) cache.put(req, res.clone())
+    // Кешируем успешные ответы; для /movie/{id} кешируем и 404
+    // (GitHub Pages намеренно отдаёт 404.html — это наш app shell)
+    if (res.ok || (allow404 && res.status === 404)) cache.put(req, res.clone())
     return res
   }).catch(() => cached || new Response('', { status: 503, statusText: 'Service Unavailable' }))
   return cached || fresh

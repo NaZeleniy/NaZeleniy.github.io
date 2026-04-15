@@ -67,7 +67,7 @@ function app() {
     prefetch(movie) {
       const id = movie.kinopoiskId || movie.filmId
       if (!id) return
-      const href = 'movie.html?id=' + id
+      const href = '/movie/' + id
       if (this._prefetched.has(href)) return
       this._prefetched.add(href)
       document.head.insertAdjacentHTML('beforeend', `<link rel="prefetch" href="${href}">`)
@@ -145,7 +145,7 @@ function app() {
     },
 
     selectSuggestion(movie) {
-      window.location.href = 'movie.html?id=' + (movie.kinopoiskId || movie.filmId)
+      window.location.href = '/movie/' + (movie.kinopoiskId || movie.filmId)
     },
 
     highlightNext() {
@@ -344,7 +344,7 @@ function app() {
         const arr = Array.isArray(data) ? data : []
         if (arr.length) {
           const movie = arr[Math.floor(Math.random() * arr.length)]
-          window.location.href = 'movie.html?id=' + (movie.kinopoiskId || movie.filmId)
+          window.location.href = '/movie/' + (movie.kinopoiskId || movie.filmId)
         }
       } catch (e) {
         console.error(e)
