@@ -66,9 +66,9 @@ function _renderUserBtn(container, data) {
 
 function renderLoginBtn(container) {
   container.innerHTML = `
-    <a href="/login.html" class="auth-btn auth-btn--in">
+    <button class="auth-btn auth-btn--in" onclick="openAuthModal()">
       <span>Войти</span>
-    </a>`
+    </button>`
 }
 
 async function authLogout() {
@@ -79,3 +79,9 @@ async function authLogout() {
 }
 
 initAuthButton()
+
+// После успешного входа через модалку — обновить кнопку в хедере
+document.addEventListener('nz:auth-success', () => {
+  _setCachedUser(null) // сбросим устаревший кеш, получим свежие данные
+  initAuthButton()
+})

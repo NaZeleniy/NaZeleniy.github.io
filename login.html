@@ -1,206 +1,56 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <script src="js/version.js?v=1776222256"></script>
+  <script src="js/version.js?v=1776223101"></script>
   <meta charset="UTF-8"/>
-  
   <link rel="dns-prefetch" href="https://nazeleniy.site">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <meta name="theme-color" content="#000000"/>
   <title>Войти — NaZeleniy</title>
   <link rel="icon" type="image/png" href="img/icons/favicon.png"/>
-  <link rel="preload" href="css/style-login.css?v=1776222256" as="style">
-  <link rel="stylesheet" href="css/style-login.css?v=1776222256"/>
-  <link rel="preload" href="css/icons.css?v=1776222256" as="style">
-  <link rel="stylesheet" href="css/icons.css?v=1776222256"/>
-  <script defer src="js/alpine.min.js?v=1776222256"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous"></script>
+  <link rel="preload" href="css/style.css?v=1776223101" as="style">
+  <link rel="stylesheet" href="css/style.css?v=1776223101"/>
+  <link rel="preload" href="css/icons.css?v=1776223101" as="style">
+  <link rel="stylesheet" href="css/icons.css?v=1776223101"/>
 </head>
 <body>
 
   <div id="app-sidebar"></div>
 
-  <div class="login-page" x-data="loginApp()" x-init="init()">
-
-    <a href="/" class="login-back">
-      <i class="fas fa-arrow-left"></i>
-      На главную
-    </a>
-
-    <div class="login-card">
-
-      <div class="login-logo">
-        <i class="fab fa-telegram"></i>
-      </div>
-
-      <h1 class="login-title">Войти через Telegram</h1>
-      <p class="login-subtitle">Откройте бота и подтвердите вход</p>
-
-      <!-- idle -->
-      <template x-if="step === 'idle'">
-        <button class="login-start-btn" @click="start()">
-          <i class="fab fa-telegram"></i>
-          Получить ссылку для входа
-        </button>
-      </template>
-
-      <!-- loading -->
-      <template x-if="step === 'loading'">
-        <div class="login-spinner">
-          <i class="fas fa-circle-notch fa-spin"></i>
-        </div>
-      </template>
-
-      <!-- waiting -->
-      <template x-if="step === 'waiting'">
-        <div class="login-waiting">
-          <div id="qrcode" class="login-qr"></div>
-
-          <a :href="botUrl" target="_blank" rel="noopener" class="login-tg-btn">
-            <i class="fab fa-telegram"></i>
-            Открыть Telegram
-          </a>
-
-          <div class="login-status">
-            <i class="fas fa-circle-notch fa-spin"></i>
-            Ожидаем подтверждения…
-            <span class="login-timer" x-text="'(' + timeLeft + 'с)'"></span>
-          </div>
-
-          <div class="login-security-note">
-            <i class="fas fa-shield-alt"></i>
-            <span>Это <strong>не авторизация через Telegram</strong> — мы не получаем доступ к вашему аккаунту. QR-код открывает нашего бота, который просто подтверждает что это вы.</span>
-          </div>
-        </div>
-      </template>
-
-      <!-- done -->
-      <template x-if="step === 'done'">
-        <div class="login-done">
-          <i class="fas fa-check-circle"></i>
-          <span>Вход выполнен! Перенаправляем…</span>
-        </div>
-      </template>
-
-      <!-- error -->
-      <template x-if="step === 'error'">
-        <div class="login-error">
-          <i class="fas fa-exclamation-circle"></i>
-          <span x-text="errorMsg"></span>
-          <button class="login-retry-btn" @click="reset()">Попробовать снова</button>
-        </div>
-      </template>
-
-    </div>
-
-  </div>
-
-  <script src="js/header.js?v=1776222256"></script>
+  <script src="js/api.js?v=1776223101"></script>
+  <script src="js/header.js?v=1776223101"></script>
   <script>renderHeader('login')</script>
-  <script>
-    const _API = window.location.hostname.endsWith('github.io')
-      ? 'https://nazeleniy.site'
-      : ''
 
+  <script>
     function _nextUrl() {
       const raw = new URLSearchParams(location.search).get('next') || '/'
-      // разрешаем только пути на том же домене (защита от open redirect)
       try {
         const u = new URL(raw, location.origin)
         return u.origin === location.origin ? u.pathname + u.search : '/'
       } catch { return '/' }
     }
 
-    function loginApp() {
-      return {
-        step: 'idle',
-        token: '',
-        botUrl: '',
-        errorMsg: '',
-        timeLeft: 300,
-        _pollTimer: null,
-        _countdownTimer: null,
+    // Если уже залогинен — сразу редиректим
+    try {
+      const cached = localStorage.getItem('nz_me')
+      if (cached) {
+        const { data } = JSON.parse(cached)
+        if (data) { location.replace(_nextUrl()); }
+      }
+    } catch {}
 
-        init() {
-          // если уже залогинен — на целевую страницу
-          fetch(_API + '/api/me', { credentials: 'include' }).then(r => {
-            if (r.ok) location.href = _nextUrl()
-          })
-        },
+    // После входа через модалку — редиректим на ?next=
+    document.addEventListener('nz:auth-success', () => location.replace(_nextUrl()), { once: true })
 
-        async start() {
-          this.step = 'loading'
-          try {
-            const res = await fetch(_API + '/auth/telegram/start', { method: 'POST', credentials: 'include' })
-            if (!res.ok) throw new Error('server error')
-            const data = await res.json()
-            this.token  = data.token
-            this.botUrl = data.bot_url
-            this.step   = 'waiting'
-            this.$nextTick(() => this._renderQR())
-            this._startPolling()
-            this._startCountdown()
-          } catch {
-            this.errorMsg = 'Не удалось получить ссылку. Попробуйте снова.'
-            this.step = 'error'
-          }
-        },
-
-        _renderQR() {
-          const el = document.getElementById('qrcode')
-          if (!el || !this.botUrl) return
-          el.innerHTML = ''
-          new QRCode(el, {
-            text:          this.botUrl,
-            width:         240,
-            height:        240,
-            colorDark:     '#000000',
-            colorLight:    '#ffffff',
-            correctLevel:  QRCode.CorrectLevel.M,
-          })
-        },
-
-        _startPolling() {
-          this._pollTimer = setInterval(async () => {
-            try {
-              const res  = await fetch(_API + '/auth/telegram/status?token=' + this.token, { credentials: 'include' })
-              const data = await res.json()
-              if (data.status === 'ok') {
-                this._stopTimers()
-                this.step = 'done'
-                try { sessionStorage.removeItem('nz_me') } catch {}
-                setTimeout(() => location.href = _nextUrl(), 800)
-              }
-            } catch { /* ignore network blips */ }
-          }, 2000)
-        },
-
-        _startCountdown() {
-          this.timeLeft = 300
-          this._countdownTimer = setInterval(() => {
-            this.timeLeft--
-            if (this.timeLeft <= 0) {
-              this._stopTimers()
-              this.errorMsg = 'Время ожидания истекло. Попробуйте снова.'
-              this.step = 'error'
-            }
-          }, 1000)
-        },
-
-        _stopTimers() {
-          clearInterval(this._pollTimer)
-          clearInterval(this._countdownTimer)
-        },
-
-        reset() {
-          this._stopTimers()
-          this.token    = ''
-          this.botUrl   = ''
-          this.timeLeft = 300
-          this.step     = 'idle'
-        },
+    // Открываем модалку как только она готова
+    function _tryOpen() {
+      if (typeof openAuthModal === 'function') {
+        openAuthModal()
+      } else {
+        setTimeout(_tryOpen, 50)
       }
     }
+    _tryOpen()
   </script>
 
   <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js')</script>

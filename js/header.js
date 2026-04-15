@@ -11,11 +11,13 @@ function _initAuthBtn() {
   const div = document.createElement('div')
   div.id = 'auth-btn'
   document.body.appendChild(div)
-  const s = document.createElement('script')
+
   const ver = (document.querySelector('script[src*="header.js"]') || {}).src || ''
   const v = (ver.match(/[?&]v=\d+/) || [''])[0]
-  s.src = 'js/auth.js' + v
-  document.body.appendChild(s)
+
+  const _load = src => { const s = document.createElement('script'); s.src = src; document.body.appendChild(s) }
+  _load('js/auth-modal.js' + v)
+  _load('js/auth.js' + v)
 }
 
 let _isTVMode = false

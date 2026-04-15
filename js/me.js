@@ -31,7 +31,12 @@ async function loadMe() {
   }
 
   if (!user) {
-    location.replace('/login.html?next=' + encodeURIComponent(location.pathname + location.search))
+    if (typeof openAuthModal === 'function') {
+      openAuthModal(() => loadMe())
+    } else {
+      // fallback на случай если модалка ещё не загрузилась
+      location.replace('/login.html?next=' + encodeURIComponent(location.pathname + location.search))
+    }
     return
   }
 
