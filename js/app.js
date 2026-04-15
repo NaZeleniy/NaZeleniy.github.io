@@ -70,7 +70,9 @@ function app() {
       const href = '/movie/' + id
       if (this._prefetched.has(href)) return
       this._prefetched.add(href)
-      document.head.insertAdjacentHTML('beforeend', `<link rel="prefetch" href="${href}">`)
+      // fetch вместо <link rel="prefetch">: браузер не логирует 404 для programmatic fetch,
+      // а SW всё равно перехватит запрос и закешируёт 404.html как SPA-shell
+      fetch(href, { credentials: 'omit' }).catch(() => {})
     },
 
     onCardEnter(movie) {

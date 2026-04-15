@@ -37,9 +37,10 @@ function _setCachedUser(data) {
   } catch {}
 }
 
-// quickCheck=true: GET /auth/check (Redis, быстро) — только проверяем сессию,
-// данные пользователя берём из уже отрендеренного кеша.
-// quickCheck=false: GET /api/me (DB) — нужен полный профиль (имя) для кнопки.
+// quickCheck=true (стейл кеш): GET /auth/check → если сессия жива, обновляем timestamp кеша;
+//   если истекла — очищаем, рендерим «Войти». Имя уже в кеше, DB не нужна.
+// quickCheck=false (нет кеша): GET /auth/check → если не авторизован, «Войти» (без DB, без 401
+//   в консоли); если авторизован — GET /api/me за именем, кешируем, рендерим кнопку с именем.
 async function _revalidateUser(container, quickCheck = false) {
   if (quickCheck) {
     try {
@@ -62,6 +63,25 @@ async function _revalidateUser(container, quickCheck = false) {
     return
   }
 
+  // Нет кеша — сначала быстрая проверка /auth/check, только если авторизован
+  // идём в /api/me за именем. Анонимные пользователи не делают DB-запрос и
+  // не получают 401 в консоли.
+  let authenticated = false
+  try {
+    const res = await fetch(_apiBase() + '/auth/check', { credentials: 'include' })
+    if (res.ok) authenticated = (await res.json()).authenticated
+  } catch {
+    // Ошибка сети — рендерим кнопку «Войти», кеш не трогаем
+    renderLoginBtn(container)
+    return
+  }
+
+  if (!authenticated) {
+    renderLoginBtn(container)
+    return
+  }
+
+  // Авторизован — нужен полный профиль с именем для кнопки
   try {
     const res = await fetch(_apiBase() + '/api/me', { credentials: 'include' })
     if (res.ok) {
@@ -69,15 +89,8 @@ async function _revalidateUser(container, quickCheck = false) {
       window._nzUser = data
       _setCachedUser(data)
       _renderUserBtn(container, data)
-    } else {
-      window._nzUser = null
-      _setCachedUser(null)
-      renderLoginBtn(container)
     }
-  } catch {
-    // При ошибке сети не сбрасываем кеш — пользователь может быть офлайн
-    if (!window._nzUser) renderLoginBtn(container)
-  }
+  } catch {}
 }
 
 async function initAuthButton() {
