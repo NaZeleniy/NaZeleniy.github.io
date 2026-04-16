@@ -48,10 +48,18 @@ function _bearerHeaderAuth() {
   } catch { return {} }
 }
 
+// Аналог _CREDS из api.js — auth.js может загружаться до api.js (index.html)
+function _credsMode() {
+  const base = _apiBase()
+  if (!base) return 'include'
+  if (typeof location !== 'undefined' && location.origin === 'null') return 'omit'
+  return 'include'
+}
+
 async function _revalidateUser(container, quickCheck = false) {
   if (quickCheck) {
     try {
-      const res = await fetch(_apiBase() + '/auth/check', { credentials: 'include', headers: _bearerHeaderAuth() })
+      const res = await fetch(_apiBase() + '/auth/check', { credentials: _credsMode(), headers: _bearerHeaderAuth() })
       if (res.ok) {
         const data = await res.json()
         if (data.authenticated) {
@@ -76,7 +84,7 @@ async function _revalidateUser(container, quickCheck = false) {
   // не получают 401 в консоли.
   let authenticated = false
   try {
-    const res = await fetch(_apiBase() + '/auth/check', { credentials: 'include', headers: _bearerHeaderAuth() })
+    const res = await fetch(_apiBase() + '/auth/check', { credentials: _credsMode(), headers: _bearerHeaderAuth() })
     if (res.ok) authenticated = (await res.json()).authenticated
   } catch {
     // Ошибка сети — рендерим кнопку «Войти», кеш не трогаем
@@ -92,7 +100,7 @@ async function _revalidateUser(container, quickCheck = false) {
 
   // Авторизован — нужен полный профиль с именем для кнопки
   try {
-    const res = await fetch(_apiBase() + '/api/me', { credentials: 'include', headers: _bearerHeaderAuth() })
+    const res = await fetch(_apiBase() + '/api/me', { credentials: _credsMode(), headers: _bearerHeaderAuth() })
     if (res.ok) {
       const data = await res.json()
       window._nzUser = data
@@ -140,7 +148,7 @@ async function authLogout() {
   try {
     await fetch(_apiBase() + '/auth/logout', {
       method: 'POST',
-      credentials: 'include',
+      credentials: _credsMode(),
       headers: _bearerHeaderAuth()
     })
   } catch {}

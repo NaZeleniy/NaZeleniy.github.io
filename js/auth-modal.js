@@ -28,6 +28,12 @@
     if (typeof API_BASE !== 'undefined') return API_BASE
     return location.hostname.endsWith('github.io') ? 'https://nazeleniy.site' : ''
   }
+  function _creds() {
+    const base = _api()
+    if (!base) return 'include'
+    if (typeof location !== 'undefined' && location.origin === 'null') return 'omit'
+    return 'include'
+  }
   const _modal = () => document.getElementById('auth-modal')
   const _body  = () => document.getElementById('auth-modal-body')
 
@@ -137,7 +143,7 @@
   async function _start() {
     _step = 'loading'; _render()
     try {
-      const res = await fetch(_api() + '/auth/telegram/start', { method: 'POST', credentials: 'include' })
+      const res = await fetch(_api() + '/auth/telegram/start', { method: 'POST', credentials: _creds() })
       if (_step !== 'loading') return // модалка закрыта/сброшена пока шёл запрос
       if (!res.ok) throw new Error()
       const d = await res.json()
@@ -157,7 +163,7 @@
       try {
         const res = await fetch(
           _api() + '/auth/telegram/status?token=' + encodeURIComponent(_token),
-          { credentials: 'include' }
+          { credentials: _creds() }
         )
         if (!res.ok) return
         const d = await res.json()
@@ -171,7 +177,7 @@
           // чтобы window._nzUser был уже установлен когда callback запустится
           try {
             const _bh = d.bearer_token ? { Authorization: 'Bearer ' + d.bearer_token } : {}
-            const meRes = await fetch(_api() + '/api/me', { credentials: 'include', headers: _bh })
+            const meRes = await fetch(_api() + '/api/me', { credentials: _creds(), headers: _bh })
             if (meRes.ok) {
               const meData = await meRes.json()
               window._nzUser = meData

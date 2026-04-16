@@ -2,6 +2,17 @@ const API_BASE = window.location.hostname.endsWith('github.io')
   ? 'https://nazeleniy.site'
   : ''
 
+// credentials mode для fetch:
+// - same-origin (API_BASE = ''): 'include' — куки работают
+// - null-origin (TV webview, file://, sandboxed iframe): 'omit' — только Bearer
+//   (браузер блокирует 'include' когда сервер отвечает Access-Control-Allow-Origin: *)
+// - известный cross-origin (github.io): 'include'
+const _CREDS = (() => {
+  if (!API_BASE) return 'include'
+  if (typeof location !== 'undefined' && location.origin === 'null') return 'omit'
+  return 'include'
+})()
+
 const PLACEHOLDER = '/img/placeholder.svg'
 
 function posterUrl(url) {

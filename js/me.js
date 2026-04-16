@@ -25,7 +25,7 @@ async function loadMe() {
   }
   if (!user) {
     try {
-      const r = await fetch(API_BASE + '/api/me', { credentials: 'include', headers: _bearerHeader() })
+      const r = await fetch(API_BASE + '/api/me', { credentials: _CREDS, headers: _bearerHeader() })
       if (r.ok) {
         user = await r.json()
         window._nzUser = user
@@ -54,7 +54,7 @@ async function loadMe() {
   let ratings = []
   let ratingsTotal = 0
   try {
-    const r = await fetch(API_BASE + '/api/me/ratings', { credentials: 'include', headers: _bearerHeader() })
+    const r = await fetch(API_BASE + '/api/me/ratings', { credentials: _CREDS, headers: _bearerHeader() })
     if (r.ok) {
       const body = await r.json()
       ratings = body.items || []
@@ -136,7 +136,7 @@ async function meLogout() {
   try {
     await fetch(API_BASE + '/auth/logout', {
       method: 'POST',
-      credentials: 'include',
+      credentials: _CREDS,
       headers: _bearerHeader()
     })
   } catch {}
