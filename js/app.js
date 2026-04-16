@@ -259,15 +259,6 @@ function app() {
     },
 
     async fetchTop() {
-      // ВРЕМЕННЫЙ ТЕСТ
-      try {
-        const r = await fetch('https://nazeleniy.site/api/top?page=1')
-        console.log('status:', r.status)
-        const data = await r.json()
-        console.log('data:', JSON.stringify(data).slice(0, 200))
-      } catch (e) {
-        console.log('RAW ERROR:', e.name, e.message)
-      }
       if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
       this.searchType = 'top'
       this.currentPage = 1
