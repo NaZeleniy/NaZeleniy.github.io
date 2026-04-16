@@ -11,6 +11,13 @@ function posterUrl(url) {
   return url
 }
 
+function _bearerHeader() {
+  try {
+    const t = localStorage.getItem('nz_bearer')
+    return t ? { Authorization: 'Bearer ' + t } : {}
+  } catch { return {} }
+}
+
 function vibixSrcdoc(kpId, height) {
   return `<!DOCTYPE html><html><head>
 <meta name="viewport" content="width=device-width,initial-scale=1">

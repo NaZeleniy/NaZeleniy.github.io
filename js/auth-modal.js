@@ -162,12 +162,16 @@
         if (!res.ok) return
         const d = await res.json()
         if (d.status === 'ok') {
+          if (d.bearer_token) {
+            try { localStorage.setItem('nz_bearer', d.bearer_token) } catch {}
+          }
           _stopTimers(); _step = 'done'; _render()
 
           // Получаем данные пользователя сразу — до вызова successCb,
           // чтобы window._nzUser был уже установлен когда callback запустится
           try {
-            const meRes = await fetch(_api() + '/api/me', { credentials: 'include' })
+            const _bh = d.bearer_token ? { Authorization: 'Bearer ' + d.bearer_token } : {}
+            const meRes = await fetch(_api() + '/api/me', { credentials: 'include', headers: _bh })
             if (meRes.ok) {
               const meData = await meRes.json()
               window._nzUser = meData

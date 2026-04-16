@@ -670,7 +670,7 @@ async function doRate(value) {
   try {
     const r = await fetch(`${API_BASE}/api/ratings/${_currentKpId}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ..._bearerHeader() },
       credentials: 'include',
       body: JSON.stringify({ rating: value })
     })
@@ -695,7 +695,8 @@ async function doDeleteRating() {
   try {
     const r = await fetch(`${API_BASE}/api/ratings/${_currentKpId}`, {
       method: 'DELETE',
-      credentials: 'include'
+      credentials: 'include',
+      headers: _bearerHeader()
     })
     if (r.status === 401) {
       showAuthRequiredToast()
@@ -712,7 +713,7 @@ async function doDeleteRating() {
 async function refreshNzRating() {
   if (!_currentKpId) return
   try {
-    const r = await fetch(`${API_BASE}/api/ratings/${_currentKpId}`, { credentials: 'include' })
+    const r = await fetch(`${API_BASE}/api/ratings/${_currentKpId}`, { credentials: 'include', headers: _bearerHeader() })
     if (!r.ok) return
     const data = await r.json()
 
@@ -807,7 +808,7 @@ function initComments(movie) {
 
 async function _loadComments(kpId) {
   try {
-    const r = await fetch(`${API_BASE}/api/comments/${kpId}?limit=20&offset=0`, { credentials: 'include' })
+    const r = await fetch(`${API_BASE}/api/comments/${kpId}?limit=20&offset=0`, { credentials: 'include', headers: _bearerHeader() })
     if (!r.ok) return
     const comments = await r.json()
     _commentsOffset = comments.length
@@ -867,7 +868,7 @@ async function doSubmitComment(kpId) {
   try {
     const r = await fetch(`${API_BASE}/api/comments/${kpId}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ..._bearerHeader() },
       credentials: 'include',
       body: JSON.stringify({ text })
     })
@@ -903,7 +904,8 @@ async function doDeleteComment(commentId) {
   try {
     const r = await fetch(`${API_BASE}/api/comments/${commentId}`, {
       method: 'DELETE',
-      credentials: 'include'
+      credentials: 'include',
+      headers: _bearerHeader()
     })
     if (r.status === 401) {
       showAuthRequiredToast()
@@ -929,7 +931,8 @@ async function doLoadMoreComments(kpId) {
   if (btn) btn.disabled = true
   try {
     const r = await fetch(`${API_BASE}/api/comments/${kpId}?limit=20&offset=${_commentsOffset}`, {
-      credentials: 'include'
+      credentials: 'include',
+      headers: _bearerHeader()
     })
     if (!r.ok) return
     const comments = await r.json()

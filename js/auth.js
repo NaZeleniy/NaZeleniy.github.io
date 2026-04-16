@@ -41,10 +41,17 @@ function _setCachedUser(data) {
 //   если истекла — очищаем, рендерим «Войти». Имя уже в кеше, DB не нужна.
 // quickCheck=false (нет кеша): GET /auth/check → если не авторизован, «Войти» (без DB, без 401
 //   в консоли); если авторизован — GET /api/me за именем, кешируем, рендерим кнопку с именем.
+function _bearerHeaderAuth() {
+  try {
+    const t = localStorage.getItem('nz_bearer')
+    return t ? { Authorization: 'Bearer ' + t } : {}
+  } catch { return {} }
+}
+
 async function _revalidateUser(container, quickCheck = false) {
   if (quickCheck) {
     try {
-      const res = await fetch(_apiBase() + '/auth/check', { credentials: 'include' })
+      const res = await fetch(_apiBase() + '/auth/check', { credentials: 'include', headers: _bearerHeaderAuth() })
       if (res.ok) {
         const data = await res.json()
         if (data.authenticated) {
@@ -54,6 +61,7 @@ async function _revalidateUser(container, quickCheck = false) {
         } else {
           window._nzUser = null
           _setCachedUser(null)
+          try { localStorage.removeItem('nz_bearer') } catch {}
           renderLoginBtn(container)
         }
       }
@@ -68,7 +76,7 @@ async function _revalidateUser(container, quickCheck = false) {
   // не получают 401 в консоли.
   let authenticated = false
   try {
-    const res = await fetch(_apiBase() + '/auth/check', { credentials: 'include' })
+    const res = await fetch(_apiBase() + '/auth/check', { credentials: 'include', headers: _bearerHeaderAuth() })
     if (res.ok) authenticated = (await res.json()).authenticated
   } catch {
     // Ошибка сети — рендерим кнопку «Войти», кеш не трогаем
@@ -77,13 +85,14 @@ async function _revalidateUser(container, quickCheck = false) {
   }
 
   if (!authenticated) {
+    try { localStorage.removeItem('nz_bearer') } catch {}
     renderLoginBtn(container)
     return
   }
 
   // Авторизован — нужен полный профиль с именем для кнопки
   try {
-    const res = await fetch(_apiBase() + '/api/me', { credentials: 'include' })
+    const res = await fetch(_apiBase() + '/api/me', { credentials: 'include', headers: _bearerHeaderAuth() })
     if (res.ok) {
       const data = await res.json()
       window._nzUser = data
@@ -129,11 +138,16 @@ function renderLoginBtn(container) {
 
 async function authLogout() {
   try {
-    await fetch(_apiBase() + '/auth/logout', { method: 'POST', credentials: 'include' })
+    await fetch(_apiBase() + '/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+      headers: _bearerHeaderAuth()
+    })
   } catch {}
   // Очищаем локальное состояние независимо от результата запроса
   _setCachedUser(null)
   window._nzUser = null
+  try { localStorage.removeItem('nz_bearer') } catch {}
   // На защищённых страницах редиректим на главную, иначе просто перерисовываем кнопку
   const protected_ = ['/me']
   if (protected_.some(p => location.pathname === p || location.pathname.startsWith(p + '/'))) {
