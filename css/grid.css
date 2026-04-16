@@ -53,10 +53,12 @@
   outline: 4px solid transparent;
 }
 
-/* Мышь — только подъём и свечение, без рамки */
-.movie-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), 0 0 20px var(--accent-glow);
+/* Мышь — только подъём и свечение, без рамки (не на touch-устройствах) */
+@media (hover: hover) {
+  .movie-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), 0 0 20px var(--accent-glow);
+  }
 }
 
 /* Убираем outline для всех кроме TV */
@@ -67,12 +69,23 @@
 
 .movie-poster-container {
   width: 100%;
-  aspect-ratio: 2 / 3;
+  position: relative;
+  padding-top: 150%;           /* 3:2 fallback для iOS <15 и Samsung Internet <15 */
   background: var(--bg-tertiary);
   overflow: hidden;
 }
 
+@supports (aspect-ratio: 1) {
+  .movie-poster-container {
+    padding-top: 0;
+    aspect-ratio: 2 / 3;
+  }
+}
+
 .movie-poster {
+  position: absolute;          /* работает и с padding-top fallback, и с aspect-ratio */
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;

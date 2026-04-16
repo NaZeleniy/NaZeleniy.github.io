@@ -667,24 +667,33 @@ a.movie-poster-side img {
   transition: transform 0.25s ease;
 }
 
-.similar-card:hover { transform: translateY(-6px) scale(1.03); }
+@media (hover: hover) {
+  .similar-card:hover { transform: translateY(-6px) scale(1.03); }
+  .similar-card:hover .similar-poster-wrap { box-shadow: 0 6px 24px var(--accent-glow); }
+}
 
 .similar-poster-wrap {
   position: relative;
   border-radius: 12px;
   overflow: hidden;
-  aspect-ratio: 2/3;
+  padding-top: 150%;           /* 3:2 fallback для iOS <15 и Samsung Internet <15 */
+}
+
+@supports (aspect-ratio: 1) {
+  .similar-poster-wrap {
+    padding-top: 0;
+    aspect-ratio: 2/3;
+  }
 }
 
 .similar-poster-wrap img {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
-}
-
-.similar-card:hover .similar-poster-wrap {
-  box-shadow: 0 6px 24px var(--accent-glow);
 }
 
 .similar-info { margin-top: 8px; padding: 0 2px; }

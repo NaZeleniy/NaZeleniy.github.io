@@ -270,11 +270,14 @@ function app() {
       this._topDone = false
       this._seenIds = new Set()
       this.loading = true
+      const ctrl = new AbortController()
+      const _timer = setTimeout(() => ctrl.abort(), 10000)
       try {
         const [r1, r2] = await Promise.all([
-          fetch(`${API_BASE}/api/top?page=1`),
-          fetch(`${API_BASE}/api/top?page=2`),
+          fetch(`${API_BASE}/api/top?page=1`, { signal: ctrl.signal }),
+          fetch(`${API_BASE}/api/top?page=2`, { signal: ctrl.signal }),
         ])
+        clearTimeout(_timer)
         if (!r1.ok) throw new Error('upstream ' + r1.status)
         const d1 = await r1.json()
         let d2 = []
@@ -285,9 +288,12 @@ function app() {
         ])
         this._topPage = 2
       } catch (e) {
+        clearTimeout(_timer)
         console.error(e)
         this.movies = []
-        this.loadError = 'Ошибка загрузки: ' + (e.message || e)
+        this.loadError = e.name === 'AbortError'
+          ? 'Не удалось загрузить — проверьте соединение'
+          : 'Ошибка загрузки: ' + (e.message || e)
       } finally {
         this.loading = false
       }
@@ -302,6 +308,7 @@ function app() {
     initTopScroll() {
       this._scrollCleanup()
       if (this._topDone) return
+      if (typeof IntersectionObserver === 'undefined') return
       const sentinel = document.getElementById('scroll-sentinel')
       if (!sentinel) return
       this._scrollObserver = new IntersectionObserver(entries => {
@@ -315,11 +322,14 @@ function app() {
     async _loadMoreTop() {
       this._topLoading = true
       const nextPage = this._topPage + 1
+      const ctrl = new AbortController()
+      const _timer = setTimeout(() => ctrl.abort(), 10000)
       try {
         const [r1, r2] = await Promise.all([
-          fetch(`${API_BASE}/api/top?page=${nextPage}`),
-          fetch(`${API_BASE}/api/top?page=${nextPage + 1}`),
+          fetch(`${API_BASE}/api/top?page=${nextPage}`, { signal: ctrl.signal }),
+          fetch(`${API_BASE}/api/top?page=${nextPage + 1}`, { signal: ctrl.signal }),
         ])
+        clearTimeout(_timer)
         this._topPage = nextPage + 1
         const d1 = r1.ok ? await r1.json() : []
         const d2 = r2.ok ? await r2.json() : []
@@ -331,6 +341,7 @@ function app() {
           this.movies.push(...next)
         }
       } catch {
+        clearTimeout(_timer)
         this._topDone = true
       } finally {
         this._topLoading = false

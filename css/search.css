@@ -97,9 +97,11 @@
 
 .random-btn::after { display: none; }
 
-.random-btn:hover {
-  background: var(--accent-hover);
-  transform: translateY(-1px);
+@media (hover: hover) {
+  .random-btn:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
 }
 
 /* ── Loading spinner ──────────────────────────────────── */
