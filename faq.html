@@ -1,19 +1,52 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <script src="js/version.js?v=1776312649"></script>
+  <script src="js/version.js?v=1776334060"></script>
   <meta charset="UTF-8"/>
-  
+
   <link rel="dns-prefetch" href="https://mc.yandex.ru">
   <link rel="dns-prefetch" href="https://nazeleniy.site">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <meta name="theme-color" content="#000000"/>
   <title>NaZeleniy — FAQ</title>
   <link rel="icon" type="image/png" href="img/icons/favicon.png"/>
-  <link rel="preload" href="css/style-faq.css?v=1776312649" as="style">
-  <link rel="stylesheet" href="css/style-faq.css?v=1776312649"/>
-  <link rel="preload" href="css/icons.css?v=1776312649" as="style">
-  <link rel="stylesheet" href="css/icons.css?v=1776312649"/>
+  <link rel="preload" href="css/style-settings.css?v=1776334060" as="style">
+  <link rel="stylesheet" href="css/style-settings.css?v=1776334060"/>
+  <link rel="preload" href="css/icons.css?v=1776334060" as="style">
+  <link rel="stylesheet" href="css/icons.css?v=1776334060"/>
+  <style>
+    .faq-list { display: flex; flex-direction: column; gap: 0; }
+    details.faq-item { border-bottom: 1px solid rgba(255,255,255,0.05); }
+    details.faq-item:last-child { border-bottom: none; }
+    details.faq-item summary {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 16px 20px; font-size: 15px; font-weight: 500; color: var(--text);
+      cursor: pointer; list-style: none; user-select: none;
+      transition: color var(--transition), background var(--transition);
+    }
+    details.faq-item summary::-webkit-details-marker { display: none; }
+    details.faq-item summary:hover { color: var(--accent); background: rgba(39,174,96,0.04); }
+    details.faq-item summary .faq-icon {
+      color: var(--text-muted); font-size: 12px; flex-shrink: 0;
+      transition: transform var(--transition), color var(--transition);
+    }
+    details.faq-item[open] summary { color: var(--accent); }
+    details.faq-item[open] summary .faq-icon { transform: rotate(90deg); color: var(--accent); }
+    .faq-answer {
+      padding: 0 20px 16px 20px; font-size: 14px; line-height: 1.7;
+      color: var(--text-secondary);
+    }
+    .faq-answer p + p { margin-top: 8px; }
+    .faq-answer a { color: var(--accent); text-decoration: none; }
+    .faq-answer a:hover { text-decoration: underline; }
+    .faq-tg-btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 11px 22px; background: var(--accent); border-radius: var(--radius);
+      color: #fff; font-size: 15px; font-weight: 600; text-decoration: none;
+      transition: background var(--transition), box-shadow var(--transition);
+    }
+    .faq-tg-btn:hover { background: var(--accent-hover); box-shadow: 0 0 16px var(--accent-glow); }
+  </style>
   <!-- Yandex.Metrika counter -->
   <script type="text/javascript">
     (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=108313126','ym');
@@ -31,11 +64,99 @@
 
       <h1 class="settings-title">FAQ</h1>
 
+      <!-- Общие вопросы -->
       <section class="settings-section">
-        <h2 class="settings-section-title">Наш канал</h2>
+        <h2 class="settings-section-title">Общие вопросы</h2>
+        <div class="faq-list">
+
+          <details class="faq-item">
+            <summary>Что такое NaZeleniy? <i class="fas fa-chevron-right faq-icon"></i></summary>
+            <div class="faq-answer">
+              <p>NaZeleniy — бесплатный кинопоиск для русскоязычного кино. Ищите фильмы и сериалы, смотрите рейтинги, трейлеры и описания.</p>
+              <p>Сервис не хранит видеофайлы — для просмотра используются встроенные плееры.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Нужна ли регистрация? <i class="fas fa-chevron-right faq-icon"></i></summary>
+            <div class="faq-answer">
+              <p>Нет. Поиск и просмотр доступны без входа.</p>
+              <p>Авторизация через Telegram нужна для оценок, истории и совместного просмотра.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Как войти на сайт? <i class="fas fa-chevron-right faq-icon"></i></summary>
+            <div class="faq-answer">
+              <p>Нажмите «Войти» в верхнем правом углу. Отсканируйте QR-код или нажмите «Открыть Telegram» — бот пришлёт одноразовый код подтверждения. Никакой регистрации и паролей.</p>
+            </div>
+          </details>
+
+        </div>
+      </section>
+
+      <!-- Плеер и просмотр -->
+      <section class="settings-section">
+        <h2 class="settings-section-title">Плеер и просмотр</h2>
+        <div class="faq-list">
+
+          <details class="faq-item">
+            <summary>Фильм не воспроизводится — что делать? <i class="fas fa-chevron-right faq-icon"></i></summary>
+            <div class="faq-answer">
+              <p>Попробуйте другой плеер — на странице фильма их несколько (Vibix, VideoSeed, VideoBalanser, FlixCDN). Доступность зависит от вашего региона и провайдера.</p>
+              <p>Если ни один не работает — проверьте VPN или попробуйте другой браузер.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Как изменить озвучку или субтитры? <i class="fas fa-chevron-right faq-icon"></i></summary>
+            <div class="faq-answer">
+              <p>Переключение дорожек и субтитров находится внутри самого плеера — ищите иконку настроек или «CC» в нижней панели управления плеером.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Что такое «Совместный просмотр»? <i class="fas fa-chevron-right faq-icon"></i></summary>
+            <div class="faq-answer">
+              <p>Функция «Вечеринка» (party) позволяет смотреть фильм вместе с другими людьми в реальном времени — воспроизведение, пауза и перемотка синхронизируются у всех участников. Поделитесь ссылкой на комнату с друзьями.</p>
+            </div>
+          </details>
+
+        </div>
+      </section>
+
+      <!-- Оценки и история -->
+      <section class="settings-section">
+        <h2 class="settings-section-title">Оценки и история</h2>
+        <div class="faq-list">
+
+          <details class="faq-item">
+            <summary>Как поставить оценку фильму? <i class="fas fa-chevron-right faq-icon"></i></summary>
+            <div class="faq-answer">
+              <p>Откройте страницу фильма и нажмите на виджет оценки NaZeleniy (значок со звёздочкой под постером). Потребуется войти через Telegram.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Где найти историю просмотров? <i class="fas fa-chevron-right faq-icon"></i></summary>
+            <div class="faq-answer">
+              <p>История последних 20 фильмов показывается прямо на главной странице под строкой поиска. Список оценённых фильмов доступен в профиле (<a href="/me">Профиль</a>) после входа.</p>
+            </div>
+          </details>
+
+        </div>
+      </section>
+
+      <!-- Контакты -->
+      <section class="settings-section">
+        <h2 class="settings-section-title">Контакты и поддержка</h2>
         <div class="settings-row">
-          <a href="https://t.me/NaZelen1y" target="_blank" rel="noopener noreferrer" class="type-btn" style="text-decoration:none;">
-            <i class="fab fa-telegram"></i> Telegram
+          <div class="settings-label">
+            <span>Telegram-канал</span>
+            <span class="settings-hint">Новости, обновления, обратная связь</span>
+          </div>
+          <a href="https://t.me/NaZelen1y" target="_blank" rel="noopener noreferrer" class="faq-tg-btn">
+            <i class="fab fa-telegram"></i> Открыть
           </a>
         </div>
       </section>
@@ -43,8 +164,8 @@
     </div>
   </main>
 
-  <script defer src="js/alpine.min.js?v=1776312649"></script>
-  <script src="js/header.js?v=1776312649"></script>
+  <script defer src="js/alpine.min.js?v=1776334060"></script>
+  <script src="js/header.js?v=1776334060"></script>
   <script>renderHeader('faq')</script>
   <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js')</script>
 </body>
