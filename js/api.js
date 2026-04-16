@@ -4,12 +4,14 @@ const API_BASE = window.location.hostname.endsWith('github.io')
 
 // credentials mode для fetch:
 // - same-origin (API_BASE = ''): 'include' — куки работают
-// - null-origin (TV webview, file://, sandboxed iframe): 'omit' — только Bearer
+// - github.io cross-origin с корректным origin: 'include' — CORS разрешает
+// - TV/webview с null-origin, app://-схемой или любым нестандартным origin: 'omit'
 //   (браузер блокирует 'include' когда сервер отвечает Access-Control-Allow-Origin: *)
-// - известный cross-origin (github.io): 'include'
+//   Bearer-токен в Authorization-заголовке работает без cookies
 const _CREDS = (() => {
   if (!API_BASE) return 'include'
-  if (typeof location !== 'undefined' && location.origin === 'null') return 'omit'
+  const o = location.origin  // API_BASE !== '' только на github.io-страницах
+  if (o === 'null' || !o.endsWith('github.io')) return 'omit'
   return 'include'
 })()
 

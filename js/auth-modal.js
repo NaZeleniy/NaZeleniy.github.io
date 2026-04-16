@@ -29,9 +29,9 @@
     return location.hostname.endsWith('github.io') ? 'https://nazeleniy.site' : ''
   }
   function _creds() {
-    const base = _api()
-    if (!base) return 'include'
-    if (typeof location !== 'undefined' && location.origin === 'null') return 'omit'
+    if (!_api()) return 'include'
+    const o = location.origin
+    if (o === 'null' || !o.endsWith('github.io')) return 'omit'
     return 'include'
   }
   const _modal = () => document.getElementById('auth-modal')

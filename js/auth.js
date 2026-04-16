@@ -50,9 +50,9 @@ function _bearerHeaderAuth() {
 
 // Аналог _CREDS из api.js — auth.js может загружаться до api.js (index.html)
 function _credsMode() {
-  const base = _apiBase()
-  if (!base) return 'include'
-  if (typeof location !== 'undefined' && location.origin === 'null') return 'omit'
+  if (!_apiBase()) return 'include'
+  const o = location.origin
+  if (o === 'null' || !o.endsWith('github.io')) return 'omit'
   return 'include'
 }
 
