@@ -68,7 +68,6 @@ function selectPlayer(name, url, type) {
     const fresh = document.createElement('iframe')
     fresh.id = 'player-frame'
     fresh.frameBorder = '0'
-    fresh.allowFullscreen = true
     fresh.setAttribute('allow', 'autoplay; fullscreen')
 
     let done = false
