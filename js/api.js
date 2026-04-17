@@ -1,5 +1,5 @@
 const API_BASE = window.location.hostname.endsWith('github.io')
-  ? 'http://nazeleniy.site:8080'
+  ? 'https://nazeleniy.site:8080'
   : ''
 
 // credentials mode для fetch:
