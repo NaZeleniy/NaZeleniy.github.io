@@ -888,11 +888,13 @@
       cause: 'keydown'
     };
 
+    var moved = false;
     if (fireEvent(currentFocusedElement, 'willmove', willmoveProperties)) {
-      focusNext(direction, currentFocusedElement, currentSectionId);
+      moved = focusNext(direction, currentFocusedElement, currentSectionId);
     }
 
-    return preventDefault();
+    if (moved) return preventDefault();
+    // фокус не переместился — разрешаем браузеру скроллить страницу
   }
 
   function onKeyUp(evt) {
