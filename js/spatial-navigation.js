@@ -845,7 +845,6 @@
         evt.altKey || evt.ctrlKey || evt.metaKey || evt.shiftKey) {
       return;
     }
-    console.log(evt.keyCode);
     var currentFocusedElement;
     var preventDefault = function() {
       evt.preventDefault();
@@ -879,7 +878,6 @@
     }
 
     var currentSectionId = getSectionId(currentFocusedElement);
-    console.log(currentSectionId);
     if (!currentSectionId) {
       return;
     }
