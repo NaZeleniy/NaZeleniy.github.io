@@ -80,7 +80,6 @@ function renderFavoriteItem(item) {
       </div>
       <div class="me-item-meta">
         ${date ? `<span class="me-item-date">${date}</span>` : ''}
-        <span class="me-item-fav-icon"><i class="fas fa-heart"></i></span>
       </div>
     </a>`
 }
@@ -89,6 +88,7 @@ function renderFavoriteItem(item) {
 
 let _activeTab = 'ratings'
 let _favoritesLoaded = false
+let _favoritesCache = null
 
 function _movePill(tab) {
   const pill = document.getElementById('me-tabs-pill')
@@ -115,21 +115,21 @@ function switchTab(tab) {
 async function loadFavorites() {
   _favoritesLoaded = true
   const grid = document.getElementById('me-favorites-grid')
-  grid.innerHTML = `<div class="me-loading"><i class="fas fa-circle-notch fa-spin"></i></div>`
 
   try {
-    const r = await fetch(API_BASE + '/api/me/favorites?limit=50&offset=0', {
-      credentials: _CREDS,
-      headers: _bearerHeader()
-    })
-    if (!r.ok) throw new Error()
-    const body = await r.json()
+    let body = _favoritesCache
+    if (!body) {
+      grid.innerHTML = `<div class="me-loading"><i class="fas fa-circle-notch fa-spin"></i></div>`
+      const r = await fetch(API_BASE + '/api/me/favorites?limit=50&offset=0', {
+        credentials: _CREDS,
+        headers: _bearerHeader()
+      })
+      if (!r.ok) throw new Error()
+      body = await r.json()
+      _favoritesCache = body
+    }
+
     const items = body.items || []
-    const total = body.total ?? items.length
-
-    const badge = document.getElementById('tab-badge-favorites')
-    if (badge) badge.textContent = total || ''
-
     if (!items.length) {
       grid.innerHTML = `
         <div class="me-empty">
@@ -207,15 +207,28 @@ async function loadMe() {
   // Pill нужно позиционировать после того как layout известен
   requestAnimationFrame(() => _movePill('ratings'))
 
-  // Загружаем оценки
+  // Загружаем оценки и избранное параллельно
+  const [ratingsRes, favsRes] = await Promise.allSettled([
+    fetch(API_BASE + '/api/me/ratings', { credentials: _CREDS, headers: _bearerHeader() }),
+    fetch(API_BASE + '/api/me/favorites?limit=50&offset=0', { credentials: _CREDS, headers: _bearerHeader() })
+  ])
+
   let ratings = []
   let ratingsTotal = 0
   try {
-    const r = await fetch(API_BASE + '/api/me/ratings', { credentials: _CREDS, headers: _bearerHeader() })
-    if (r.ok) {
-      const body = await r.json()
+    if (ratingsRes.status === 'fulfilled' && ratingsRes.value.ok) {
+      const body = await ratingsRes.value.json()
       ratings = body.items || []
       ratingsTotal = body.total ?? ratings.length
+    }
+  } catch {}
+
+  try {
+    if (favsRes.status === 'fulfilled' && favsRes.value.ok) {
+      _favoritesCache = await favsRes.value.json()
+      const total = _favoritesCache.total ?? (_favoritesCache.items || []).length
+      const badge = document.getElementById('tab-badge-favorites')
+      if (badge) badge.textContent = total || ''
     }
   } catch {}
 
