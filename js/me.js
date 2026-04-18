@@ -85,6 +85,11 @@ async function loadMe() {
     const original = item.nameOriginal && item.nameOriginal !== item.nameRu
       ? `<span class="me-item-original">${escapeHtml(item.nameOriginal)}</span>`
       : ''
+    const genreList = Array.isArray(item.genres) && item.genres.length
+      ? `<div class="me-item-genres">${item.genres.slice(0, 3).map(g =>
+          `<span class="me-item-genre">${escapeHtml(g.genre || g)}</span>`
+        ).join('')}</div>`
+      : ''
     const imgSrc = item.posterUrl || '/img/placeholder.svg'
     const color = ratingColor(item.userRating)
     const date  = item.ratedAt ? formatDate(item.ratedAt) : ''
@@ -95,6 +100,7 @@ async function loadMe() {
         <div class="me-item-info">
           <span class="me-item-title">${title}</span>
           ${original}
+          ${genreList}
         </div>
         <div class="me-item-meta">
           ${date ? `<span class="me-item-date">${date}</span>` : ''}
