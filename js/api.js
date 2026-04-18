@@ -17,10 +17,12 @@ const _CREDS = (() => {
 
 const PLACEHOLDER = '/img/placeholder.svg'
 
-function posterUrl(url) {
-  // KP API иногда возвращает свой URL-заглушки "no-poster.png", который сам отдаёт 404.
-  // Заменяем его на наш placeholder сразу, до того как браузер попытается загрузить.
+function posterUrl(url, size) {
   if (!url || url.includes('no-poster')) return PLACEHOLDER
+  if (url.includes('avatars.mds.yandex.net')) {
+    const s = size || (window.innerWidth >= 1400 ? '480x720' : '360x540')
+    return url.replace(/\/\d+x\d+$/, '/' + s)
+  }
   return url
 }
 

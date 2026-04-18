@@ -325,7 +325,7 @@ function renderMovie(movie) {
   document.title = title + ' — NaZeleniy'
 
   const descMeta = (movie.description || movie.shortDescription || '').slice(0, 200)
-  const ogImage = posterUrl(movie.posterUrl || movie.posterUrlPreview)
+  const ogImage = posterUrl(movie.posterUrl || movie.posterUrlPreview, '600x900')
   const ogUrl = 'https://nazeleniy.github.io/movie/' + (movie.kinopoiskId || movie.filmId || '')
   document.querySelector('meta[name="description"]')?.setAttribute('content', descMeta)
   document.querySelector('meta[property="og:title"]')?.setAttribute('content', title)
@@ -392,8 +392,8 @@ function renderMovie(movie) {
     ? `<li class="rating-boxes"><div class="rating-box age"><strong>${formatAge(movie.ratingAgeLimits)}</strong></div></li>`
     : ''
 
-  const posterSrc = posterUrl(movie.posterUrlPreview || movie.posterUrl)
-  const posterFull = posterUrl(movie.posterUrl || movie.posterUrlPreview)
+  const posterSrc = posterUrl(movie.posterUrlPreview || movie.posterUrl, '600x900')
+  const posterFull = posterUrl(movie.posterUrl || movie.posterUrlPreview, '600x900')
   const safeTitle = escapeHtml(title)
   const posterHtml = `<a class="movie-poster-side" href="${posterFull}" target="_blank" rel="noopener noreferrer">
        <img class="movie-poster" src="${posterSrc}" alt="${safeTitle}"
