@@ -147,7 +147,7 @@ function switchTab(tab) {
   document.getElementById('me-ratings-section').style.display = tab === 'ratings' ? '' : 'none'
   document.getElementById('me-favorites-section').style.display = tab === 'favorites' ? '' : 'none'
 
-  if (tab === 'favorites' && _favoritesTotal === 0 && !document.getElementById('me-favorites-grid').children.length) {
+  if (tab === 'favorites' && !document.getElementById('me-favorites-grid').children.length) {
     loadFavoritesPage(0)
   }
 }
