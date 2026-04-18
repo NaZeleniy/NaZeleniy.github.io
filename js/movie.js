@@ -45,6 +45,7 @@ let _players = []
 
 let _currentUserRating = null
 let _currentKpId = null
+let _isFavorited = false
 let _commentsOffset = 0
 let _hasMoreComments = false
 let _nzCloseHandler = null
@@ -398,7 +399,8 @@ function renderMovie(movie) {
             onload="this.classList.add('loaded')"
             onerror="this.classList.add('loaded');this.onerror=null;this.src=(this.src!=='${posterFull}'?'${posterFull}':'/img/placeholder.svg')"/>
      </a>
-     <div id="nz-poster-rating" class="nz-poster-rating"></div>`
+     <div id="nz-poster-rating" class="nz-poster-rating"></div>
+     <div id="nz-favorite-wrap"></div>`
 
   const desc = movie.description || movie.shortDescription || ''
   const descHtml = desc
@@ -747,6 +749,87 @@ async function refreshNzRating() {
   } catch {}
 }
 
+// ── Favorites ─────────────────────────────────────────────
+
+async function initFavorite(kpId) {
+  let cached = null
+  try { const r = localStorage.getItem('nz_me'); if (r) cached = JSON.parse(r) } catch {}
+  if (!window._nzUser && !cached) {
+    _isFavorited = false
+    renderFavoriteBtn()
+    return
+  }
+  _isFavorited = await getFavoriteStatus(kpId)
+  renderFavoriteBtn()
+}
+
+async function getFavoriteStatus(kpId) {
+  try {
+    const r = await fetch(`${API_BASE}/api/favorites/${kpId}`, {
+      credentials: _CREDS,
+      headers: _bearerHeader(),
+    })
+    if (!r.ok) return false
+    const data = await r.json()
+    return data.favorited
+  } catch {
+    return false
+  }
+}
+
+function renderFavoriteBtn() {
+  const wrap = document.getElementById('nz-favorite-wrap')
+  if (!wrap) return
+  if (_isFavorited) {
+    wrap.innerHTML = `
+      <button class="nz-favorite-btn nz-favorite-btn--active" onclick="toggleFavorite()">
+        <span class="nz-favorite-icon">♥</span>
+        <span>В списке просмотра</span>
+      </button>`
+  } else {
+    wrap.innerHTML = `
+      <button class="nz-favorite-btn" onclick="toggleFavorite()">
+        <span class="nz-favorite-icon">♡</span>
+        <span>Буду смотреть</span>
+      </button>`
+  }
+}
+
+async function toggleFavorite() {
+  if (!window._nzUser) {
+    openAuthModal(() => toggleFavorite())
+    return
+  }
+  const kpId = _currentKpId
+  if (!kpId) return
+  if (_isFavorited) {
+    try {
+      const r = await fetch(`${API_BASE}/api/favorites/${kpId}`, {
+        method: 'DELETE',
+        credentials: _CREDS,
+        headers: _bearerHeader(),
+      })
+      if (r.ok || r.status === 404) {
+        _isFavorited = false
+        renderFavoriteBtn()
+      }
+    } catch {}
+  } else {
+    try {
+      const r = await fetch(`${API_BASE}/api/favorites/${kpId}`, {
+        method: 'POST',
+        credentials: _CREDS,
+        headers: _bearerHeader(),
+      })
+      if (r.status === 401) { showAuthRequiredToast(); return }
+      if (r.ok) {
+        _isFavorited = true
+        renderFavoriteBtn()
+      }
+    } catch {}
+  }
+}
+
 // ── Comments ───────────────────────────────────────────────
 
 function escapeHtml(str) {
@@ -1019,6 +1102,7 @@ async function loadMovie() {
     const movie = await r.json()
     renderMovie(movie)
     initRatingWidget(movie)
+    initFavorite(movie.kinopoiskId || movie.filmId)
     // DOM готов — рендерим всё остальное без ожидания
     refreshNzRating()
     initComments(movie)

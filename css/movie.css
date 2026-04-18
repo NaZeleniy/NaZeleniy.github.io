@@ -986,6 +986,51 @@ a.movie-poster-side img {
 .nz-msg-error { color: rgba(231,76,60,0.85); }
 .nz-msg-error a { color: var(--accent); }
 
+/* ── Favorite button ── */
+#nz-favorite-wrap {
+  margin-top: 8px;
+}
+
+.nz-favorite-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: rgba(255,255,255,0.45);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.nz-favorite-btn:hover {
+  border-color: rgba(39,174,96,0.45);
+  color: rgba(39,174,96,0.85);
+}
+
+.nz-favorite-btn--active {
+  border-color: rgba(39,174,96,0.4);
+  color: rgba(39,174,96,0.9);
+  background: rgba(39,174,96,0.07);
+}
+
+.nz-favorite-btn--active:hover {
+  border-color: rgba(231,76,60,0.4);
+  color: rgba(231,76,60,0.75);
+  background: rgba(231,76,60,0.05);
+}
+
+.nz-favorite-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
 /* ── Comments ─────────────────────────────────────────────── */
 .comments-wrap {
   margin-top: 32px;
