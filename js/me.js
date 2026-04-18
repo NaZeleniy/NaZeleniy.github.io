@@ -44,7 +44,8 @@ async function loadMe() {
   }
 
   // 2. Рендерим шапку профиля
-  const initials = (user.name || '?').slice(0, 2).toUpperCase()
+  const displayName = (user.name || '').replace(/^@/, '') || 'Профиль'
+  const initials = displayName.slice(0, 2).toUpperCase()
   const avatarEl = document.getElementById('me-avatar')
   if (user.avatar_url) {
     avatarEl.innerHTML = `<img src="${escapeHtml(user.avatar_url)}" alt="${escapeHtml(initials)}" class="me-avatar-img"/>`
@@ -65,7 +66,7 @@ async function loadMe() {
     avatarEl.style.border = 'none'
     avatarEl.style.color = '#fff'
   }
-  document.getElementById('me-name').textContent = user.name || 'Профиль'
+  document.getElementById('me-name').textContent = displayName
   document.getElementById('me-header').style.display = ''
   document.getElementById('me-ratings-section').style.display = ''
 

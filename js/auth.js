@@ -130,7 +130,7 @@ function _escapeHtml(s) {
 }
 
 function _renderUserBtn(container, data) {
-  const name = _escapeHtml(data.name || 'Профиль')
+  const name = _escapeHtml((data.name || 'Профиль').replace(/^@/, ''))
   container.innerHTML = `
     <button class="auth-btn auth-btn--out" onclick="authLogout()" title="Выйти">
       <span>${name}</span>
