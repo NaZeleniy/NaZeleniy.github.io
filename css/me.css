@@ -90,12 +90,11 @@
 
 /* ── Section ──────────────────────────────────────────── */
 .me-section-title {
-  font-size: 0.72rem;
+  font-size: 1rem;
   font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: 8px;
+  color: var(--text);
+  margin-bottom: 12px;
+  padding-left: 2px;
 }
 
 /* ── Ratings list ─────────────────────────────────────── */

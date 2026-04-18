@@ -45,7 +45,7 @@ async function loadMe() {
 
   // 2. Рендерим шапку профиля
   const displayName = (user.name || '').replace(/^@/, '') || 'Профиль'
-  const initials = displayName.slice(0, 2).toUpperCase()
+  const initials = displayName.slice(0, 1).toUpperCase()
   const avatarEl = document.getElementById('me-avatar')
   if (user.avatar_url) {
     avatarEl.innerHTML = `<img src="${escapeHtml(user.avatar_url)}" alt="${escapeHtml(initials)}" class="me-avatar-img"/>`
