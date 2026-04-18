@@ -1,3 +1,5 @@
+const ITEMS_PER_PAGE = 10
+
 function ratingColor(r) {
   if (!r) return '#999'
   if (r >= 7) return '#27ae60'
@@ -84,11 +86,47 @@ function renderFavoriteItem(item) {
     </a>`
 }
 
+// ── Pagination ─────────────────────────────────────────────
+
+function renderPagination(containerId, currentPage, total, onPageFn) {
+  const el = document.getElementById(containerId)
+  if (!el) return
+  const totalPages = Math.ceil(total / ITEMS_PER_PAGE)
+  if (totalPages <= 1) { el.innerHTML = ''; return }
+
+  const pages = []
+  // Build page window: always show first, last, and up to 3 around current
+  const delta = 1
+  const range = []
+  for (let i = Math.max(0, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
+    range.push(i)
+  }
+  if (range[0] > 1) range.unshift('…')
+  if (range[0] !== 0) range.unshift(0)
+  if (range[range.length - 1] < totalPages - 2) range.push('…')
+  if (range[range.length - 1] !== totalPages - 1) range.push(totalPages - 1)
+
+  const btn = (label, page, disabled, active) => {
+    if (label === '…') return `<span class="me-page-dots">…</span>`
+    return `<button class="me-page-btn${active ? ' me-page-btn--active' : ''}"
+      ${disabled ? 'disabled' : `onclick="${onPageFn}(${page})"`}>${label}</button>`
+  }
+
+  el.innerHTML = `
+    <div class="me-pagination">
+      ${btn('‹', currentPage - 1, currentPage === 0, false)}
+      ${range.map(p => p === '…' ? btn('…') : btn(p + 1, p, false, p === currentPage)).join('')}
+      ${btn('›', currentPage + 1, currentPage === totalPages - 1, false)}
+    </div>`
+}
+
 // ── Tab switching ──────────────────────────────────────────
 
 let _activeTab = 'ratings'
-let _favoritesLoaded = false
-let _favoritesCache = null
+let _ratingsPage = 0
+let _ratingsTotal = 0
+let _favoritesPage = 0
+let _favoritesTotal = 0
 
 function _movePill(tab) {
   const pill = document.getElementById('me-tabs-pill')
@@ -109,27 +147,72 @@ function switchTab(tab) {
   document.getElementById('me-ratings-section').style.display = tab === 'ratings' ? '' : 'none'
   document.getElementById('me-favorites-section').style.display = tab === 'favorites' ? '' : 'none'
 
-  if (tab === 'favorites' && !_favoritesLoaded) loadFavorites()
+  if (tab === 'favorites' && _favoritesTotal === 0 && !document.getElementById('me-favorites-grid').children.length) {
+    loadFavoritesPage(0)
+  }
 }
 
-async function loadFavorites() {
-  _favoritesLoaded = true
-  const grid = document.getElementById('me-favorites-grid')
+// ── Ratings ────────────────────────────────────────────────
+
+async function loadRatingsPage(page) {
+  _ratingsPage = page
+  const grid = document.getElementById('me-ratings-grid')
+  grid.innerHTML = `<div class="me-loading"><i class="fas fa-circle-notch fa-spin"></i></div>`
+  document.getElementById('me-ratings-pagination').innerHTML = ''
 
   try {
-    let body = _favoritesCache
-    if (!body) {
-      grid.innerHTML = `<div class="me-loading"><i class="fas fa-circle-notch fa-spin"></i></div>`
-      const r = await fetch(API_BASE + '/api/me/favorites?limit=50&offset=0', {
-        credentials: _CREDS,
-        headers: _bearerHeader()
-      })
-      if (!r.ok) throw new Error()
-      body = await r.json()
-      _favoritesCache = body
+    const r = await fetch(
+      `${API_BASE}/api/me/ratings?limit=${ITEMS_PER_PAGE}&offset=${page * ITEMS_PER_PAGE}`,
+      { credentials: _CREDS, headers: _bearerHeader() }
+    )
+    if (!r.ok) throw new Error()
+    const body = await r.json()
+    const items = body.items || []
+    _ratingsTotal = body.total ?? items.length
+
+    const badge = document.getElementById('tab-badge-ratings')
+    if (badge) badge.textContent = _ratingsTotal || ''
+
+    if (!items.length) {
+      grid.innerHTML = `
+        <div class="me-empty">
+          <i class="fas fa-star me-empty-icon"></i>
+          <p>Вы ещё не оценили ни одного фильма</p>
+        </div>`
+      return
     }
 
+    grid.innerHTML = items.map(renderRatingItem).join('')
+    renderPagination('me-ratings-pagination', page, _ratingsTotal, 'gotoRatingsPage')
+    if (page > 0) document.getElementById('me-ratings-section').scrollIntoView({ behavior: 'smooth', block: 'start' })
+  } catch {
+    grid.innerHTML = `<div class="me-empty"><i class="fas fa-exclamation-circle me-empty-icon"></i><p>Ошибка загрузки</p></div>`
+  }
+}
+
+function gotoRatingsPage(page) { loadRatingsPage(page) }
+
+// ── Favorites ──────────────────────────────────────────────
+
+async function loadFavoritesPage(page) {
+  _favoritesPage = page
+  const grid = document.getElementById('me-favorites-grid')
+  grid.innerHTML = `<div class="me-loading"><i class="fas fa-circle-notch fa-spin"></i></div>`
+  document.getElementById('me-favorites-pagination').innerHTML = ''
+
+  try {
+    const r = await fetch(
+      `${API_BASE}/api/me/favorites?limit=${ITEMS_PER_PAGE}&offset=${page * ITEMS_PER_PAGE}`,
+      { credentials: _CREDS, headers: _bearerHeader() }
+    )
+    if (!r.ok) throw new Error()
+    const body = await r.json()
     const items = body.items || []
+    _favoritesTotal = body.total ?? items.length
+
+    const badge = document.getElementById('tab-badge-favorites')
+    if (badge) badge.textContent = _favoritesTotal || ''
+
     if (!items.length) {
       grid.innerHTML = `
         <div class="me-empty">
@@ -140,15 +223,15 @@ async function loadFavorites() {
     }
 
     grid.innerHTML = items.map(renderFavoriteItem).join('')
+    renderPagination('me-favorites-pagination', page, _favoritesTotal, 'gotoFavoritesPage')
+    if (page > 0) document.getElementById('me-favorites-section').scrollIntoView({ behavior: 'smooth', block: 'start' })
   } catch {
-    grid.innerHTML = `
-      <div class="me-empty">
-        <i class="fas fa-exclamation-circle me-empty-icon"></i>
-        <p>Ошибка загрузки</p>
-      </div>`
-    _favoritesLoaded = false
+    grid.innerHTML = `<div class="me-empty"><i class="fas fa-exclamation-circle me-empty-icon"></i><p>Ошибка загрузки</p></div>`
+    _favoritesTotal = 0
   }
 }
+
+function gotoFavoritesPage(page) { loadFavoritesPage(page) }
 
 // ── Main ───────────────────────────────────────────────────
 
@@ -212,49 +295,47 @@ async function loadMe() {
   document.getElementById('me-header').style.display = ''
   document.getElementById('me-tabs').style.display = ''
   document.getElementById('me-ratings-section').style.display = ''
-  // Pill нужно позиционировать после того как layout известен
   requestAnimationFrame(() => _movePill('ratings'))
 
-  // Загружаем оценки и избранное параллельно
+  // Загружаем первую страницу оценок и кол-во избранных параллельно
   const [ratingsRes, favsRes] = await Promise.allSettled([
-    fetch(API_BASE + '/api/me/ratings', { credentials: _CREDS, headers: _bearerHeader() }),
-    fetch(API_BASE + '/api/me/favorites?limit=50&offset=0', { credentials: _CREDS, headers: _bearerHeader() })
+    fetch(`${API_BASE}/api/me/ratings?limit=${ITEMS_PER_PAGE}&offset=0`, { credentials: _CREDS, headers: _bearerHeader() }),
+    fetch(`${API_BASE}/api/me/favorites?limit=1&offset=0`, { credentials: _CREDS, headers: _bearerHeader() })
   ])
 
-  let ratings = []
-  let ratingsTotal = 0
+  // Оценки
   try {
     if (ratingsRes.status === 'fulfilled' && ratingsRes.value.ok) {
       const body = await ratingsRes.value.json()
-      ratings = body.items || []
-      ratingsTotal = body.total ?? ratings.length
+      const items = body.items || []
+      _ratingsTotal = body.total ?? items.length
+
+      const badge = document.getElementById('tab-badge-ratings')
+      if (badge) badge.textContent = _ratingsTotal || ''
+
+      const grid = document.getElementById('me-ratings-grid')
+      if (!items.length) {
+        grid.innerHTML = `
+          <div class="me-empty">
+            <i class="fas fa-star me-empty-icon"></i>
+            <p>Вы ещё не оценили ни одного фильма</p>
+          </div>`
+      } else {
+        grid.innerHTML = items.map(renderRatingItem).join('')
+        renderPagination('me-ratings-pagination', 0, _ratingsTotal, 'gotoRatingsPage')
+      }
     }
   } catch {}
 
+  // Счётчик избранных (только total, без лишних данных)
   try {
     if (favsRes.status === 'fulfilled' && favsRes.value.ok) {
-      _favoritesCache = await favsRes.value.json()
-      const total = _favoritesCache.total ?? (_favoritesCache.items || []).length
+      const body = await favsRes.value.json()
+      _favoritesTotal = body.total ?? 0
       const badge = document.getElementById('tab-badge-favorites')
-      if (badge) badge.textContent = total || ''
+      if (badge) badge.textContent = _favoritesTotal || ''
     }
   } catch {}
-
-  const badge = document.getElementById('tab-badge-ratings')
-  if (badge) badge.textContent = ratingsTotal || ''
-
-  const grid = document.getElementById('me-ratings-grid')
-
-  if (!ratings.length) {
-    grid.innerHTML = `
-      <div class="me-empty">
-        <i class="fas fa-star me-empty-icon"></i>
-        <p>Вы ещё не оценили ни одного фильма</p>
-      </div>`
-    return
-  }
-
-  grid.innerHTML = ratings.map(renderRatingItem).join('')
 }
 
 async function meLogout() {

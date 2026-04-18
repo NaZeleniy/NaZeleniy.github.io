@@ -64,6 +64,9 @@
 .me-header-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .me-username {
@@ -420,4 +423,60 @@
   .me-item-title { font-size: 14px; }
   .me-item-date { display: none; }
   .me-item-genres { display: none; }
+}
+
+/* ── Pagination ───────────────────────────────────────── */
+.me-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 16px 0 4px;
+}
+
+.me-page-btn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 6px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 7px;
+  background: transparent;
+  color: rgba(255,255,255,0.45);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.me-page-btn:hover:not(:disabled) {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.85);
+}
+
+.me-page-btn--active {
+  background: rgba(39,174,96,0.15);
+  border-color: rgba(39,174,96,0.4);
+  color: var(--accent);
+}
+
+.me-page-btn--active:hover {
+  background: rgba(39,174,96,0.22) !important;
+}
+
+.me-page-btn:disabled {
+  opacity: 0.22;
+  cursor: default;
+}
+
+.me-page-dots {
+  color: rgba(255,255,255,0.2);
+  font-size: 13px;
+  padding: 0 2px;
+  user-select: none;
 }
