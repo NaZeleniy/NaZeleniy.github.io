@@ -1,20 +1,20 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <script src="js/version.js?v=1776508754"></script>
+  <script src="js/version.js?v=1776509285"></script>
   <meta charset="UTF-8"/>
-  
+
   <link rel="dns-prefetch" href="https://mc.yandex.ru">
   <link rel="dns-prefetch" href="https://nazeleniy.site">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <meta name="theme-color" content="#000000"/>
   <title>NaZeleniy — Профиль</title>
   <link rel="icon" type="image/png" href="img/icons/favicon.png"/>
-  <link rel="preload" href="css/style-me.css?v=1776508754" as="style">
-  <link rel="stylesheet" href="css/style-me.css?v=1776508754"/>
-  <link rel="preload" href="css/icons.css?v=1776508754" as="style">
-  <link rel="stylesheet" href="css/icons.css?v=1776508754"/>
-  <script defer src="js/alpine.min.js?v=1776508754"></script>
+  <link rel="preload" href="css/style-me.css?v=1776509285" as="style">
+  <link rel="stylesheet" href="css/style-me.css?v=1776509285"/>
+  <link rel="preload" href="css/icons.css?v=1776509285" as="style">
+  <link rel="stylesheet" href="css/icons.css?v=1776509285"/>
+  <script defer src="js/alpine.min.js?v=1776509285"></script>
   <!-- Yandex.Metrika counter -->
   <script type="text/javascript">
     (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=108313126','ym');
@@ -32,20 +32,40 @@
 
       <div id="me-content">
 
-        <!-- Шапка профиля (показывается после загрузки) -->
+        <!-- Шапка профиля -->
         <div class="me-header" id="me-header" style="display:none">
           <div class="me-avatar" id="me-avatar"></div>
           <div class="me-header-info">
             <span class="me-username" id="me-name"></span>
-            <span class="me-stats" id="me-ratings-count"></span>
           </div>
-          <button class="me-logout-btn" onclick="meLogout()">Выйти</button>
+          <button class="me-logout-btn" onclick="meLogout()">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Выйти</span>
+          </button>
         </div>
 
-        <!-- Сетка оценок -->
-        <div id="me-ratings-section" style="display:none" class="me-ratings-section-wrap">
-          <div class="me-section-title">Мои оценки</div>
+        <!-- Табы -->
+        <div class="me-tabs" id="me-tabs" style="display:none">
+          <button class="me-tab me-tab--active" id="tab-btn-ratings" onclick="switchTab('ratings')">
+            <i class="fas fa-star"></i>
+            <span>Мои оценки</span>
+            <span class="me-tab-badge" id="tab-badge-ratings"></span>
+          </button>
+          <button class="me-tab" id="tab-btn-favorites" onclick="switchTab('favorites')">
+            <i class="fas fa-heart"></i>
+            <span>Буду смотреть</span>
+            <span class="me-tab-badge" id="tab-badge-favorites"></span>
+          </button>
+        </div>
+
+        <!-- Панель оценок -->
+        <div id="me-ratings-section" style="display:none">
           <div class="me-grid" id="me-ratings-grid"></div>
+        </div>
+
+        <!-- Панель избранного -->
+        <div id="me-favorites-section" style="display:none">
+          <div class="me-grid" id="me-favorites-grid"></div>
         </div>
 
       </div>
@@ -53,9 +73,9 @@
     </div>
   </main>
 
-  <script src="js/api.js?v=1776508754"></script>
-  <script src="js/me.js?v=1776508754"></script>
-  <script src="js/header.js?v=1776508754"></script>
+  <script src="js/api.js?v=1776509285"></script>
+  <script src="js/me.js?v=1776509285"></script>
+  <script src="js/header.js?v=1776509285"></script>
   <script>renderHeader('me')</script>
   <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js')</script>
 </body>

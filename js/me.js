@@ -11,15 +11,145 @@ function escapeHtml(s) {
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
+function formatDate(iso) {
+  try {
+    const d = new Date(iso)
+    const now = new Date()
+    const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+    const sameDay = (a, b) =>
+      a.getDate() === b.getDate() &&
+      a.getMonth() === b.getMonth() &&
+      a.getFullYear() === b.getFullYear()
+    if (sameDay(d, now)) return `Сегодня, ${time}`
+    const yesterday = new Date(now)
+    yesterday.setDate(now.getDate() - 1)
+    if (sameDay(d, yesterday)) return `Вчера, ${time}`
+    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+  } catch { return '' }
+}
+
+function renderRatingItem(item) {
+  const id = item.kinopoiskId
+  if (!id) return ''
+  const title    = escapeHtml(item.nameRu || item.nameOriginal || `Фильм #${id}`)
+  const original = item.nameOriginal && item.nameOriginal !== item.nameRu
+    ? `<span class="me-item-original">${escapeHtml(item.nameOriginal)}</span>` : ''
+  const genreList = Array.isArray(item.genres) && item.genres.length
+    ? `<div class="me-item-genres">${item.genres.slice(0, 3).map(g =>
+        `<span class="me-item-genre">${escapeHtml(g.genre || g)}</span>`
+      ).join('')}</div>` : ''
+  const imgSrc  = item.posterUrl || '/img/placeholder.svg'
+  const color   = ratingColor(item.userRating)
+  const date    = item.ratedAt ? formatDate(item.ratedAt) : ''
+  const preview = JSON.stringify({ filmId: id, nameRu: item.nameRu, nameEn: item.nameOriginal, posterUrl: item.posterUrl, posterUrlPreview: item.posterUrl }).replace(/'/g, '&#39;')
+  return `
+    <a href="/movie/${id}" class="me-item" onclick="sessionStorage.setItem('moviePreview','${preview}')">
+      <img class="me-item-poster" src="${imgSrc}" alt="${title}" loading="lazy"/>
+      <div class="me-item-info">
+        <span class="me-item-title">${title}</span>
+        ${original}
+        ${genreList}
+      </div>
+      <div class="me-item-meta">
+        ${date ? `<span class="me-item-date">${date}</span>` : ''}
+        <span class="me-item-rating" style="background:${color}">${item.userRating}</span>
+      </div>
+    </a>`
+}
+
+function renderFavoriteItem(item) {
+  const id = item.kinopoiskId
+  if (!id) return ''
+  const title    = escapeHtml(item.nameRu || item.nameOriginal || `Фильм #${id}`)
+  const original = item.nameOriginal && item.nameOriginal !== item.nameRu
+    ? `<span class="me-item-original">${escapeHtml(item.nameOriginal)}</span>` : ''
+  const genreList = Array.isArray(item.genres) && item.genres.length
+    ? `<div class="me-item-genres">${item.genres.slice(0, 3).map(g =>
+        `<span class="me-item-genre">${escapeHtml(g.genre || g)}</span>`
+      ).join('')}</div>` : ''
+  const imgSrc  = posterUrl(item.posterUrl)
+  const date    = item.favoritedAt ? formatDate(item.favoritedAt) : ''
+  const preview = JSON.stringify({ filmId: id, nameRu: item.nameRu, nameEn: item.nameOriginal, posterUrl: item.posterUrl, posterUrlPreview: item.posterUrl }).replace(/'/g, '&#39;')
+  return `
+    <a href="/movie/${id}" class="me-item" onclick="sessionStorage.setItem('moviePreview','${preview}')">
+      <img class="me-item-poster" src="${imgSrc}" alt="${title}" loading="lazy"/>
+      <div class="me-item-info">
+        <span class="me-item-title">${title}</span>
+        ${original}
+        ${genreList}
+      </div>
+      <div class="me-item-meta">
+        ${date ? `<span class="me-item-date">${date}</span>` : ''}
+        <span class="me-item-fav-icon"><i class="fas fa-heart"></i></span>
+      </div>
+    </a>`
+}
+
+// ── Tab switching ──────────────────────────────────────────
+
+let _activeTab = 'ratings'
+let _favoritesLoaded = false
+
+function switchTab(tab) {
+  if (_activeTab === tab) return
+  _activeTab = tab
+
+  document.getElementById('tab-btn-ratings').classList.toggle('me-tab--active', tab === 'ratings')
+  document.getElementById('tab-btn-favorites').classList.toggle('me-tab--active', tab === 'favorites')
+  document.getElementById('me-ratings-section').style.display = tab === 'ratings' ? '' : 'none'
+  document.getElementById('me-favorites-section').style.display = tab === 'favorites' ? '' : 'none'
+
+  if (tab === 'favorites' && !_favoritesLoaded) loadFavorites()
+}
+
+async function loadFavorites() {
+  _favoritesLoaded = true
+  const grid = document.getElementById('me-favorites-grid')
+  grid.innerHTML = `<div class="me-loading"><i class="fas fa-circle-notch fa-spin"></i></div>`
+
+  try {
+    const r = await fetch(API_BASE + '/api/me/favorites?limit=50&offset=0', {
+      credentials: _CREDS,
+      headers: _bearerHeader()
+    })
+    if (!r.ok) throw new Error()
+    const body = await r.json()
+    const items = body.items || []
+    const total = body.total ?? items.length
+
+    const badge = document.getElementById('tab-badge-favorites')
+    if (badge) badge.textContent = total || ''
+
+    if (!items.length) {
+      grid.innerHTML = `
+        <div class="me-empty">
+          <i class="fas fa-heart me-empty-icon"></i>
+          <p>Список пуст — добавляйте фильмы<br>кнопкой «Буду смотреть»</p>
+        </div>`
+      return
+    }
+
+    grid.innerHTML = items.map(renderFavoriteItem).join('')
+  } catch {
+    grid.innerHTML = `
+      <div class="me-empty">
+        <i class="fas fa-exclamation-circle me-empty-icon"></i>
+        <p>Ошибка загрузки</p>
+      </div>`
+    _favoritesLoaded = false
+  }
+}
+
+// ── Main ───────────────────────────────────────────────────
+
 async function loadMe() {
-  // 1. Проверяем авторизацию — сначала кеш, потом сеть
   let user = window._nzUser || null
   if (!user) {
     try {
       const raw = localStorage.getItem('nz_me')
       if (raw) {
         const parsed = JSON.parse(raw)
-        user = parsed.data || parsed // поддержка старого формата без обёртки
+        user = parsed.data || parsed
       }
     } catch {}
   }
@@ -37,13 +167,12 @@ async function loadMe() {
     if (typeof openAuthModal === 'function') {
       openAuthModal(() => loadMe())
     } else {
-      // fallback на случай если модалка ещё не загрузилась
       location.replace('/login?next=' + encodeURIComponent(location.pathname + location.search))
     }
     return
   }
 
-  // 2. Рендерим шапку профиля
+  // Шапка профиля
   const displayName = (user.name || '').replace(/^@/, '') || 'Профиль'
   const initials = displayName.slice(0, 1).toUpperCase()
   const avatarEl = document.getElementById('me-avatar')
@@ -52,13 +181,8 @@ async function loadMe() {
     avatarEl.classList.add('me-avatar--photo')
   } else {
     const TG_GRADIENTS = [
-      ['#FF516A','#FF8B5F'],
-      ['#FFA943','#FFCD6A'],
-      ['#A0DE7E','#54CB68'],
-      ['#53EDD6','#28B9B5'],
-      ['#72D5FD','#2A9EF1'],
-      ['#E46EFF','#AC44CC'],
-      ['#FF86A6','#FF599D'],
+      ['#FF516A','#FF8B5F'],['#FFA943','#FFCD6A'],['#A0DE7E','#54CB68'],
+      ['#53EDD6','#28B9B5'],['#72D5FD','#2A9EF1'],['#E46EFF','#AC44CC'],['#FF86A6','#FF599D'],
     ]
     const [c1, c2] = TG_GRADIENTS[(user.telegram_id || 0) % TG_GRADIENTS.length]
     avatarEl.textContent = initials
@@ -68,9 +192,10 @@ async function loadMe() {
   }
   document.getElementById('me-name').textContent = displayName
   document.getElementById('me-header').style.display = ''
+  document.getElementById('me-tabs').style.display = ''
   document.getElementById('me-ratings-section').style.display = ''
 
-  // 3. Загружаем оценки
+  // Загружаем оценки
   let ratings = []
   let ratingsTotal = 0
   try {
@@ -82,15 +207,13 @@ async function loadMe() {
     }
   } catch {}
 
-  const countEl = document.getElementById('me-ratings-count')
-  countEl.textContent = ratingsTotal
-    ? `${ratingsTotal} ${pluralRatings(ratingsTotal)}`
-    : 'нет оценок'
+  const badge = document.getElementById('tab-badge-ratings')
+  if (badge) badge.textContent = ratingsTotal || ''
 
-  const list = document.getElementById('me-ratings-grid')
+  const grid = document.getElementById('me-ratings-grid')
 
   if (!ratings.length) {
-    list.innerHTML = `
+    grid.innerHTML = `
       <div class="me-empty">
         <i class="fas fa-star me-empty-icon"></i>
         <p>Вы ещё не оценили ни одного фильма</p>
@@ -98,64 +221,7 @@ async function loadMe() {
     return
   }
 
-  list.innerHTML = ratings.map(item => {
-    const id = item.kinopoiskId
-    if (!id) return ''
-    const title    = escapeHtml(item.nameRu || item.nameOriginal || `Фильм #${id}`)
-    const original = item.nameOriginal && item.nameOriginal !== item.nameRu
-      ? `<span class="me-item-original">${escapeHtml(item.nameOriginal)}</span>`
-      : ''
-    const genreList = Array.isArray(item.genres) && item.genres.length
-      ? `<div class="me-item-genres">${item.genres.slice(0, 3).map(g =>
-          `<span class="me-item-genre">${escapeHtml(g.genre || g)}</span>`
-        ).join('')}</div>`
-      : ''
-    const imgSrc = item.posterUrl || '/img/placeholder.svg'
-    const color = ratingColor(item.userRating)
-    const date  = item.ratedAt ? formatDate(item.ratedAt) : ''
-    const preview = JSON.stringify({ filmId: id, nameRu: item.nameRu, nameEn: item.nameOriginal, posterUrl: item.posterUrl, posterUrlPreview: item.posterUrl }).replace(/'/g, '&#39;')
-    return `
-      <a href="/movie/${id}" class="me-item" onclick="sessionStorage.setItem('moviePreview','${preview}')">
-        <img class="me-item-poster" src="${imgSrc}" alt="${title}" loading="lazy"/>
-        <div class="me-item-info">
-          <span class="me-item-title">${title}</span>
-          ${original}
-          ${genreList}
-        </div>
-        <div class="me-item-meta">
-          ${date ? `<span class="me-item-date">${date}</span>` : ''}
-          <span class="me-item-rating" style="background:${color}">${item.userRating}</span>
-        </div>
-      </a>`
-  }).join('')
-}
-
-function formatDate(iso) {
-  try {
-    const d = new Date(iso)
-    const now = new Date()
-    const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-
-    const sameDay = (a, b) =>
-      a.getDate() === b.getDate() &&
-      a.getMonth() === b.getMonth() &&
-      a.getFullYear() === b.getFullYear()
-
-    if (sameDay(d, now)) return `Сегодня, ${time}`
-
-    const yesterday = new Date(now)
-    yesterday.setDate(now.getDate() - 1)
-    if (sameDay(d, yesterday)) return `Вчера, ${time}`
-
-    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) + ' ' + time
-  } catch { return '' }
-}
-
-function pluralRatings(n) {
-  const mod10 = n % 10, mod100 = n % 100
-  if (mod10 === 1 && mod100 !== 11) return 'оценка'
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'оценки'
-  return 'оценок'
+  grid.innerHTML = ratings.map(renderRatingItem).join('')
 }
 
 async function meLogout() {
