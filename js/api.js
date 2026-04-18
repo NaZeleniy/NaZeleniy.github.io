@@ -17,12 +17,8 @@ const _CREDS = (() => {
 
 const PLACEHOLDER = '/img/placeholder.svg'
 
-function posterUrl(url, size) {
+function posterUrl(url) {
   if (!url || url.includes('no-poster')) return PLACEHOLDER
-  if (url.includes('avatars.mds.yandex.net')) {
-    const s = size || (window.innerWidth >= 1400 ? '480x720' : '360x540')
-    return url.replace(/\/\d+x\d+$/, '/' + s)
-  }
   return url
 }
 
