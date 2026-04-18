@@ -808,29 +808,27 @@ a.movie-poster-side img {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  padding: 10px 14px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 10px;
-  color: rgba(255,255,255,0.32);
-  font-size: 10px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: rgba(255,255,255,0.45);
+  font-size: 12px;
   font-weight: 500;
+  letter-spacing: 0.03em;
   cursor: pointer;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 
 .nz-rate-open-btn:hover {
-  border-color: rgba(255,255,255,0.16);
-  color: rgba(255,255,255,0.6);
+  border-color: rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.7);
   background: rgba(255,255,255,0.03);
 }
 
 .nz-rate-open-icon {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1;
-  opacity: 0.55;
 }
 
 /* ── Rated display ── */
