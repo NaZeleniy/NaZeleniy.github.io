@@ -324,6 +324,33 @@
   white-space: nowrap;
 }
 
+.me-item-remove-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: rgba(255,255,255,0.18);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.me-item-remove-btn:hover {
+  color: rgba(231,76,60,0.8);
+  background: rgba(231,76,60,0.08);
+  border-color: rgba(231,76,60,0.25);
+}
+
+.me-item-remove-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
 .me-item-rating {
   font-size: 14px;
   font-weight: 700;

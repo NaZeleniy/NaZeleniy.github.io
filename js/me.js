@@ -82,8 +82,56 @@ function renderFavoriteItem(item) {
       </div>
       <div class="me-item-meta">
         ${date ? `<span class="me-item-date">${date}</span>` : ''}
+        <button class="me-item-remove-btn" onclick="removeFavorite(event,${id})" title="Убрать из списка">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
     </a>`
+}
+
+async function removeFavorite(e, kpId) {
+  e.preventDefault()
+  e.stopPropagation()
+  const btn = e.currentTarget
+  if (btn.disabled) return
+  btn.disabled = true
+  try {
+    const r = await fetch(`${API_BASE}/api/favorites/${kpId}`, {
+      method: 'DELETE',
+      credentials: _CREDS,
+      headers: _bearerHeader(),
+    })
+    if (!r.ok && r.status !== 404) { btn.disabled = false; return }
+    const item = btn.closest('.me-item')
+    if (item) {
+      item.style.transition = 'opacity 0.18s, transform 0.18s'
+      item.style.opacity = '0'
+      item.style.transform = 'translateX(12px)'
+      setTimeout(() => {
+        item.remove()
+        _favoritesTotal = Math.max(0, _favoritesTotal - 1)
+        const badge = document.getElementById('tab-badge-favorites')
+        if (badge) badge.textContent = _favoritesTotal || ''
+        const grid = document.getElementById('me-favorites-grid')
+        if (!grid.querySelector('.me-item')) {
+          if (_favoritesPage > 0) {
+            loadFavoritesPage(_favoritesPage - 1)
+          } else {
+            grid.innerHTML = `
+              <div class="me-empty">
+                <i class="fas fa-heart me-empty-icon"></i>
+                <p>Список пуст — добавляйте фильмы<br>кнопкой «Буду смотреть»</p>
+              </div>`
+            document.getElementById('me-favorites-pagination').innerHTML = ''
+          }
+        } else {
+          renderPagination('me-favorites-pagination', _favoritesPage, _favoritesTotal, 'gotoFavoritesPage')
+        }
+      }, 200)
+    }
+  } catch {
+    btn.disabled = false
+  }
 }
 
 // ── Pagination ─────────────────────────────────────────────
