@@ -90,12 +90,22 @@ function renderFavoriteItem(item) {
 let _activeTab = 'ratings'
 let _favoritesLoaded = false
 
+function _movePill(tab) {
+  const pill = document.getElementById('me-tabs-pill')
+  const btn  = document.getElementById(tab === 'ratings' ? 'tab-btn-ratings' : 'tab-btn-favorites')
+  if (!pill || !btn) return
+  pill.style.width = btn.offsetWidth + 'px'
+  pill.style.transform = `translateX(${btn.offsetLeft}px)`
+}
+
 function switchTab(tab) {
   if (_activeTab === tab) return
   _activeTab = tab
 
   document.getElementById('tab-btn-ratings').classList.toggle('me-tab--active', tab === 'ratings')
   document.getElementById('tab-btn-favorites').classList.toggle('me-tab--active', tab === 'favorites')
+  _movePill(tab)
+
   document.getElementById('me-ratings-section').style.display = tab === 'ratings' ? '' : 'none'
   document.getElementById('me-favorites-section').style.display = tab === 'favorites' ? '' : 'none'
 
@@ -194,6 +204,8 @@ async function loadMe() {
   document.getElementById('me-header').style.display = ''
   document.getElementById('me-tabs').style.display = ''
   document.getElementById('me-ratings-section').style.display = ''
+  // Pill нужно позиционировать после того как layout известен
+  requestAnimationFrame(() => _movePill('ratings'))
 
   // Загружаем оценки
   let ratings = []
@@ -237,5 +249,7 @@ async function meLogout() {
   window._nzUser = null
   location.href = '/'
 }
+
+window.addEventListener('resize', () => _movePill(_activeTab), { passive: true })
 
 loadMe()
