@@ -201,6 +201,14 @@ async function loadMe() {
     avatarEl.style.color = '#fff'
   }
   document.getElementById('me-name').textContent = displayName
+
+  const subtitleEl = document.getElementById('me-subtitle')
+  if (subtitleEl && user.created_at) {
+    try {
+      const d = new Date(user.created_at)
+      subtitleEl.textContent = 'На сайте с ' + d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+    } catch {}
+  }
   document.getElementById('me-header').style.display = ''
   document.getElementById('me-tabs').style.display = ''
   document.getElementById('me-ratings-section').style.display = ''

@@ -30,20 +30,22 @@
 }
 
 .me-avatar {
-  width: 64px;
-  height: 64px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   background: linear-gradient(135deg, #FF516A, #FF8B5F);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 30px;
   font-weight: 700;
   color: #fff;
   flex-shrink: 0;
   overflow: hidden;
-  box-shadow: 0 0 0 2px rgba(255,255,255,0.07), 0 4px 20px rgba(0,0,0,0.5);
-  text-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.09),
+              0 6px 24px rgba(0,0,0,0.55),
+              0 2px 8px rgba(0,0,0,0.4);
+  text-shadow: 0 2px 6px rgba(0,0,0,0.35);
   letter-spacing: 1px;
 }
 
@@ -65,14 +67,21 @@
 }
 
 .me-username {
-  font-size: 1.3rem;
+  font-size: 1.55rem;
   font-weight: 700;
   color: var(--text);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.25;
+  line-height: 1.2;
+}
+
+.me-subtitle {
+  font-size: 12px;
+  color: rgba(255,255,255,0.3);
+  margin-top: 4px;
+  letter-spacing: 0.01em;
 }
 
 /* ── Logout button ────────────────────────────────────── */
@@ -118,6 +127,7 @@
   height: calc(100% - 10px);
   background: linear-gradient(135deg, rgba(39,174,96,0.2), rgba(39,174,96,0.1));
   border: 1px solid rgba(39,174,96,0.3);
+  border-bottom: 2px solid rgba(39,174,96,0.6);
   border-radius: 8px;
   transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1),
               width 0.26s cubic-bezier(0.4, 0, 0.2, 1);
@@ -153,8 +163,9 @@
   transition: opacity 0.18s;
 }
 
-.me-tab:hover {
-  color: rgba(255,255,255,0.65);
+.me-tab:not(.me-tab--active):hover {
+  color: rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.05);
 }
 
 .me-tab--active {
@@ -221,20 +232,33 @@
   border-bottom: 1px solid rgba(68, 68, 68, 0.5);
   text-decoration: none;
   color: inherit;
-  transition: background var(--transition);
+  transition: background 0.18s, transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+  position: relative;
 }
 
 .me-item:last-child { border-bottom: none; }
 
-.me-item:hover { background: rgba(255, 255, 255, 0.04); }
+.me-item:hover {
+  background: rgba(255,255,255,0.05);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+  border-bottom-color: rgba(39,174,96,0.15);
+  z-index: 1;
+}
 
 .me-item-poster {
-  width: 52px;
-  height: 78px;
+  width: 58px;
+  height: 87px;
   object-fit: cover;
-  border-radius: 5px;
+  border-radius: 7px;
   flex-shrink: 0;
   background: var(--bg-tertiary);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.45);
+  transition: box-shadow 0.18s;
+}
+
+.me-item:hover .me-item-poster {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
 }
 
 .me-item-info {
@@ -378,8 +402,8 @@
     border-radius: 12px;
   }
 
-  .me-avatar { width: 52px; height: 52px; font-size: 20px; }
-  .me-username { font-size: 1.15rem; }
+  .me-avatar { width: 62px; height: 62px; font-size: 23px; }
+  .me-username { font-size: 1.25rem; }
 
   .me-logout-btn span { display: none; }
   .me-logout-btn { padding: 8px 10px; }
@@ -392,7 +416,7 @@
 
   .me-grid { border-radius: var(--radius); }
   .me-item { padding: 10px 12px; gap: 12px; }
-  .me-item-poster { width: 44px; height: 66px; }
+  .me-item-poster { width: 48px; height: 72px; }
   .me-item-title { font-size: 14px; }
   .me-item-date { display: none; }
   .me-item-genres { display: none; }
