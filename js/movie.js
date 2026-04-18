@@ -4,6 +4,17 @@ const movieId = (() => {
   return fromPath ? fromPath[1] : new URLSearchParams(location.search).get('id')
 })()
 
+async function fetchWithRetry(url, opts, retries = 2, delay = 1200) {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fetch(url, opts)
+    } catch (e) {
+      if (i === retries) throw e
+      await new Promise(r => setTimeout(r, delay))
+    }
+  }
+}
+
 function ratingClass(r) {
   if (r >= 7.0) return 'rating-value high'
   if (r < 5.0) return 'rating-value low'
@@ -994,12 +1005,16 @@ async function loadMovie() {
   } catch {}
 
   // Запускаем вторичные запросы немедленно, параллельно с основным
-  const staffRes    = fetch(`${API_BASE}/api/staff/${movieId}`)
-  const sequelsRes  = fetch(`${API_BASE}/api/sequels/${movieId}`)
-  const similarsRes = fetch(`${API_BASE}/api/similars/${movieId}`)
+  const staffRes    = fetchWithRetry(`${API_BASE}/api/staff/${movieId}`)
+  const sequelsRes  = fetchWithRetry(`${API_BASE}/api/sequels/${movieId}`)
+  const similarsRes = fetchWithRetry(`${API_BASE}/api/similars/${movieId}`)
+  // Предотвращаем unhandled rejection если основной запрос упадёт раньше
+  staffRes.catch(() => {})
+  sequelsRes.catch(() => {})
+  similarsRes.catch(() => {})
 
   try {
-    const r = await fetch(`${API_BASE}/api/movie/${movieId}`)
+    const r = await fetchWithRetry(`${API_BASE}/api/movie/${movieId}`)
     if (!r.ok) throw new Error('Фильм не найден')
     const movie = await r.json()
     renderMovie(movie)
