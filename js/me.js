@@ -50,11 +50,20 @@ async function loadMe() {
     avatarEl.innerHTML = `<img src="${escapeHtml(user.avatar_url)}" alt="${escapeHtml(initials)}" class="me-avatar-img"/>`
     avatarEl.classList.add('me-avatar--photo')
   } else {
-    const TG_COLORS = ['#FF6B6B','#FF922B','#FFD43B','#69DB7C','#4DABF7','#CC5DE8','#F783AC','#63E6BE']
-    const color = TG_COLORS[(user.telegram_id || 0) % TG_COLORS.length]
+    const TG_GRADIENTS = [
+      ['#FF516A','#FF8B5F'],
+      ['#FFA943','#FFCD6A'],
+      ['#A0DE7E','#54CB68'],
+      ['#53EDD6','#28B9B5'],
+      ['#72D5FD','#2A9EF1'],
+      ['#E46EFF','#AC44CC'],
+      ['#FF86A6','#FF599D'],
+    ]
+    const [c1, c2] = TG_GRADIENTS[(user.telegram_id || 0) % TG_GRADIENTS.length]
     avatarEl.textContent = initials
-    avatarEl.style.setProperty('--avatar-color', color)
-    avatarEl.style.setProperty('--avatar-color-dim', color + '28')
+    avatarEl.style.background = `linear-gradient(135deg, ${c1}, ${c2})`
+    avatarEl.style.border = 'none'
+    avatarEl.style.color = '#fff'
   }
   document.getElementById('me-name').textContent = user.name || 'Профиль'
   document.getElementById('me-header').style.display = ''
