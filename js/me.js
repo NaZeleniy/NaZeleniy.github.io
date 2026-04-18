@@ -45,7 +45,17 @@ async function loadMe() {
 
   // 2. Рендерим шапку профиля
   const initials = (user.name || '?').slice(0, 2).toUpperCase()
-  document.getElementById('me-avatar').textContent = initials
+  const avatarEl = document.getElementById('me-avatar')
+  if (user.avatar_url) {
+    avatarEl.innerHTML = `<img src="${escapeHtml(user.avatar_url)}" alt="${escapeHtml(initials)}" class="me-avatar-img"/>`
+    avatarEl.classList.add('me-avatar--photo')
+  } else {
+    const TG_COLORS = ['#FF6B6B','#FF922B','#FFD43B','#69DB7C','#4DABF7','#CC5DE8','#F783AC','#63E6BE']
+    const color = TG_COLORS[(user.telegram_id || 0) % TG_COLORS.length]
+    avatarEl.textContent = initials
+    avatarEl.style.setProperty('--avatar-color', color)
+    avatarEl.style.setProperty('--avatar-color-dim', color + '28')
+  }
   document.getElementById('me-name').textContent = user.name || 'Профиль'
   document.getElementById('me-header').style.display = ''
   document.getElementById('me-ratings-section').style.display = ''
