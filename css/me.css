@@ -67,7 +67,7 @@
 }
 
 .me-username {
-  font-size: 1.55rem;
+  font-size: 1.75rem;
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.02em;
@@ -403,7 +403,7 @@
   }
 
   .me-avatar { width: 62px; height: 62px; font-size: 23px; }
-  .me-username { font-size: 1.25rem; }
+  .me-username { font-size: 1.35rem; }
 
   .me-logout-btn span { display: none; }
   .me-logout-btn { padding: 8px 10px; }

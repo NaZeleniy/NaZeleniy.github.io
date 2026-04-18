@@ -206,7 +206,7 @@ async function loadMe() {
   if (subtitleEl && user.created_at) {
     try {
       const d = new Date(user.created_at)
-      subtitleEl.textContent = 'На сайте с ' + d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+      subtitleEl.textContent = 'Дата регистрации: ' + d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
     } catch {}
   }
   document.getElementById('me-header').style.display = ''
