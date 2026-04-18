@@ -190,7 +190,18 @@ async function loadRatingsPage(page) {
   }
 }
 
-function gotoRatingsPage(page) { loadRatingsPage(page) }
+async function gotoRatingsPage(page) {
+  const grid = document.getElementById('me-ratings-grid')
+  const pag  = document.getElementById('me-ratings-pagination')
+  grid.classList.add('me-grid--out')
+  pag.classList.add('me-grid--out')
+  await new Promise(r => setTimeout(r, 140))
+  await loadRatingsPage(page)
+  requestAnimationFrame(() => {
+    grid.classList.remove('me-grid--out')
+    pag.classList.remove('me-grid--out')
+  })
+}
 
 // ── Favorites ──────────────────────────────────────────────
 
@@ -231,7 +242,18 @@ async function loadFavoritesPage(page) {
   }
 }
 
-function gotoFavoritesPage(page) { loadFavoritesPage(page) }
+async function gotoFavoritesPage(page) {
+  const grid = document.getElementById('me-favorites-grid')
+  const pag  = document.getElementById('me-favorites-pagination')
+  grid.classList.add('me-grid--out')
+  pag.classList.add('me-grid--out')
+  await new Promise(r => setTimeout(r, 140))
+  await loadFavoritesPage(page)
+  requestAnimationFrame(() => {
+    grid.classList.remove('me-grid--out')
+    pag.classList.remove('me-grid--out')
+  })
+}
 
 // ── Main ───────────────────────────────────────────────────
 

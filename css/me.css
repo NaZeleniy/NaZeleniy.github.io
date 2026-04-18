@@ -480,3 +480,17 @@
   padding: 0 2px;
   user-select: none;
 }
+
+/* ── Page transition ──────────────────────────────────── */
+.me-grid,
+#me-ratings-pagination,
+#me-favorites-pagination {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.me-grid--out,
+#me-ratings-pagination.me-grid--out,
+#me-favorites-pagination.me-grid--out {
+  opacity: 0;
+  transform: translateY(-5px);
+}
