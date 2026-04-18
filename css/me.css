@@ -223,7 +223,6 @@
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  overflow: hidden;
 }
 
 /* ── Rating list item ─────────────────────────────────── */
@@ -239,7 +238,9 @@
   position: relative;
 }
 
-.me-item:last-child { border-bottom: none; }
+.me-item:first-child { border-radius: var(--radius) var(--radius) 0 0; }
+.me-item:last-child { border-bottom: none; border-radius: 0 0 var(--radius) var(--radius); }
+.me-item:only-child { border-radius: var(--radius); }
 
 .me-item:hover {
   background: rgba(255,255,255,0.05);
@@ -334,16 +335,6 @@
   text-align: center;
 }
 
-.me-item-fav-icon {
-  color: rgba(231, 76, 60, 0.55);
-  font-size: 13px;
-  line-height: 1;
-  transition: color 0.15s;
-}
-
-.me-item:hover .me-item-fav-icon {
-  color: rgba(231, 76, 60, 0.8);
-}
 
 /* ── Loading spinner ──────────────────────────────────── */
 .me-loading {
@@ -435,9 +426,9 @@
 }
 
 .me-page-btn {
-  min-width: 34px;
-  height: 34px;
-  padding: 0 6px;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 8px;
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 7px;
   background: transparent;

@@ -46,6 +46,7 @@ let _players = []
 let _currentUserRating = null
 let _currentKpId = null
 let _isFavorited = false
+let _favoriteInFlight = false
 let _commentsOffset = 0
 let _hasMoreComments = false
 let _nzCloseHandler = null
@@ -592,6 +593,7 @@ function initRatingWidget(movie) {
   if (!kpId) return
   _currentKpId = kpId
   _currentUserRating = null
+  _favoriteInFlight = false
   nzRenderRatingClosed()
 }
 
@@ -800,10 +802,12 @@ async function toggleFavorite() {
     openAuthModal(() => toggleFavorite())
     return
   }
+  if (_favoriteInFlight) return
   const kpId = _currentKpId
   if (!kpId) return
-  if (_isFavorited) {
-    try {
+  _favoriteInFlight = true
+  try {
+    if (_isFavorited) {
       const r = await fetch(`${API_BASE}/api/favorites/${kpId}`, {
         method: 'DELETE',
         credentials: _CREDS,
@@ -813,9 +817,7 @@ async function toggleFavorite() {
         _isFavorited = false
         renderFavoriteBtn()
       }
-    } catch {}
-  } else {
-    try {
+    } else {
       const r = await fetch(`${API_BASE}/api/favorites/${kpId}`, {
         method: 'POST',
         credentials: _CREDS,
@@ -826,7 +828,9 @@ async function toggleFavorite() {
         _isFavorited = true
         renderFavoriteBtn()
       }
-    } catch {}
+    }
+  } finally {
+    _favoriteInFlight = false
   }
 }
 

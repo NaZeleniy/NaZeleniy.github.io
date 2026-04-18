@@ -127,6 +127,8 @@ let _ratingsPage = 0
 let _ratingsTotal = 0
 let _favoritesPage = 0
 let _favoritesTotal = 0
+let _ratingsPaging = false
+let _favoritesPaging = false
 
 function _movePill(tab) {
   const pill = document.getElementById('me-tabs-pill')
@@ -191,6 +193,8 @@ async function loadRatingsPage(page) {
 }
 
 async function gotoRatingsPage(page) {
+  if (_ratingsPaging) return
+  _ratingsPaging = true
   const grid = document.getElementById('me-ratings-grid')
   const pag  = document.getElementById('me-ratings-pagination')
   grid.classList.add('me-grid--out')
@@ -200,6 +204,7 @@ async function gotoRatingsPage(page) {
   requestAnimationFrame(() => {
     grid.classList.remove('me-grid--out')
     pag.classList.remove('me-grid--out')
+    _ratingsPaging = false
   })
 }
 
@@ -243,6 +248,8 @@ async function loadFavoritesPage(page) {
 }
 
 async function gotoFavoritesPage(page) {
+  if (_favoritesPaging) return
+  _favoritesPaging = true
   const grid = document.getElementById('me-favorites-grid')
   const pag  = document.getElementById('me-favorites-pagination')
   grid.classList.add('me-grid--out')
@@ -252,6 +259,7 @@ async function gotoFavoritesPage(page) {
   requestAnimationFrame(() => {
     grid.classList.remove('me-grid--out')
     pag.classList.remove('me-grid--out')
+    _favoritesPaging = false
   })
 }
 
@@ -317,7 +325,7 @@ async function loadMe() {
   document.getElementById('me-header').style.display = ''
   document.getElementById('me-tabs').style.display = ''
   document.getElementById('me-ratings-section').style.display = ''
-  requestAnimationFrame(() => _movePill('ratings'))
+  requestAnimationFrame(() => requestAnimationFrame(() => _movePill('ratings')))
 
   // Загружаем первую страницу оценок и кол-во избранных параллельно
   const [ratingsRes, favsRes] = await Promise.allSettled([
