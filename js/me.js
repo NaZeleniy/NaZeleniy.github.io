@@ -40,8 +40,9 @@ function renderRatingItem(item) {
     ? `<div class="me-item-genres">${item.genres.slice(0, 3).map(g =>
         `<span class="me-item-genre">${escapeHtml(g.genre || g)}</span>`
       ).join('')}</div>` : ''
-  const imgSrc  = item.posterUrl || '/img/placeholder.svg'
+  const imgSrc  = posterUrl(item.posterUrl)
   const color   = ratingColor(item.userRating)
+  const year    = item.year ? `<span class="me-item-year">${item.year}</span>` : ''
   const date    = item.ratedAt ? formatDate(item.ratedAt) : ''
   const preview = JSON.stringify({ filmId: id, nameRu: item.nameRu, nameEn: item.nameOriginal, posterUrl: item.posterUrl, posterUrlPreview: item.posterUrl }).replace(/'/g, '&#39;')
   return `
@@ -51,6 +52,7 @@ function renderRatingItem(item) {
         <span class="me-item-title">${title}</span>
         ${original}
         ${genreList}
+        ${year}
       </div>
       <div class="me-item-meta">
         ${date ? `<span class="me-item-date">${date}</span>` : ''}
@@ -70,6 +72,7 @@ function renderFavoriteItem(item) {
         `<span class="me-item-genre">${escapeHtml(g.genre || g)}</span>`
       ).join('')}</div>` : ''
   const imgSrc  = posterUrl(item.posterUrl)
+  const year    = item.year ? `<span class="me-item-year">${item.year}</span>` : ''
   const date    = item.favoritedAt ? formatDate(item.favoritedAt) : ''
   const preview = JSON.stringify({ filmId: id, nameRu: item.nameRu, nameEn: item.nameOriginal, posterUrl: item.posterUrl, posterUrlPreview: item.posterUrl }).replace(/'/g, '&#39;')
   return `
@@ -79,6 +82,7 @@ function renderFavoriteItem(item) {
         <span class="me-item-title">${title}</span>
         ${original}
         ${genreList}
+        ${year}
       </div>
       <div class="me-item-meta">
         ${date ? `<span class="me-item-date">${date}</span>` : ''}
@@ -335,6 +339,7 @@ async function loadMe() {
   }
 
   if (!user) {
+    document.getElementById('me-skeleton')?.remove()
     if (typeof openAuthModal === 'function') {
       openAuthModal(() => loadMe())
     } else {
@@ -370,6 +375,7 @@ async function loadMe() {
       subtitleEl.textContent = 'Дата регистрации: ' + d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
     } catch {}
   }
+  document.getElementById('me-skeleton')?.remove()
   document.getElementById('me-header').style.display = ''
   document.getElementById('me-tabs').style.display = ''
   document.getElementById('me-ratings-section').style.display = ''

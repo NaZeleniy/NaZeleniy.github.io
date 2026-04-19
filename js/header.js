@@ -4,6 +4,17 @@ function renderHeader(activePage) {
   _initAuthBtn()
   _initTVDetect()
   _initSpatialNav()
+  _initBgParallax()
+}
+
+function _initBgParallax() {
+  if (window._bgParallaxInit) return
+  window._bgParallaxInit = true
+  window.addEventListener('scroll', () => {
+    if (document.documentElement.dataset.bgParallax !== '1') return
+    const el = document.querySelector('.bg-poster')
+    if (el) el.style.backgroundPositionY = `calc(50% + ${window.scrollY * 0.06}px)`
+  }, { passive: true })
 }
 
 function _initAuthBtn() {

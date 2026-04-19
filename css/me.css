@@ -324,6 +324,12 @@
   white-space: nowrap;
 }
 
+.me-item-year {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 .me-item-remove-btn {
   display: flex;
   align-items: center;
@@ -441,6 +447,88 @@
   .me-item-title { font-size: 14px; }
   .me-item-date { display: none; }
   .me-item-genres { display: none; }
+}
+
+/* ── Skeleton loader ──────────────────────────────────── */
+@keyframes me-skel-shimmer {
+  from { background-position: -600px 0; }
+  to   { background-position: 600px 0; }
+}
+
+.me-skel {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.04) 25%,
+    rgba(255,255,255,0.09) 50%,
+    rgba(255,255,255,0.04) 75%);
+  background-size: 1200px 100%;
+  animation: me-skel-shimmer 1.5s infinite linear;
+  border-radius: 6px;
+}
+
+#me-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.me-skeleton-header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, rgba(30,30,30,0.95) 0%, rgba(18,18,18,0.98) 100%);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+}
+
+.me-skel-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.me-skeleton-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.me-skel-name    { height: 26px; width: 160px; }
+.me-skel-subtitle { height: 13px; width: 230px; border-radius: 4px; }
+
+.me-skel-tabs {
+  height: 52px;
+  border-radius: 12px;
+}
+
+.me-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.me-skel-item {
+  height: 111px;
+  border-radius: 0;
+  border-bottom: 1px solid rgba(68,68,68,0.5);
+  flex-shrink: 0;
+}
+
+.me-skel-item:last-child { border-bottom: none; }
+
+@media (max-width: 620px) {
+  .me-skeleton-header { margin: 0 12px; padding: 14px 16px; }
+  #me-skeleton { padding: 0; }
+  .me-skel-avatar { width: 62px; height: 62px; }
+  .me-skel-name { width: 120px; height: 22px; }
+  .me-skel-tabs { margin: 0 12px; }
+  .me-skeleton-list { margin: 0 12px; }
+  .me-skel-item { height: 94px; }
 }
 
 /* ── Pagination ───────────────────────────────────────── */

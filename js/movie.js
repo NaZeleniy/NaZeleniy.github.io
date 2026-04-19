@@ -47,6 +47,7 @@ let _currentUserRating = null
 let _currentKpId = null
 let _isFavorited = false
 let _favoriteInFlight = false
+let _favoriteAbort = null
 let _commentsOffset = 0
 let _hasMoreComments = false
 let _nzCloseHandler = null
@@ -336,7 +337,7 @@ function renderMovie(movie) {
   const bgEl = document.getElementById('bg-poster')
   const bgUrl = posterUrl(movie.posterUrlPreview || movie.posterUrl)
   if (bgEl && bgUrl) {
-    bgEl.style.backgroundImage = `url(${bgUrl})`
+    bgEl.style.backgroundImage = `url("${bgUrl}")`
     localStorage.setItem('nz_bg_poster', bgUrl)
   }
 
@@ -594,6 +595,7 @@ function initRatingWidget(movie) {
   _currentKpId = kpId
   _currentUserRating = null
   _favoriteInFlight = false
+  if (_favoriteAbort) { _favoriteAbort.abort(); _favoriteAbort = null }
   nzRenderRatingClosed()
 }
 
@@ -754,6 +756,7 @@ async function refreshNzRating() {
 // ── Favorites ─────────────────────────────────────────────
 
 async function initFavorite(kpId) {
+  if (_favoriteAbort) { _favoriteAbort.abort(); _favoriteAbort = null }
   let cached = null
   try { const r = localStorage.getItem('nz_me'); if (r) cached = JSON.parse(r) } catch {}
   if (!window._nzUser && !cached) {
@@ -761,15 +764,21 @@ async function initFavorite(kpId) {
     renderFavoriteBtn()
     return
   }
-  _isFavorited = await getFavoriteStatus(kpId)
+  const ctrl = new AbortController()
+  _favoriteAbort = ctrl
+  const result = await getFavoriteStatus(kpId, ctrl.signal)
+  if (ctrl.signal.aborted) return
+  _favoriteAbort = null
+  _isFavorited = result
   renderFavoriteBtn()
 }
 
-async function getFavoriteStatus(kpId) {
+async function getFavoriteStatus(kpId, signal) {
   try {
     const r = await fetch(`${API_BASE}/api/favorites/${kpId}`, {
       credentials: _CREDS,
       headers: _bearerHeader(),
+      signal,
     })
     if (!r.ok) return false
     const data = await r.json()
@@ -797,15 +806,26 @@ function renderFavoriteBtn() {
   }
 }
 
+function renderFavoriteBtnLoading() {
+  const wrap = document.getElementById('nz-favorite-wrap')
+  if (!wrap) return
+  wrap.innerHTML = `
+    <button class="nz-favorite-btn" disabled>
+      <i class="fas fa-circle-notch fa-spin nz-favorite-icon"></i>
+      <span>${_isFavorited ? 'Убираю...' : 'Добавляю...'}</span>
+    </button>`
+}
+
 async function toggleFavorite() {
   if (!window._nzUser) {
-    openAuthModal(() => toggleFavorite())
+    showAuthRequiredToast()
     return
   }
   if (_favoriteInFlight) return
   const kpId = _currentKpId
   if (!kpId) return
   _favoriteInFlight = true
+  renderFavoriteBtnLoading()
   try {
     if (_isFavorited) {
       const r = await fetch(`${API_BASE}/api/favorites/${kpId}`, {

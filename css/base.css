@@ -66,3 +66,24 @@ button {
 
 /* ── Alpine cloak ─────────────────────────────────────── */
 [x-cloak] { display: none !important; }
+
+/* ── View Transitions (MPA, Chrome 126+) ─────────────── */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root) {
+  animation: vt-out 0.18s ease forwards;
+}
+
+::view-transition-new(root) {
+  animation: vt-in 0.28s ease forwards;
+}
+
+@keyframes vt-out {
+  to { opacity: 0; transform: translateY(-5px); }
+}
+
+@keyframes vt-in {
+  from { opacity: 0; transform: translateY(7px); }
+}
