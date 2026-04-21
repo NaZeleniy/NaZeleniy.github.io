@@ -93,7 +93,7 @@ const STREAMERS_LIST = [
   {
     nick: 'bratishkinoff',
     sources: [
-      { url: 'https://t.me/DarvinShow' },
+      { url: 'https://t.me/bratishkinfullstreams' },
     ]
   },
   {
