@@ -1,0 +1,297 @@
+/* ── Streamers page ───────────────────────────────────── */
+.streamers-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 16px 80px;
+}
+
+.streamers-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.streamers-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.streamers-title-icon {
+  width: 26px;
+  height: 26px;
+  color: #9146FF;
+  flex-shrink: 0;
+}
+
+/* ── Search ───────────────────────────────────────────── */
+.streamers-search-wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto 28px;
+}
+
+.streamers-search-icon {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  pointer-events: none;
+}
+
+.streamers-search {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 0.9rem;
+  padding: 9px 14px 9px 36px;
+  outline: none;
+  transition: border-color var(--transition);
+  box-sizing: border-box;
+}
+
+.streamers-search:focus { border-color: var(--accent); }
+
+/* ── Notice ───────────────────────────────────────────── */
+.streamers-notice-wrap {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.streamers-notice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 9px 14px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-glow);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.streamers-notice i {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.streamers-notice a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.streamers-notice a:hover {
+  text-decoration: underline;
+}
+
+/* ── Grid ─────────────────────────────────────────────── */
+.streamers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+/* ── Card ─────────────────────────────────────────────── */
+.streamer-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  transition: border-color var(--transition), transform var(--transition);
+}
+
+@media (hover: hover) {
+  .streamer-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), 0 0 20px var(--accent-glow);
+  }
+}
+
+/* ── Avatar ───────────────────────────────────────────── */
+.streamer-avatar-wrap {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+}
+
+.streamer-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border);
+  transition: border-color var(--transition), opacity 0.3s ease;
+  display: block;
+}
+
+
+.streamer-avatar-skeleton {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(90deg,
+    var(--bg-secondary) 25%,
+    var(--bg-tertiary)  50%,
+    var(--bg-secondary) 75%);
+  background-size: 200% 100%;
+  animation: nz-shimmer 1.5s infinite;
+}
+
+@keyframes nz-shimmer {
+  0%   { background-position:  200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Twitch-бейдж на аватарке */
+.streamer-twitch-badge {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  width: 22px;
+  height: 22px;
+  background: #9146FF;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-card);
+  transition: transform var(--transition), box-shadow var(--transition);
+  z-index: 1;
+  text-decoration: none;
+}
+
+.streamer-twitch-badge:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 0 3px rgba(145, 70, 255, 0.35);
+}
+
+.streamer-twitch-badge svg {
+  width: 10px;
+  height: 10px;
+  color: #fff;
+}
+
+/* ── Nick ─────────────────────────────────────────────── */
+.streamer-nick {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* ── Source buttons ───────────────────────────────────── */
+.streamer-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.streamer-btn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px 0 7px;
+  height: 40px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: opacity var(--transition), transform var(--transition);
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.streamer-btn:hover {
+  opacity: 0.82;
+  transform: translateY(-1px);
+}
+
+/* Fallback SVG-иконка платформы */
+.streamer-btn-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
+.streamer-btn-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Аватарка канала */
+.streamer-src-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+/* Название канала */
+.streamer-btn-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+
+
+.streamer-btn-tg    { background: #2AABEE;          color: #fff; }
+.streamer-btn-yt    { background: #FF0000;           color: #fff; }
+.streamer-btn-other { background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border); }
+
+/* ── Empty state ──────────────────────────────────────── */
+.streamers-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 60px 0;
+  font-size: 1rem;
+}
+
+.streamers-empty i {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 12px;
+  color: var(--border);
+}
+
+/* ── Mobile ───────────────────────────────────────────── */
+@media (max-width: 620px) {
+  .streamers-page  { padding: 20px 12px 80px; }
+  .streamers-title { font-size: 1.4rem; }
+
+  .streamers-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+  }
+
+  .streamer-avatar,
+  .streamer-avatar-wrap,
+  .streamer-avatar-skeleton { width: 60px; height: 60px; }
+}

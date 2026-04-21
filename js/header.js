@@ -54,17 +54,23 @@ function _initTVDetect() {
 }
 
 function _renderSidebar(activePage) {
+  const _TWITCH_PATH = 'M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z'
+
   const links = [
-    { href: '/',             icon: 'fa-home', label: 'Главная',    page: 'index'    },
-    { href: '/top',      icon: 'fa-fire',            label: 'Популярное', page: 'top'      },
-    { href: '/me',       icon: 'fa-user',            label: 'Профиль',    page: 'me'       },
-    { href: '/settings', icon: 'fa-cog',             label: 'Настройки',  page: 'settings' },
-    { href: '/faq',      icon: 'fa-circle-question', label: 'FAQ',        page: 'faq'      },
+    { href: '/',           icon: 'fa-home',            label: 'Главная',    page: 'index'     },
+    { href: '/top',        icon: 'fa-fire',            label: 'Популярное', page: 'top'       },
+    { href: '/me',         icon: 'fa-user',            label: 'Профиль',    page: 'me'        },
+    { href: '/reacts',     svgPath: _TWITCH_PATH,      label: 'reacts',     page: 'streamers' },
+    { href: '/settings',   icon: 'fa-cog',             label: 'Настройки',  page: 'settings'  },
+    { href: '/faq',        icon: 'fa-circle-question', label: 'FAQ',        page: 'faq'       },
   ]
 
   const linksHtml = links.map(l => `
     <a href="${l.href}" class="nav-link${l.page === activePage ? ' active' : ''}" title="${l.label}">
-      <i class="fas ${l.icon}"></i>
+      ${l.svgPath
+        ? `<svg class="nav-svg-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="${l.svgPath}"/></svg>`
+        : `<i class="fas ${l.icon}"></i>`
+      }
       <span class="nav-text">${l.label}</span>
     </a>`).join('')
 
