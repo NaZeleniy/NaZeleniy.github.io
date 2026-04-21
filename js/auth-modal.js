@@ -9,6 +9,10 @@
         <div class="login-logo"><i class="fas fa-paper-plane"></i></div>
         <h2 class="login-title" id="auth-modal-title">Войти через Telegram</h2>
         <p class="login-subtitle">Откройте бота и подтвердите вход</p>
+        <div class="login-notice">
+          <i class="fas fa-exclamation-triangle"></i>
+          <span>Вход временно недоступен — тг аккаунт заблокировали</span>
+        </div>
         <div id="auth-modal-body"></div>
       </div>
     </div>`)

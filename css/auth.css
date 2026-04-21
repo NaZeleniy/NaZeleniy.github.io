@@ -260,6 +260,28 @@
   color: var(--text-muted);
 }
 
+.login-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: #c9a84c;
+  background: rgba(231, 174, 60, 0.07);
+  border: 1px solid rgba(231, 174, 60, 0.28);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  max-width: 280px;
+  text-align: left;
+  line-height: 1.5;
+  margin-top: -8px;
+}
+
+.login-notice i {
+  margin-top: 2px;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
 .login-security-note {
   display: flex;
   align-items: flex-start;
