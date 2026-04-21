@@ -248,7 +248,9 @@ function streamersApp() {
       return (this.chInfo[url] && this.chInfo[url].name) || _srcFallback(url)
     },
     srcAvatar(url) {
-      return this.chInfo[url] && this.chInfo[url].avatar
+      const av = this.chInfo[url] && this.chInfo[url].avatar
+      if (!av) return null
+      return API_BASE + '/proxy/tg-avatar?url=' + encodeURIComponent(av)
     },
 
     twitchUrl(nick) {
