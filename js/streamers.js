@@ -225,7 +225,6 @@ function streamersApp() {
 
     srcIcon(url) { return _srcIcon(url) },
     srcClass(url) { return 'streamer-btn ' + _srcClass(url) },
-    srcFallback(url) { return _srcFallback(url) },
 
     srcName(url) {
       return (this.chInfo[url] && this.chInfo[url].name) || _srcFallback(url)
@@ -239,22 +238,9 @@ function streamersApp() {
     },
 
     async init() {
-      // Twitch-аватарки стримеров
-      STREAMERS_LIST.forEach(async s => {
-        try {
-          const res = await fetch(
-            'https://decapi.me/twitch/avatar/' + encodeURIComponent(s.nick)
-          )
-          if (res.ok) {
-            const url = (await res.text()).trim()
-            this.avatars[s.nick] = (url && url.startsWith('http'))
-              ? url : '/img/placeholder.svg'
-          } else {
-            this.avatars[s.nick] = '/img/placeholder.svg'
-          }
-        } catch {
-          this.avatars[s.nick] = '/img/placeholder.svg'
-        }
+      // Twitch-аватарки через бэкенд-прокси (decapi.me + кеш на сервере)
+      STREAMERS_LIST.forEach(s => {
+        this.avatars[s.nick] = API_BASE + '/proxy/twitch-avatar?nick=' + encodeURIComponent(s.nick)
       })
 
       // Инфо о Telegram-каналах (name + avatar) с бэкенда
