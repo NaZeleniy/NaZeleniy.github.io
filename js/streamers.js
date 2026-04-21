@@ -250,6 +250,7 @@ function streamersApp() {
     srcAvatar(url) {
       const av = this.chInfo[url] && this.chInfo[url].avatar
       if (!av) return null
+      if (av.startsWith('data:')) return av
       return API_BASE + '/proxy/tg-avatar?url=' + encodeURIComponent(av)
     },
 
