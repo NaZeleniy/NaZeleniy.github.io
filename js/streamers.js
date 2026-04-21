@@ -150,6 +150,24 @@ const STREAMERS_LIST = [
       { url: 'https://t.me/zakanime' },
     ]
   },
+  {
+    nick: 'r4dom1r',
+    sources: [
+      { url: 'https://t.me/r4dom1rnya' },
+    ]
+  },
+  {
+    nick: 'korya_mc',
+    sources: [
+      { url: 'https://t.me/koryastream' },
+    ]
+  },
+  {
+    nick: 'fruktozka',
+    sources: [
+      { url: 'https://t.me/FruktozkaVods' },
+    ]
+  },
 ]
 
 // ================================================================
@@ -202,7 +220,7 @@ function _normalizeTgUrl(url) {
         return 'https://t.me/' + parts[0]
       }
     }
-  } catch {}
+  } catch { }
   return url
 }
 
