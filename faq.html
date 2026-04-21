@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <script src="js/version.js?v=1776785237"></script>
+  <script src="js/version.js?v=1776794130"></script>
   <meta charset="UTF-8"/>
 
   <link rel="dns-prefetch" href="https://mc.yandex.ru">
@@ -10,10 +10,10 @@
   <meta name="theme-color" content="#000000"/>
   <title>NaZeleniy — FAQ</title>
   <link rel="icon" type="image/png" href="img/icons/favicon.png"/>
-  <link rel="preload" href="css/style-settings.css?v=1776785237" as="style">
-  <link rel="stylesheet" href="css/style-settings.css?v=1776785237"/>
-  <link rel="preload" href="css/icons.css?v=1776785237" as="style">
-  <link rel="stylesheet" href="css/icons.css?v=1776785237"/>
+  <link rel="preload" href="css/style-settings.css?v=1776794130" as="style">
+  <link rel="stylesheet" href="css/style-settings.css?v=1776794130"/>
+  <link rel="preload" href="css/icons.css?v=1776794130" as="style">
+  <link rel="stylesheet" href="css/icons.css?v=1776794130"/>
   <style>
     .faq-list { display: flex; flex-direction: column; gap: 0; }
     details.faq-item { border-bottom: 1px solid rgba(255,255,255,0.05); }
@@ -46,6 +46,19 @@
       transition: background var(--transition), box-shadow var(--transition);
     }
     .faq-tg-btn:hover { background: var(--accent-hover); box-shadow: 0 0 16px var(--accent-glow); }
+    .faq-notice-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      background: rgba(231, 174, 60, 0.08);
+      border: 1px solid rgba(231, 174, 60, 0.28);
+      border-radius: 20px;
+      font-size: 11px;
+      color: #c9a84c;
+    }
+    .faq-notice-badge i { font-size: 10px; opacity: 0.85; flex-shrink: 0; }
+    .faq-tg-btn--muted:hover { background: var(--bg-card) !important; box-shadow: none; color: var(--text) !important; }
   </style>
   <!-- Yandex.Metrika counter -->
   <script type="text/javascript">
@@ -154,9 +167,21 @@
           <div class="settings-label">
             <span>Telegram-канал</span>
             <span class="settings-hint">Новости, обновления, обратная связь</span>
+            <span class="faq-notice-badge" style="margin-top:4px; width:fit-content;">
+              <i class="fas fa-exclamation-triangle"></i> аккаунт заблочили, подал апелляцию
+            </span>
           </div>
           <a href="https://t.me/NaZelen1y" target="_blank" rel="noopener noreferrer" class="faq-tg-btn">
-            <i class="fab fa-telegram"></i> Открыть
+            <i class="fas fa-paper-plane"></i> Открыть
+          </a>
+        </div>
+        <div class="settings-row">
+          <div class="settings-label">
+            <span>Почта</span>
+            <span class="settings-hint">Для обращений и предложений</span>
+          </div>
+          <a href="mailto:nazeleny@tutamail.com" class="faq-tg-btn faq-tg-btn--muted" style="background: var(--bg-tertiary); color: var(--text-secondary); font-size:13px; padding: 9px 16px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <i class="fas fa-envelope" style="flex-shrink:0;"></i> nazeleny@tutamail.com
           </a>
         </div>
       </section>
@@ -164,8 +189,8 @@
     </div>
   </main>
 
-  <script defer src="js/alpine.min.js?v=1776785237"></script>
-  <script src="js/header.js?v=1776785237"></script>
+  <script defer src="js/alpine.min.js?v=1776794130"></script>
+  <script src="js/header.js?v=1776794130"></script>
   <script>renderHeader('faq')</script>
   <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js')</script>
 </body>

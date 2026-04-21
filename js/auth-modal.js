@@ -6,7 +6,7 @@
       <div class="auth-modal-backdrop"></div>
       <div class="auth-modal-card login-card">
         <button class="auth-modal-close" aria-label="Закрыть"><i class="fas fa-times"></i></button>
-        <div class="login-logo"><i class="fab fa-telegram"></i></div>
+        <div class="login-logo"><i class="fas fa-paper-plane"></i></div>
         <h2 class="login-title" id="auth-modal-title">Войти через Telegram</h2>
         <p class="login-subtitle">Откройте бота и подтвердите вход</p>
         <div id="auth-modal-body"></div>
@@ -78,7 +78,7 @@
     if (_step === 'idle') {
       body.innerHTML = `
         <button class="login-start-btn" id="_am_s">
-          <i class="fab fa-telegram"></i> Получить ссылку для входа
+          Получить ссылку для входа
         </button>`
       document.getElementById('_am_s').onclick = _start
 
@@ -92,7 +92,7 @@
         <div class="login-waiting">
           <div id="_am_qr" class="login-qr"></div>
           <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="login-tg-btn">
-            <i class="fab fa-telegram"></i> Открыть Telegram
+            Открыть Telegram
           </a>
           <div class="login-status">
             <i class="fas fa-circle-notch fa-spin"></i>
