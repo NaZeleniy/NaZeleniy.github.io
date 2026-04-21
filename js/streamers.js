@@ -272,7 +272,7 @@ function streamersApp() {
             .filter(u => _isTgUrl(u))
         )
       ]
-      uniqueUrls.forEach(async srcUrl => {
+      const fetchTgInfo = async (srcUrl) => {
         try {
           const res = await fetch(
             API_BASE + '/proxy/tg-channel?url=' + encodeURIComponent(_normalizeTgUrl(srcUrl))
@@ -282,7 +282,11 @@ function streamersApp() {
             if (data.name || data.avatar) this.chInfo[srcUrl] = data
           }
         } catch { }
-      })
+      }
+      // 4 воркера вместо 28 параллельных — не перегружаем t.me
+      let qi = 0
+      const worker = async () => { while (qi < uniqueUrls.length) await fetchTgInfo(uniqueUrls[qi++]) }
+      await Promise.all(Array.from({ length: Math.min(4, uniqueUrls.length) }, worker))
     }
   }
 }
