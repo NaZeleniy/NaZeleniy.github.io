@@ -60,7 +60,7 @@ function _renderSidebar(activePage) {
     { href: '/',           icon: 'fa-home',            label: 'Главная',    page: 'index'     },
     { href: '/top',        icon: 'fa-fire',            label: 'Популярное', page: 'top'       },
     { href: '/me',         icon: 'fa-user',            label: 'Профиль',    page: 'me'        },
-    { href: '/reacts',     svgPath: _TWITCH_PATH,      label: 'reacts',     page: 'streamers' },
+    { href: '/reacts',     svgPath: _TWITCH_PATH,      label: 'Реакции',     page: 'reacts' },
     { href: '/settings',   icon: 'fa-cog',             label: 'Настройки',  page: 'settings'  },
     { href: '/faq',        icon: 'fa-circle-question', label: 'FAQ',        page: 'faq'       },
   ]

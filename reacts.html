@@ -2,23 +2,23 @@
 <html lang="ru">
 
 <head>
-  <script src="js/version.js?v=1776796036"></script>
+  <script src="js/version.js?v=1776846160"></script>
   <meta charset="UTF-8" />
   <link rel="dns-prefetch" href="https://mc.yandex.ru">
   <link rel="dns-prefetch" href="https://nazeleniy.site">
   <link rel="dns-prefetch" href="https://decapi.me">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <title>NaZeleniy — reacts</title>
+  <title>NaZeleniy — Реакции</title>
   <link rel="icon" type="image/png" href="img/icons/favicon.png" />
-  <link rel="preload" href="css/style-streamers.css?v=1776796036" as="style">
-  <link rel="stylesheet" href="css/style-streamers.css?v=1776796036" />
-  <link rel="preload" href="css/icons.css?v=1776796036" as="style">
-  <link rel="stylesheet" href="css/icons.css?v=1776796036" />
-  <script src="js/settings.js?v=1776796036"></script>
-  <script defer src="js/api.js?v=1776796036"></script>
-  <script defer src="js/streamers.js?v=1776796036"></script>
-  <script defer src="js/alpine.min.js?v=1776796036"></script>
+  <link rel="preload" href="css/style-reacts.css?v=1776846160" as="style">
+  <link rel="stylesheet" href="css/style-reacts.css?v=1776846160" />
+  <link rel="preload" href="css/icons.css?v=1776846160" as="style">
+  <link rel="stylesheet" href="css/icons.css?v=1776846160" />
+  <script src="js/settings.js?v=1776846160"></script>
+  <script defer src="js/api.js?v=1776846160"></script>
+  <script defer src="js/reacts.js?v=1776846160"></script>
+  <script defer src="js/alpine.min.js?v=1776846160"></script>
   <!-- Yandex.Metrika counter -->
   <script type="text/javascript">
     (function (m, e, t, r, i, k, a) { m[i] = m[i] || function () { (m[i].a = m[i].a || []).push(arguments) }; m[i].l = 1 * new Date(); for (var j = 0; j < document.scripts.length; j++) { if (document.scripts[j].src === r) { return; } } k = e.createElement(t), a = e.getElementsByTagName(t)[0], k.async = 1, k.src = r, a.parentNode.insertBefore(k, a) })(window, document, 'script', 'https://mc.yandex.ru/metrika/tag.js?id=108313126', 'ym');
@@ -30,29 +30,29 @@
   <!-- /Yandex.Metrika counter -->
 </head>
 
-<body x-data="streamersApp()">
+<body x-data="reactsApp()">
 
   <div id="app-sidebar"></div>
 
   <main class="main-content">
-    <div class="streamers-page">
+    <div class="reacts-page">
 
-      <div class="streamers-header">
-        <svg class="streamers-title-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <div class="reacts-header">
+        <svg class="reacts-title-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path
             d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z" />
         </svg>
-        <h1 class="streamers-title">Telegram каналы с реакциями</h1>
+        <h1 class="reacts-title">Telegram каналы с реакциями</h1>
       </div>
 
-      <div class="streamers-search-wrap">
-        <i class="fas fa-search streamers-search-icon"></i>
-        <input type="text" class="streamers-search" placeholder="Поиск по нику..." x-model="search" autocomplete="off"
+      <div class="reacts-search-wrap">
+        <i class="fas fa-search reacts-search-icon"></i>
+        <input type="text" class="reacts-search" placeholder="Поиск по нику..." x-model="search" autocomplete="off"
           spellcheck="false" />
       </div>
 
-      <div class="streamers-notice-wrap">
-        <div class="streamers-notice">
+      <div class="reacts-notice-wrap">
+        <div class="reacts-notice">
           <i class="fas fa-circle-info"></i>
           Знаете ресурс, которого здесь нет?
           <a href="https://t.me/NaZelen1y?direct" target="_blank" rel="noopener noreferrer">Напишите нам</a>
@@ -60,17 +60,17 @@
       </div>
 
       <!-- Grid -->
-      <div class="streamers-grid" x-show="filtered.length > 0">
+      <div class="reacts-grid" x-show="filtered.length > 0">
         <template x-for="s in filtered" :key="s.nick">
-          <div class="streamer-card">
+          <div class="reacts-card">
 
             <!-- Avatar + Twitch badge -->
-            <div class="streamer-avatar-wrap">
-              <div class="streamer-avatar-skeleton" x-show="!avatarReady(s.nick)"></div>
-              <img class="streamer-avatar" :src="avatarSrc(s.nick) || '/img/placeholder.svg'"
+            <div class="reacts-avatar-wrap">
+              <div class="reacts-avatar-skeleton" x-show="!avatarReady(s.nick)"></div>
+              <img class="reacts-avatar" :src="avatarSrc(s.nick) || '/img/placeholder.svg'"
                 :style="!avatarReady(s.nick) ? 'opacity:0' : 'opacity:1'" :alt="s.nick"
                 @error="$el.src='/img/placeholder.svg'" />
-              <a :href="twitchUrl(s.nick)" target="_blank" rel="noopener noreferrer" class="streamer-twitch-badge"
+              <a :href="twitchUrl(s.nick)" target="_blank" rel="noopener noreferrer" class="reacts-twitch-badge"
                 title="Twitch">
                 <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path
@@ -80,16 +80,16 @@
             </div>
 
             <!-- Nick -->
-            <div class="streamer-nick" x-text="s.nick"></div>
+            <div class="reacts-nick" x-text="s.nick"></div>
 
             <!-- Source buttons -->
-            <div class="streamer-btns">
+            <div class="reacts-btns">
               <template x-for="(src, i) in s.sources" :key="i">
                 <a :href="src.url" target="_blank" rel="noopener noreferrer" :class="srcClass(src.url)">
-                  <img x-show="srcAvatar(src.url)" :src="srcAvatar(src.url) || ''" class="streamer-src-avatar"
+                  <img x-show="srcAvatar(src.url)" :src="srcAvatar(src.url) || ''" class="reacts-src-avatar"
                     @error="$el.style.display='none'" alt="" />
-                  <span x-show="!srcAvatar(src.url)" class="streamer-btn-icon" x-html="srcIcon(src.url)"></span>
-                  <span class="streamer-btn-label" x-text="srcName(src.url)"></span>
+                  <span x-show="!srcAvatar(src.url)" class="reacts-btn-icon" x-html="srcIcon(src.url)"></span>
+                  <span class="reacts-btn-label" x-text="srcName(src.url)"></span>
                 </a>
               </template>
             </div>
@@ -99,16 +99,16 @@
       </div>
 
       <!-- Empty state -->
-      <div class="streamers-empty" x-show="filtered.length === 0" x-cloak>
+      <div class="reacts-empty" x-show="filtered.length === 0" x-cloak>
         <i class="fas fa-search"></i>
-        <p>Стример не найден</p>
+        <p>Ничего не найдено</p>
       </div>
 
     </div>
   </main>
 
-  <script src="js/header.js?v=1776796036"></script>
-  <script>renderHeader('streamers')</script>
+  <script src="js/header.js?v=1776846160"></script>
+  <script>renderHeader('reacts')</script>
   <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js')</script>
 </body>
 

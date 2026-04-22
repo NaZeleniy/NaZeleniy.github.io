@@ -1,5 +1,5 @@
 // ================================================================
-const STREAMERS_LIST = [
+const REACTS_LIST = [
   {
     nick: 'serega_pirat',
     sources: [
@@ -189,11 +189,11 @@ function _srcIcon(url) {
 }
 
 function _srcClass(url) {
-  if (!url) return 'streamer-btn-other'
-  if (_isTgUrl(url)) return 'streamer-btn-tg'
-  if (url.includes('youtube') || url.includes('youtu.be')) return 'streamer-btn-yt'
-  if (url.includes('twitch')) return 'streamer-btn-twitch'
-  return 'streamer-btn-other'
+  if (!url) return 'reacts-btn-other'
+  if (_isTgUrl(url)) return 'reacts-btn-tg'
+  if (url.includes('youtube') || url.includes('youtu.be')) return 'reacts-btn-yt'
+  if (url.includes('twitch')) return 'reacts-btn-twitch'
+  return 'reacts-btn-other'
 }
 
 function _srcFallback(url) {
@@ -224,9 +224,9 @@ function _normalizeTgUrl(url) {
   return url
 }
 
-function streamersApp() {
+function reactsApp() {
   return {
-    list: STREAMERS_LIST,
+    list: REACTS_LIST,
     avatars: {},   // nick  → twitch avatar url
     chInfo: {},   // url   → { name, avatar }
 
@@ -242,7 +242,7 @@ function streamersApp() {
     avatarReady(nick) { return nick in this.avatars },
 
     srcIcon(url) { return _srcIcon(url) },
-    srcClass(url) { return 'streamer-btn ' + _srcClass(url) },
+    srcClass(url) { return 'reacts-btn ' + _srcClass(url) },
 
     srcName(url) {
       return (this.chInfo[url] && this.chInfo[url].name) || _srcFallback(url)
@@ -260,14 +260,14 @@ function streamersApp() {
 
     async init() {
       // Twitch-аватарки через бэкенд-прокси (decapi.me + кеш на сервере)
-      STREAMERS_LIST.forEach(s => {
+      REACTS_LIST.forEach(s => {
         this.avatars[s.nick] = API_BASE + '/proxy/twitch-avatar?nick=' + encodeURIComponent(s.nick)
       })
 
       // Инфо о Telegram-каналах (name + avatar) с бэкенда
       const uniqueUrls = [
         ...new Set(
-          STREAMERS_LIST.flatMap(s => s.sources)
+          REACTS_LIST.flatMap(s => s.sources)
             .map(src => src.url)
             .filter(u => _isTgUrl(u))
         )
