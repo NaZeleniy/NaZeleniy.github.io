@@ -168,6 +168,24 @@ const REACTS_LIST = [
       { url: 'https://t.me/FruktozkaVods' },
     ]
   },
+  {
+    nick: 'poisonika',
+    sources: [
+      { url: 'https://t.me/poisonika_narezki' },
+    ]
+  },
+  {
+    nick: 'whylollycry',
+    sources: [
+      { url: 'https://t.me/whylollyrepeat' },
+    ]
+  },
+  {
+    nick: 'lagoda1337',
+    sources: [
+      { url: 'https://t.me/lagodafilm' },
+    ]
+  },
 ]
 
 // ================================================================
