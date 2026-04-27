@@ -1,73 +1,131 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
-  <script src="js/version.js?v=1777265448"></script>
-  <meta charset="UTF-8"/>
+  <script src="js/version.js?v=1777265672"></script>
+  <meta charset="UTF-8" />
 
   <link rel="dns-prefetch" href="https://mc.yandex.ru">
   <link rel="dns-prefetch" href="https://nazeleniy.site">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <meta name="theme-color" content="#000000"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" />
   <title>NaZeleniy — FAQ</title>
-  <link rel="icon" type="image/png" href="img/icons/favicon.png"/>
-  <link rel="preload" href="css/style-settings.css?v=1777265448" as="style">
-  <link rel="stylesheet" href="css/style-settings.css?v=1777265448"/>
-  <link rel="preload" href="css/icons.css?v=1777265448" as="style">
-  <link rel="stylesheet" href="css/icons.css?v=1777265448"/>
+  <link rel="icon" type="image/png" href="img/icons/favicon.png" />
+  <link rel="preload" href="css/style-settings.css?v=1777265672" as="style">
+  <link rel="stylesheet" href="css/style-settings.css?v=1777265672" />
+  <link rel="preload" href="css/icons.css?v=1777265672" as="style">
+  <link rel="stylesheet" href="css/icons.css?v=1777265672" />
   <style>
-    .faq-list { display: flex; flex-direction: column; gap: 0; }
-    details.faq-item { border-bottom: 1px solid rgba(255,255,255,0.05); }
-    details.faq-item:last-child { border-bottom: none; }
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    details.faq-item {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    details.faq-item:last-child {
+      border-bottom: none;
+    }
+
     details.faq-item summary {
-      display: flex; align-items: center; justify-content: space-between; gap: 12px;
-      padding: 16px 20px; font-size: 15px; font-weight: 500; color: var(--text);
-      cursor: pointer; list-style: none; user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 20px;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+      cursor: pointer;
+      list-style: none;
+      user-select: none;
       transition: color var(--transition), background var(--transition);
     }
-    details.faq-item summary::-webkit-details-marker { display: none; }
-    details.faq-item summary:hover { color: var(--accent); background: rgba(39,174,96,0.04); }
+
+    details.faq-item summary::-webkit-details-marker {
+      display: none;
+    }
+
+    details.faq-item summary:hover {
+      color: var(--accent);
+      background: rgba(39, 174, 96, 0.04);
+    }
+
     details.faq-item summary .faq-icon {
-      color: var(--text-muted); font-size: 12px; flex-shrink: 0;
+      color: var(--text-muted);
+      font-size: 12px;
+      flex-shrink: 0;
       transition: transform var(--transition), color var(--transition);
     }
-    details.faq-item[open] summary { color: var(--accent); }
-    details.faq-item[open] summary .faq-icon { transform: rotate(90deg); color: var(--accent); }
+
+    details.faq-item[open] summary {
+      color: var(--accent);
+    }
+
+    details.faq-item[open] summary .faq-icon {
+      transform: rotate(90deg);
+      color: var(--accent);
+    }
+
     .faq-answer {
-      padding: 0 20px 16px 20px; font-size: 14px; line-height: 1.7;
+      padding: 0 20px 16px 20px;
+      font-size: 14px;
+      line-height: 1.7;
       color: var(--text-secondary);
     }
-    .faq-answer p + p { margin-top: 8px; }
-    .faq-answer a { color: var(--accent); text-decoration: none; }
-    .faq-answer a:hover { text-decoration: underline; }
-    .faq-tg-btn {
-      display: inline-flex; align-items: center; gap: 10px;
-      padding: 11px 22px; background: var(--accent); border-radius: var(--radius);
-      color: #fff; font-size: 15px; font-weight: 600; text-decoration: none;
-      transition: background var(--transition), box-shadow var(--transition);
+
+    .faq-answer p+p {
+      margin-top: 8px;
     }
-    .faq-tg-btn:hover { background: var(--accent-hover); box-shadow: 0 0 16px var(--accent-glow); }
-    .faq-notice-badge {
+
+    .faq-answer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .faq-answer a:hover {
+      text-decoration: underline;
+    }
+
+    .faq-tg-btn {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      padding: 3px 9px;
-      background: rgba(231, 174, 60, 0.08);
-      border: 1px solid rgba(231, 174, 60, 0.28);
-      border-radius: 20px;
-      font-size: 11px;
-      color: #c9a84c;
+      gap: 10px;
+      padding: 11px 22px;
+      background: var(--accent);
+      border-radius: var(--radius);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background var(--transition), box-shadow var(--transition);
     }
-    .faq-notice-badge i { font-size: 10px; opacity: 0.85; flex-shrink: 0; }
-    .faq-tg-btn--muted:hover { background: var(--bg-card) !important; box-shadow: none; color: var(--text) !important; }
+
+    .faq-tg-btn:hover {
+      background: var(--accent-hover);
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+
+    .faq-tg-btn--muted:hover {
+      background: var(--bg-card) !important;
+      box-shadow: none;
+      color: var(--text) !important;
+    }
   </style>
   <!-- Yandex.Metrika counter -->
   <script type="text/javascript">
-    (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=108313126','ym');
-    ym(108313126,'init',{ssr:true,webvisor:true,clickmap:true,ecommerce:"dataLayer",referrer:document.referrer,url:location.href,accurateTrackBounce:true,trackLinks:true});
+    (function (m, e, t, r, i, k, a) { m[i] = m[i] || function () { (m[i].a = m[i].a || []).push(arguments) }; m[i].l = 1 * new Date(); for (var j = 0; j < document.scripts.length; j++) { if (document.scripts[j].src === r) { return; } } k = e.createElement(t), a = e.getElementsByTagName(t)[0], k.async = 1, k.src = r, a.parentNode.insertBefore(k, a) })(window, document, 'script', 'https://mc.yandex.ru/metrika/tag.js?id=108313126', 'ym');
+    ym(108313126, 'init', { ssr: true, webvisor: true, clickmap: true, ecommerce: "dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce: true, trackLinks: true });
   </script>
-  <noscript><div><img src="https://mc.yandex.ru/watch/108313126" style="position:absolute; left:-9999px;" alt=""/></div></noscript>
+  <noscript>
+    <div><img src="https://mc.yandex.ru/watch/108313126" style="position:absolute; left:-9999px;" alt="" /></div>
+  </noscript>
   <!-- /Yandex.Metrika counter -->
 </head>
+
 <body>
 
   <div id="app-sidebar"></div>
@@ -85,7 +143,8 @@
           <details class="faq-item">
             <summary>Что такое NaZeleniy? <i class="fas fa-chevron-right faq-icon"></i></summary>
             <div class="faq-answer">
-              <p>NaZeleniy — бесплатный кинопоиск для русскоязычного кино. Ищите фильмы и сериалы, смотрите рейтинги, трейлеры и описания.</p>
+              <p>NaZeleniy — бесплатный кинопоиск для русскоязычного кино. Ищите фильмы и сериалы, смотрите рейтинги,
+                трейлеры и описания.</p>
               <p>Сервис не хранит видеофайлы — для просмотра используются встроенные плееры.</p>
             </div>
           </details>
@@ -101,7 +160,8 @@
           <details class="faq-item">
             <summary>Как войти на сайт? <i class="fas fa-chevron-right faq-icon"></i></summary>
             <div class="faq-answer">
-              <p>Нажмите «Войти» в верхнем правом углу. Отсканируйте QR-код или нажмите «Открыть Telegram» — бот пришлёт одноразовый код подтверждения. Никакой регистрации и паролей.</p>
+              <p>Нажмите «Войти» в верхнем правом углу. Отсканируйте QR-код или нажмите «Открыть Telegram» — бот пришлёт
+                одноразовый код подтверждения. Никакой регистрации и паролей.</p>
             </div>
           </details>
 
@@ -116,7 +176,8 @@
           <details class="faq-item">
             <summary>Фильм не воспроизводится — что делать? <i class="fas fa-chevron-right faq-icon"></i></summary>
             <div class="faq-answer">
-              <p>Попробуйте другой плеер — на странице фильма их несколько (Vibix, VideoSeed, VideoBalanser, FlixCDN). Доступность зависит от вашего региона и провайдера.</p>
+              <p>Попробуйте другой плеер — на странице фильма их несколько (Vibix, VideoSeed, VideoBalanser, FlixCDN).
+                Доступность зависит от вашего региона и провайдера.</p>
               <p>Если ни один не работает — проверьте VPN или попробуйте другой браузер.</p>
             </div>
           </details>
@@ -124,14 +185,17 @@
           <details class="faq-item">
             <summary>Как изменить озвучку или субтитры? <i class="fas fa-chevron-right faq-icon"></i></summary>
             <div class="faq-answer">
-              <p>Переключение дорожек и субтитров находится внутри самого плеера — ищите иконку настроек или «CC» в нижней панели управления плеером.</p>
+              <p>Переключение дорожек и субтитров находится внутри самого плеера — ищите иконку настроек или «CC» в
+                нижней панели управления плеером.</p>
             </div>
           </details>
 
           <details class="faq-item">
             <summary>Что такое «Совместный просмотр»? <i class="fas fa-chevron-right faq-icon"></i></summary>
             <div class="faq-answer">
-              <p>Функция «Вечеринка» (party) позволяет смотреть фильм вместе с другими людьми в реальном времени — воспроизведение, пауза и перемотка синхронизируются у всех участников. Поделитесь ссылкой на комнату с друзьями.</p>
+              <p>Функция «Вечеринка» (party) позволяет смотреть фильм вместе с другими людьми в реальном времени —
+                воспроизведение, пауза и перемотка синхронизируются у всех участников. Поделитесь ссылкой на комнату с
+                друзьями.</p>
             </div>
           </details>
 
@@ -146,14 +210,16 @@
           <details class="faq-item">
             <summary>Как поставить оценку фильму? <i class="fas fa-chevron-right faq-icon"></i></summary>
             <div class="faq-answer">
-              <p>Откройте страницу фильма и нажмите на виджет оценки NaZeleniy (значок со звёздочкой под постером). Потребуется войти через Telegram.</p>
+              <p>Откройте страницу фильма и нажмите на виджет оценки NaZeleniy (значок со звёздочкой под постером).
+                Потребуется войти через Telegram.</p>
             </div>
           </details>
 
           <details class="faq-item">
             <summary>Где найти историю просмотров? <i class="fas fa-chevron-right faq-icon"></i></summary>
             <div class="faq-answer">
-              <p>История последних 20 фильмов показывается прямо на главной странице под строкой поиска. Список оценённых фильмов доступен в профиле (<a href="/me">Профиль</a>) после входа.</p>
+              <p>История последних 20 фильмов показывается прямо на главной странице под строкой поиска. Список
+                оценённых фильмов доступен в профиле (<a href="/me">Профиль</a>) после входа.</p>
             </div>
           </details>
 
@@ -167,11 +233,8 @@
           <div class="settings-label">
             <span>Telegram-канал</span>
             <span class="settings-hint">Новости, обновления, обратная связь</span>
-            <span class="faq-notice-badge" style="margin-top:4px; width:fit-content;">
-              <i class="fas fa-exclamation-triangle"></i> аккаунт заблочили, подал апелляцию
-            </span>
           </div>
-          <a href="https://t.me/NaZelen1y" target="_blank" rel="noopener noreferrer" class="faq-tg-btn">
+          <a href="https://t.me/NaZeleniy2" target="_blank" rel="noopener noreferrer" class="faq-tg-btn">
             <i class="fas fa-paper-plane"></i> Открыть
           </a>
         </div>
@@ -180,7 +243,8 @@
             <span>Почта</span>
             <span class="settings-hint">Для обращений и предложений</span>
           </div>
-          <a href="mailto:nazeleny@tutamail.com" class="faq-tg-btn faq-tg-btn--muted" style="background: var(--bg-tertiary); color: var(--text-secondary); font-size:13px; padding: 9px 16px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          <a href="mailto:nazeleny@tutamail.com" class="faq-tg-btn faq-tg-btn--muted"
+            style="background: var(--bg-tertiary); color: var(--text-secondary); font-size:13px; padding: 9px 16px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
             <i class="fas fa-envelope" style="flex-shrink:0;"></i> nazeleny@tutamail.com
           </a>
         </div>
@@ -189,9 +253,10 @@
     </div>
   </main>
 
-  <script defer src="js/alpine.min.js?v=1777265448"></script>
-  <script src="js/header.js?v=1777265448"></script>
+  <script defer src="js/alpine.min.js?v=1777265672"></script>
+  <script src="js/header.js?v=1777265672"></script>
   <script>renderHeader('faq')</script>
-  <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js')</script>
+  <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js')</script>
 </body>
+
 </html>
