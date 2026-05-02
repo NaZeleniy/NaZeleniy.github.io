@@ -2,7 +2,7 @@
 <html lang="ru">
 
 <head>
-  <script src="js/version.js?v=1777265672"></script>
+  <script src="js/version.js?v=1777695155"></script>
   <meta charset="UTF-8" />
 
   <link rel="dns-prefetch" href="https://mc.yandex.ru">
@@ -11,10 +11,10 @@
   <meta name="theme-color" content="#000000" />
   <title>NaZeleniy — FAQ</title>
   <link rel="icon" type="image/png" href="img/icons/favicon.png" />
-  <link rel="preload" href="css/style-settings.css?v=1777265672" as="style">
-  <link rel="stylesheet" href="css/style-settings.css?v=1777265672" />
-  <link rel="preload" href="css/icons.css?v=1777265672" as="style">
-  <link rel="stylesheet" href="css/icons.css?v=1777265672" />
+  <link rel="preload" href="css/style-settings.css?v=1777695155" as="style">
+  <link rel="stylesheet" href="css/style-settings.css?v=1777695155" />
+  <link rel="preload" href="css/icons.css?v=1777695155" as="style">
+  <link rel="stylesheet" href="css/icons.css?v=1777695155" />
   <style>
     .faq-list {
       display: flex;
@@ -141,19 +141,10 @@
         <div class="faq-list">
 
           <details class="faq-item">
-            <summary>Что такое NaZeleniy? <i class="fas fa-chevron-right faq-icon"></i></summary>
-            <div class="faq-answer">
-              <p>NaZeleniy — бесплатный кинопоиск для русскоязычного кино. Ищите фильмы и сериалы, смотрите рейтинги,
-                трейлеры и описания.</p>
-              <p>Сервис не хранит видеофайлы — для просмотра используются встроенные плееры.</p>
-            </div>
-          </details>
-
-          <details class="faq-item">
             <summary>Нужна ли регистрация? <i class="fas fa-chevron-right faq-icon"></i></summary>
             <div class="faq-answer">
-              <p>Нет. Поиск и просмотр доступны без входа.</p>
-              <p>Авторизация через Telegram нужна для оценок, истории и совместного просмотра.</p>
+              <p>Нет. Просмотр доступен без входа.</p>
+              <p>Авторизация нужна для оценок, комментариев и избранных фильмов.</p>
             </div>
           </details>
 
@@ -176,24 +167,16 @@
           <details class="faq-item">
             <summary>Фильм не воспроизводится — что делать? <i class="fas fa-chevron-right faq-icon"></i></summary>
             <div class="faq-answer">
-              <p>Попробуйте другой плеер — на странице фильма их несколько (Vibix, VideoSeed, VideoBalanser, FlixCDN).
+              <p>Попробуйте другой плеер — на странице фильма их несколько.
                 Доступность зависит от вашего региона и провайдера.</p>
-              <p>Если ни один не работает — проверьте VPN или попробуйте другой браузер.</p>
-            </div>
-          </details>
-
-          <details class="faq-item">
-            <summary>Как изменить озвучку или субтитры? <i class="fas fa-chevron-right faq-icon"></i></summary>
-            <div class="faq-answer">
-              <p>Переключение дорожек и субтитров находится внутри самого плеера — ищите иконку настроек или «CC» в
-                нижней панели управления плеером.</p>
+              <p>Если ни один не работает — отключите VPN или попробуйте другой браузер.</p>
             </div>
           </details>
 
           <details class="faq-item">
             <summary>Что такое «Совместный просмотр»? <i class="fas fa-chevron-right faq-icon"></i></summary>
             <div class="faq-answer">
-              <p>Функция «Вечеринка» (party) позволяет смотреть фильм вместе с другими людьми в реальном времени —
+              <p>Функция «Совместный просмотр» позволяет смотреть фильм вместе с другими людьми в реальном времени —
                 воспроизведение, пауза и перемотка синхронизируются у всех участников. Поделитесь ссылкой на комнату с
                 друзьями.</p>
             </div>
@@ -208,10 +191,10 @@
         <div class="faq-list">
 
           <details class="faq-item">
-            <summary>Как поставить оценку фильму? <i class="fas fa-chevron-right faq-icon"></i></summary>
+            <summary>Как поставить оценку или добавить фильм в избранное? <i class="fas fa-chevron-right faq-icon"></i></summary>
             <div class="faq-answer">
-              <p>Откройте страницу фильма и нажмите на виджет оценки NaZeleniy (значок со звёздочкой под постером).
-                Потребуется войти через Telegram.</p>
+              <p>Откройте страницу фильма и нажмите на виджет под фильмом.
+                Потребуется авторизация.</p>
             </div>
           </details>
 
@@ -219,7 +202,7 @@
             <summary>Где найти историю просмотров? <i class="fas fa-chevron-right faq-icon"></i></summary>
             <div class="faq-answer">
               <p>История последних 20 фильмов показывается прямо на главной странице под строкой поиска. Список
-                оценённых фильмов доступен в профиле (<a href="/me">Профиль</a>) после входа.</p>
+                оценённых и избранных фильмов доступен в профиле (<a href="/me">Профиль</a>).</p>
             </div>
           </details>
 
@@ -253,8 +236,8 @@
     </div>
   </main>
 
-  <script defer src="js/alpine.min.js?v=1777265672"></script>
-  <script src="js/header.js?v=1777265672"></script>
+  <script defer src="js/alpine.min.js?v=1777695155"></script>
+  <script src="js/header.js?v=1777695155"></script>
   <script>renderHeader('faq')</script>
   <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js')</script>
 </body>
