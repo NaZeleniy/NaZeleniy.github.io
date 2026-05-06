@@ -165,27 +165,12 @@ function selectPlayer(name, url, type) {
     window.addEventListener('message', onMsg)
     _playerCleanup = () => { clearTimeout(timer); window.removeEventListener('message', onMsg); window.khF = null }
   } else {
-    let attempts = 0
-    const maxAttempts = 6
     const onLoad = () => {
-      clearInterval(interval)
       frame.removeEventListener('load', onLoad)
       playerSetState('ready', gen)
     }
-    const interval = setInterval(() => {
-      if (++attempts >= maxAttempts) {
-        clearInterval(interval)
-        frame.removeEventListener('load', onLoad)
-        playerSetState('error', gen)
-        return
-      }
-      frame.src = frame.src
-    }, 5000)
     frame.addEventListener('load', onLoad)
-    _playerCleanup = () => {
-      clearInterval(interval)
-      frame.removeEventListener('load', onLoad)
-    }
+    _playerCleanup = () => frame.removeEventListener('load', onLoad)
   }
 }
 
