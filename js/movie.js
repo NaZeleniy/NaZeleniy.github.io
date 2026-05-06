@@ -166,11 +166,16 @@ function selectPlayer(name, url, type) {
     _playerCleanup = () => { clearTimeout(timer); window.removeEventListener('message', onMsg); window.khF = null }
   } else {
     const onLoad = () => {
+      clearTimeout(timer)
       frame.removeEventListener('load', onLoad)
       playerSetState('ready', gen)
     }
+    const timer = setTimeout(() => {
+      frame.removeEventListener('load', onLoad)
+      playerSetState('error', gen)
+    }, 30000)
     frame.addEventListener('load', onLoad)
-    _playerCleanup = () => frame.removeEventListener('load', onLoad)
+    _playerCleanup = () => { clearTimeout(timer); frame.removeEventListener('load', onLoad) }
   }
 }
 
