@@ -140,13 +140,19 @@ function selectPlayer(name, url, type) {
 
   if (type === 'vibix') {
     const h = Math.round(document.querySelector('.player-wrapper').offsetHeight)
-    const onLoad = () => {
+    let done = false
+    const markReady = success => {
+      if (done) return
+      done = true
+      clearTimeout(timer)
       frame.removeEventListener('load', onLoad)
-      playerSetState('ready', gen)
+      playerSetState(success ? 'ready' : 'error', gen)
     }
+    const onLoad = () => markReady(true)
+    const timer = setTimeout(() => markReady(false), 30000)
     frame.addEventListener('load', onLoad)
     frame.srcdoc = vibixSrcdoc(url, h)
-    _playerCleanup = () => frame.removeEventListener('load', onLoad)
+    _playerCleanup = () => { done = true; clearTimeout(timer); frame.removeEventListener('load', onLoad) }
     return
   }
 
@@ -161,7 +167,7 @@ function selectPlayer(name, url, type) {
       playerSetState(success ? 'ready' : 'error', gen)
     }
     const onMsg = e => { if (e.data === 'khL') done(true) }
-    const timer = setTimeout(() => done(false), 3000)
+    const timer = setTimeout(() => done(false), 12000)
     window.addEventListener('message', onMsg)
     _playerCleanup = () => { clearTimeout(timer); window.removeEventListener('message', onMsg); window.khF = null }
   } else {
@@ -199,12 +205,7 @@ function playerSectionHtml(movie) {
         <span>Смотреть вместе</span>
       </a>` : ''
 
-  return `${localStorage.getItem('nz_hide_coming_soon') ? '' : `<div class="player-coming-soon" id="player-coming-soon">
-    <i class="fas fa-info-circle"></i>
-    <span>Планируется добавление новых плееров в будущем</span>
-    <button class="player-coming-soon-close" onclick="localStorage.setItem('nz_hide_coming_soon','1');document.getElementById('player-coming-soon').remove()" title="Закрыть"><i class="fas fa-times"></i></button>
-  </div>`}
-  <details class="player-section">
+  return `<details class="player-section">
     <summary class="player-summary">
       <i class="fas fa-play-circle"></i>
       <span>Смотреть онлайн</span>
@@ -300,10 +301,27 @@ function initPlayerLazyLoad(players) {
     }, { once: true })
   }
 
-  details.addEventListener('toggle', () => {
-    if (!details.open) return
+  // TV (≥1400px): запускаем первый плеер сразу — нет hover-preload через pointerenter,
+  // iframe грузится в фоне пока <details> закрыт, при открытии уже готов
+  if (window.innerWidth >= 1400) {
     startFirstPlayer()
-  }, { once: true })
+    details.addEventListener('toggle', () => {
+      if (!details.open) return
+      startFirstPlayer()
+    }, { once: true })
+    return
+  }
+
+  // На LG WebOS 1.x/2.x <details> не поддерживается — toggle не срабатывает,
+  // контент всегда виден, поэтому стартуем плеер сразу
+  if (!('open' in details) || details.open) {
+    startFirstPlayer()
+  } else {
+    details.addEventListener('toggle', () => {
+      if (!details.open) return
+      startFirstPlayer()
+    }, { once: true })
+  }
 }
 
 function renderMovie(movie) {
