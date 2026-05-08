@@ -58,6 +58,12 @@ function playerSetState(state, gen) {
   if (!wrapper) return
   wrapper.classList.remove('loading', 'ready', 'error')
   if (state) wrapper.classList.add(state)
+  // TV: при готовности плеера фокусируем iframe — без этого первый OK уходит в
+  // spatial nav (кликает по кнопке выбора), а не в сам плеер
+  if (state === 'ready' && window.innerWidth >= 1400) {
+    const frame = document.getElementById('player-frame')
+    if (frame) frame.focus()
+  }
 }
 
 function playerUpdateUI(name) {
