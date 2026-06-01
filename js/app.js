@@ -91,6 +91,21 @@ function app() {
       return (orig && orig !== title) ? orig : ''
     },
 
+    // Канонический URL постера Кинопоиска по id. КП в списках (top/премьеры) часто
+    // отдаёт no-poster.png, хотя постер существует по этому пути (детальная его показывает).
+    _kpPoster(movie, size) {
+      const id = movie.kinopoiskId || movie.filmId
+      return id ? `https://kinopoiskapiunofficial.tech/images/posters/${size}/${id}.jpg` : ''
+    },
+
+    // Лучший URL постера для карточки: реальный из API, либо реконструкция по id,
+    // если список вернул no-poster.png (или поле пустое).
+    posterFor(movie) {
+      const url = movie.posterUrlPreview || movie.posterUrl || ''
+      if (!url || url.includes('no-poster')) return posterUrl(this._kpPoster(movie, 'kp_small'))
+      return posterUrl(url)
+    },
+
     posterInit(el) {
       // постер мог уже загрузиться из кеша (prefetchPosters / повторный показ) ещё до
       // навешивания @load — тогда событие load не придёт и класс .loaded не добавится.
@@ -102,10 +117,10 @@ function app() {
 
     posterError(el, movie) {
       el.classList.add('loaded')
-      const full = posterUrl(movie.posterUrl)
-      // превью (kp_small) у Кинопоиска часто не отдаётся — один раз пробуем полный
-      // постер, и только если и он не загрузился, ставим заглушку (флаг от цикла)
-      if (!el.dataset.posterRetried && movie.posterUrl && full !== PLACEHOLDER && el.src !== full) {
+      // превью (kp_small) могло не загрузиться — один раз пробуем полный постер по
+      // каноническому пути (работает и когда список отдал no-poster.png), иначе заглушка
+      const full = posterUrl(this._kpPoster(movie, 'kp'))
+      if (!el.dataset.posterRetried && full !== PLACEHOLDER && el.src !== full) {
         el.dataset.posterRetried = '1'
         el.src = full
       } else {
@@ -273,10 +288,10 @@ function app() {
     prefetchPosters(movies) {
       const limit = 20
       for (let i = 0; i < Math.min(movies.length, limit); i++) {
-        const url = movies[i].posterUrlPreview || movies[i].posterUrl
-        if (url) {
+        const src = this.posterFor(movies[i])
+        if (src) {
           const img = new Image()
-          img.src = posterUrl(url)
+          img.src = src
         }
       }
     },
