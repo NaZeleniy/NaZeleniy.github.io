@@ -231,7 +231,7 @@ function _renderSearch(activePage) {
                   <img :src="posterUrl(movie.posterUrlPreview || movie.posterUrl)" :alt="movie.nameRu || movie.nameEn" loading="lazy"/>
                 </div>
                 <div class="suggestion-info">
-                  <span class="suggestion-title" x-text="movie.nameRu || movie.nameEn || 'Без названия'"></span>
+                  <span class="suggestion-title" x-text="movie.nameRu || movie.nameEn || movie.nameOriginal || 'Без названия'"></span>
                   <span class="suggestion-meta">
                     <span x-text="movie.year || ''"></span>
                     <template x-if="movie.genres && movie.genres.length > 0">

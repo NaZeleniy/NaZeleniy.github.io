@@ -86,8 +86,9 @@ function app() {
     },
 
     origTitle(movie) {
+      const title = movie.nameRu || movie.nameEn || movie.nameOriginal || ''
       const orig = movie.nameEn || movie.nameOriginal || ''
-      return (orig && orig !== movie.nameRu) ? orig : ''
+      return (orig && orig !== title) ? orig : ''
     },
 
     ratingBg(r) {

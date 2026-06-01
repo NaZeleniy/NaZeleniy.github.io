@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Alloha Research</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #111; color: #0f0; font-family: monospace; display: flex; height: 100vh; }
+#left { width: 420px; display: flex; flex-direction: column; border-right: 1px solid #333; }
+#controls { padding: 10px; border-bottom: 1px solid #333; }
+input { width: 100%; background: #222; border: 1px solid #444; color: #fff; padding: 6px; font-size: 12px; margin-bottom: 6px; }
+button { background: #27ae60; color: #fff; border: none; padding: 6px 14px; cursor: pointer; font-size: 12px; margin-right: 6px; }
+button:hover { background: #2ecc71; }
+#log { flex: 1; overflow-y: auto; padding: 8px; font-size: 11px; line-height: 1.5; }
+#right { flex: 1; }
+iframe { width: 100%; height: 100%; border: none; }
+.ok   { color: #0f0; }
+.err  { color: #f55; }
+.info { color: #ff0; }
+.post { color: #0ff; font-weight: bold; }
+.stream { color: #f90; font-weight: bold; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div id="left">
+  <div id="controls">
+    <div style="color:#aaa;margin-bottom:6px;font-size:11px">Alloha URL (из /api/movie/{id} → players[0].url):</div>
+    <input id="url" value="https://miyagi-as.stravers.live/?token_movie=1d1266b0b9adec522f0bc8851a7922&token=04941a9a3ca3ac16e2b4327347bbc1">
+    <div>
+      <button onclick="loadViaProxy()">▶ Через прокси (с инъекцией)</button>
+      <button onclick="clearLog()">Очистить</button>
+    </div>
+    <div id="streamUrl" style="margin-top:6px;color:#f90;word-break:break-all;font-size:10px"></div>
+  </div>
+  <div id="log"><div class="info">Нажми "Через прокси" → затем Play в плеере</div></div>
+</div>
+
+<div id="right">
+  <iframe id="player" allow="autoplay; fullscreen; encrypted-media"></iframe>
+</div>
+
+<script>
+const PROXY = 'https://nazeleniy.site'
+
+function log(msg, cls='ok') {
+  const d = document.getElementById('log')
+  const t = new Date().toLocaleTimeString('ru', {hour12:false})
+  d.innerHTML += `<div class="${cls}">[${t}] ${msg}</div>`
+  d.scrollTop = d.scrollHeight
+}
+
+function clearLog() {
+  document.getElementById('log').innerHTML = ''
+  document.getElementById('streamUrl').textContent = ''
+}
+
+// Слушаем postMessage от iframe (инъекция будет слать через postMessage)
+window.addEventListener('message', e => {
+  if (!e.data) return
+  if (e.data.nzLog)    log(e.data.nzLog, e.data.cls || 'ok')
+  if (e.data.nzStream) {
+    log('🎬 HLS URL найден!', 'stream')
+    log(e.data.nzStream, 'stream')
+    document.getElementById('streamUrl').textContent = '✅ ' + e.data.nzStream.substring(0, 80) + '...'
+  }
+  if (e.data.nzPost) {
+    log('⬆️ POST /bnsi/ body: ' + JSON.stringify(e.data.nzPost).substring(0, 200), 'post')
+  }
+  if (e.data.nzResp) {
+    log('⬇️ Response: ' + e.data.nzResp.substring(0, 300), 'info')
+  }
+})
+
+// Инъекция которую вставим в HTML плеера
+const INJECT = `<script>
+(function(){
+  if(window._nzResearch) return;
+  window._nzResearch = true;
+  var PM = function(d){ try{ window.top.postMessage(d,'*'); }catch(e){} };
+
+  PM({nzLog:'✅ Bridge injected', cls:'info'});
+
+  // Перехват fetch
+  var oF = window.fetch;
+  window.fetch = function(input, opts) {
+    var url = typeof input==='string'?input:(input&&input.url)||'';
+    PM({nzLog:'FETCH '+(opts&&opts.method||'GET')+' '+url});
+    if(url.includes('/bnsi/')) {
+      var method = (opts&&opts.method)||'GET';
+      var body = opts&&opts.body;
+      PM({nzPost:{method:method,url:url,body:String(body||'').substring(0,200)}});
+      return oF.apply(this,arguments).then(function(r){
+        return r.clone().text().then(function(t){
+          PM({nzResp:t.substring(0,500)});
+          try{
+            var d=JSON.parse(t);
+            if(d.hlsSource&&d.hlsSource[0]){
+              var q=d.hlsSource[0].quality;
+              var u=q['1080']||q['720']||q['1440']||Object.values(q)[0];
+              if(u) PM({nzStream:u});
+            }
+          }catch(e){}
+          return r;
+        });
+      });
+    }
+    return oF.apply(this,arguments);
+  };
+
+  // Перехват XHR
+  var oO=XMLHttpRequest.prototype.open,oS=XMLHttpRequest.prototype.send,oSH=XMLHttpRequest.prototype.setRequestHeader;
+  XMLHttpRequest.prototype.open=function(m,u){this._m=m;this._u=u;this._h={};return oO.apply(this,arguments)};
+  XMLHttpRequest.prototype.setRequestHeader=function(k,v){if(this._h)this._h[k]=v;return oSH.apply(this,arguments)};
+  XMLHttpRequest.prototype.send=function(body){
+    PM({nzLog:'XHR '+(this._m||'GET')+' '+(this._u||'?')});
+    var self=this;
+    if(self._u&&self._u.includes('/bnsi/')) {
+      PM({nzPost:{method:self._m,url:self._u,body:String(body||'').substring(0,200),headers:self._h}});
+      this.addEventListener('load',function(){
+        PM({nzResp:this.responseText.substring(0,500)});
+        try{
+          var d=JSON.parse(this.responseText);
+          if(d.hlsSource&&d.hlsSource[0]){
+            var q=d.hlsSource[0].quality;
+            var u=q['1080']||q['720']||q['1440']||Object.values(q)[0];
+            if(u) PM({nzStream:u});
+          }
+        }catch(e){}
+      });
+    }
+    return oS.apply(this,arguments);
+  };
+
+  PM({nzLog:'XHR+fetch patched', cls:'info'});
+})();
+<\/script>`
+
+async function loadViaProxy() {
+  const allohaUrl = document.getElementById('url').value.trim()
+  if (!allohaUrl) { log('URL не задан', 'err'); return }
+
+  log('Запрашиваем страницу через прокси...')
+  try {
+    const proxyUrl = PROXY + '/tv/proxy/player?url=' + encodeURIComponent(allohaUrl)
+    const res = await fetch(proxyUrl)
+    if (!res.ok) { log('Прокси вернул ' + res.status, 'err'); return }
+    let html = await res.text()
+    log('HTML получен (' + html.length + ' байт)')
+
+    // Убираем бэкенд-инъекцию (tvAdBlockJS) если есть — вставим свою
+    // Добавляем нашу инъекцию
+    html = html.replace(/<head>/i, '<head>' + INJECT)
+
+    // Загружаем в iframe через srcdoc + base href
+    const baseOrigin = new URL(allohaUrl).origin
+    html = html.replace(/<head>/i, '<head><base href="' + baseOrigin + '/">')
+
+    log('Инъекция добавлена, загружаем в iframe...')
+    document.getElementById('player').srcdoc = html
+  } catch(e) {
+    log('Ошибка: ' + e.message, 'err')
+    log('Убедись что бэкенд запущен: cd backend && go run .', 'info')
+  }
+}
+</script>
+</body>
+</html>
