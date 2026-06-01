@@ -91,6 +91,15 @@ function app() {
       return (orig && orig !== title) ? orig : ''
     },
 
+    posterInit(el) {
+      // постер мог уже загрузиться из кеша (prefetchPosters / повторный показ) ещё до
+      // навешивания @load — тогда событие load не придёт и класс .loaded не добавится.
+      // Проверяем complete вручную, иначе картинка останется opacity:0 (невидимой).
+      this.$nextTick(() => {
+        if (el.complete && el.naturalWidth > 0) el.classList.add('loaded')
+      })
+    },
+
     posterError(el, movie) {
       el.classList.add('loaded')
       const full = posterUrl(movie.posterUrl)
