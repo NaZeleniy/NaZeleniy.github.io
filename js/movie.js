@@ -228,7 +228,7 @@ function playerSectionHtml(movie) {
       ${partyBtn}
     </div>
     <div class="player-wrapper">
-      <iframe id="player-frame" frameborder="0" allow="autoplay; fullscreen"></iframe>
+      <iframe id="player-frame" frameborder="0" allow="autoplay; fullscreen; encrypted-media; picture-in-picture"></iframe>
       <div class="player-loading">
         <i class="fas fa-circle-notch fa-spin"></i>
       </div>
@@ -543,12 +543,13 @@ async function loadSequels(res) {
       const id    = m.filmId
       const name  = m.nameRu || m.nameEn || m.nameOriginal || 'Без названия'
       const thumb = posterUrl(m.posterUrlPreview || m.posterUrl)
+      const full  = posterUrl(m.posterUrl)
       const meta  = typeLabel[m.relationType] || m.relationType || ''
       const preview = JSON.stringify({ filmId: id, nameRu: m.nameRu, nameEn: m.nameEn, posterUrl: m.posterUrl, posterUrlPreview: m.posterUrlPreview, year: m.year }).replace(/'/g, '&#39;')
       return `
         <a class="similar-card" href="/movie/${id}" onclick="sessionStorage.setItem('moviePreview','${preview}')">
           <div class="similar-poster-wrap">
-            <img src="${thumb}" alt="${name}" loading="lazy" onerror="this.src='/img/placeholder.svg'"/>
+            <img src="${thumb}" alt="${name}" loading="lazy" onerror="this.src=(this.src!=='${full}'&&'${full}'.indexOf('placeholder')<0)?'${full}':(this.onerror=null,'/img/placeholder.svg')"/>
           </div>
           <div class="similar-info">
             <div class="similar-title">${name}</div>
@@ -579,12 +580,13 @@ async function loadSimilars(res) {
       const id    = m.filmId
       const name  = m.nameRu || m.nameEn || m.nameOriginal || 'Без названия'
       const thumb = posterUrl(m.posterUrlPreview || m.posterUrl)
+      const full  = posterUrl(m.posterUrl)
       const meta  = [m.year, m.nameEn && m.nameEn !== m.nameRu ? m.nameEn : null].filter(Boolean).join(' · ')
       const preview = JSON.stringify({ filmId: id, nameRu: m.nameRu, nameEn: m.nameEn, posterUrl: m.posterUrl, posterUrlPreview: m.posterUrlPreview, year: m.year }).replace(/'/g, '&#39;')
       return `
         <a class="similar-card" href="/movie/${id}" onclick="sessionStorage.setItem('moviePreview','${preview}')">
           <div class="similar-poster-wrap">
-            <img src="${thumb}" alt="${name}" loading="lazy" onerror="this.src='/img/placeholder.svg'"/>
+            <img src="${thumb}" alt="${name}" loading="lazy" onerror="this.src=(this.src!=='${full}'&&'${full}'.indexOf('placeholder')<0)?'${full}':(this.onerror=null,'/img/placeholder.svg')"/>
           </div>
           <div class="similar-info">
             <div class="similar-title">${name}</div>
