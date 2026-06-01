@@ -91,6 +91,19 @@ function app() {
       return (orig && orig !== title) ? orig : ''
     },
 
+    posterError(el, movie) {
+      el.classList.add('loaded')
+      const full = posterUrl(movie.posterUrl)
+      // превью (kp_small) у Кинопоиска часто не отдаётся — один раз пробуем полный
+      // постер, и только если и он не загрузился, ставим заглушку (флаг от цикла)
+      if (!el.dataset.posterRetried && movie.posterUrl && full !== PLACEHOLDER && el.src !== full) {
+        el.dataset.posterRetried = '1'
+        el.src = full
+      } else {
+        el.src = PLACEHOLDER
+      }
+    },
+
     ratingBg(r) {
       if (r >= 7.0) return '#27ae60'
       if (r < 5.0)  return '#e74c3c'
