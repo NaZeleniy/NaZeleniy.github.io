@@ -33,25 +33,17 @@ function formatDate(iso) {
 function renderRatingItem(item) {
   const id = item.kinopoiskId
   if (!id) return ''
-  const title    = escapeHtml(item.nameRu || item.nameOriginal || `Фильм #${id}`)
-  const original = item.nameOriginal && item.nameOriginal !== item.nameRu
-    ? `<span class="me-item-original">${escapeHtml(item.nameOriginal)}</span>` : ''
-  const genreList = Array.isArray(item.genres) && item.genres.length
-    ? `<div class="me-item-genres">${item.genres.slice(0, 3).map(g =>
-        `<span class="me-item-genre">${escapeHtml(g.genre || g)}</span>`
-      ).join('')}</div>` : ''
+  const title    = escapeHtml(item.title || item.nameRu || `Фильм #${id}`)
   const imgSrc  = posterUrl(item.posterUrl)
   const color   = ratingColor(item.userRating)
   const year    = item.year ? `<span class="me-item-year">${item.year}</span>` : ''
   const date    = item.ratedAt ? formatDate(item.ratedAt) : ''
-  const preview = JSON.stringify({ filmId: id, nameRu: item.nameRu, nameEn: item.nameOriginal, posterUrl: item.posterUrl, posterUrlPreview: item.posterUrl }).replace(/'/g, '&#39;')
+  const preview = JSON.stringify({ filmId: id, nameRu: item.title, posterUrl: item.posterUrl, posterUrlPreview: item.posterUrl, year: item.year }).replace(/'/g, '&#39;').replace(/"/g, '&quot;')
   return `
     <a href="/movie/${id}" class="me-item" onclick="sessionStorage.setItem('moviePreview','${preview}')">
       <img class="me-item-poster" src="${imgSrc}" alt="${title}" loading="lazy"/>
       <div class="me-item-info">
         <span class="me-item-title">${title}</span>
-        ${original}
-        ${genreList}
         ${year}
       </div>
       <div class="me-item-meta">
@@ -64,24 +56,16 @@ function renderRatingItem(item) {
 function renderFavoriteItem(item) {
   const id = item.kinopoiskId
   if (!id) return ''
-  const title    = escapeHtml(item.nameRu || item.nameOriginal || `Фильм #${id}`)
-  const original = item.nameOriginal && item.nameOriginal !== item.nameRu
-    ? `<span class="me-item-original">${escapeHtml(item.nameOriginal)}</span>` : ''
-  const genreList = Array.isArray(item.genres) && item.genres.length
-    ? `<div class="me-item-genres">${item.genres.slice(0, 3).map(g =>
-        `<span class="me-item-genre">${escapeHtml(g.genre || g)}</span>`
-      ).join('')}</div>` : ''
+  const title    = escapeHtml(item.title || item.nameRu || `Фильм #${id}`)
   const imgSrc  = posterUrl(item.posterUrl)
   const year    = item.year ? `<span class="me-item-year">${item.year}</span>` : ''
   const date    = item.favoritedAt ? formatDate(item.favoritedAt) : ''
-  const preview = JSON.stringify({ filmId: id, nameRu: item.nameRu, nameEn: item.nameOriginal, posterUrl: item.posterUrl, posterUrlPreview: item.posterUrl }).replace(/'/g, '&#39;')
+  const preview = JSON.stringify({ filmId: id, nameRu: item.title, posterUrl: item.posterUrl, posterUrlPreview: item.posterUrl, year: item.year }).replace(/'/g, '&#39;').replace(/"/g, '&quot;')
   return `
     <a href="/movie/${id}" class="me-item" onclick="sessionStorage.setItem('moviePreview','${preview}')">
       <img class="me-item-poster" src="${imgSrc}" alt="${title}" loading="lazy"/>
       <div class="me-item-info">
         <span class="me-item-title">${title}</span>
-        ${original}
-        ${genreList}
         ${year}
       </div>
       <div class="me-item-meta">

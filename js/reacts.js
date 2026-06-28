@@ -247,6 +247,7 @@ function reactsApp() {
     list: REACTS_LIST,
     avatars: {},   // nick  → twitch avatar url
     chInfo: {},   // url   → { name, avatar }
+    live: {},     // nick  → bool (в эфире на Twitch)
 
     search: '',
 
@@ -254,6 +255,13 @@ function reactsApp() {
       const q = this.search.trim().toLowerCase()
       if (!q) return this.list
       return this.list.filter(s => s.nick.toLowerCase().includes(q))
+    },
+
+    isLive(nick) { return !!this.live[nick] },
+    get liveCount() {
+      let n = 0
+      for (const k in this.live) if (this.live[k]) n++
+      return n
     },
 
     avatarSrc(nick) { return this.avatars[nick] || null },
@@ -282,6 +290,10 @@ function reactsApp() {
         this.avatars[s.nick] = API_BASE + '/proxy/twitch-avatar?nick=' + encodeURIComponent(s.nick)
       })
 
+      // Live-статусы Twitch одним батч-запросом (бэкенд кеширует на 90с).
+      // Не блокирует остальную загрузку; падение тихо игнорируем (всё оффлайн).
+      this._loadLive()
+
       // Инфо о Telegram-каналах (name + avatar) с бэкенда
       const uniqueUrls = [
         ...new Set(
@@ -305,6 +317,17 @@ function reactsApp() {
       let qi = 0
       const worker = async () => { while (qi < uniqueUrls.length) await fetchTgInfo(uniqueUrls[qi++]) }
       await Promise.all(Array.from({ length: Math.min(4, uniqueUrls.length) }, worker))
+    },
+
+    async _loadLive() {
+      try {
+        const nicks = REACTS_LIST.map(s => s.nick).join(',')
+        const res = await fetch(API_BASE + '/proxy/twitch-live?nicks=' + encodeURIComponent(nicks))
+        if (!res.ok) return
+        const map = await res.json()
+        // Присваиваем новый объект целиком — Alpine перерисует liveCount/бейджи
+        this.live = map || {}
+      } catch { }
     }
   }
 }

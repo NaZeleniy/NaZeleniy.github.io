@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <base href="/">
+  <script src="js/version.js?v=1782636292"></script>
+  <meta charset="UTF-8"/>
+
+  <link rel="dns-prefetch" href="https://mc.yandex.ru">
+  <link rel="dns-prefetch" href="https://nazeleniy.site">
+  <link rel="preconnect" href="https://nazeleniy.site" crossorigin>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#000000"/>
+  <title>Загрузка... — NaZeleniy</title>
+  <meta name="description" content="Тайтлы платформы на NaZeleniy."/>
+  <link rel="icon" type="image/png" href="img/icons/favicon.png"/>
+  <link rel="preload" href="css/style-platform.css?v=1782636292" as="style">
+  <link rel="stylesheet" href="css/style-platform.css?v=1782636292"/>
+  <link rel="preload" href="css/icons.css?v=1782636292" as="style">
+  <link rel="stylesheet" href="css/icons.css?v=1782636292"/>
+  <script src="js/settings.js?v=1782636292"></script>
+  <script defer src="js/api.js?v=1782636292"></script>
+  <script defer src="js/platform.js?v=1782636292"></script>
+  <script defer src="js/alpine.min.js?v=1782636292"></script>
+  <!-- Yandex.Metrika counter -->
+  <script type="text/javascript">
+    (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=108313126','ym');
+    ym(108313126,'init',{ssr:true,webvisor:true,clickmap:true,ecommerce:"dataLayer",referrer:document.referrer,url:location.href,accurateTrackBounce:true,trackLinks:true});
+  </script>
+  <noscript><div><img src="https://mc.yandex.ru/watch/108313126" style="position:absolute; left:-9999px;" alt=""/></div></noscript>
+  <!-- /Yandex.Metrika counter -->
+</head>
+<body x-data="platformPage()" x-init="init()">
+
+  <div class="bg-poster"
+       :style="bgPoster ? 'background-image: url(' + bgPoster + ')' : ''"
+       :class="{ visible: bgPoster }"></div>
+
+  <div id="app-sidebar"></div>
+
+  <button type="button" class="platform-back-top" @click="back()" x-show="!loading && platform" x-cloak>
+    <i class="ph ph-arrow-left"></i> Назад
+  </button>
+
+  <main class="main-content platform-wrap">
+
+    <div class="loading-spinner platform-loading" x-show="loading" x-transition>
+      <i class="ph ph-circle-notch nz-spin"></i>
+    </div>
+
+    <template x-if="!loading && platform">
+      <div>
+
+        <!-- HERO -->
+        <header class="platform-hero" :style="heroVars">
+          <div class="platform-logo" :style="logoStyle">
+            <img x-show="platform.poster_url" :src="logoUrl" :alt="platform.name" @error="platform.poster_url = ''">
+            <span x-show="!platform.poster_url" x-text="platform.monogram"></span>
+          </div>
+          <div class="platform-headings">
+            <div class="platform-kicker">Платформа</div>
+            <h1 class="platform-name" x-text="platform.name"></h1>
+            <div class="platform-meta">
+              <span class="platform-count">
+                <i class="ph-fill ph-film-slate"></i>
+                <b x-text="platform.count"></b> <span x-text="plural(platform.count, ['тайтл', 'тайтла', 'тайтлов'])"></span>
+              </span>
+            </div>
+          </div>
+        </header>
+
+        <!-- Список тайтлов -->
+        <div class="grid" x-show="movies.length > 0" x-transition>
+          <template x-for="(movie, i) in movies" :key="'pm' + (movie.kinopoiskId || movie.filmId || i)">
+            <a class="movie-card" :href="'/movie/' + (movie.kinopoiskId || movie.filmId)" @mouseenter="onCardEnter(movie)" @click="sessionStorage.setItem('moviePreview', JSON.stringify(movie))">
+              <div class="movie-poster-container">
+                <img class="movie-poster" :src="posterFor(movie)" :alt="movie.nameRu || movie.nameEn || 'Постер'" loading="lazy" @load="$el.classList.add('loaded')" @error="$el.src='img/placeholder.svg'; $el.classList.add('loaded')">
+              </div>
+              <template x-if="cardRating(movie) > 0">
+                <div class="movie-badge-rating" :style="`background:${ratingBg(cardRating(movie))}`">
+                  <span x-text="cardRating(movie).toFixed(1)"></span>
+                </div>
+              </template>
+              <div class="movie-badge-type" x-text="movieType(movie)"></div>
+              <div class="movie-info">
+                <h3 class="movie-title" x-text="movie.nameRu || movie.nameEn || movie.nameOriginal || 'Без названия'"></h3>
+                <span class="movie-original-title" x-show="origTitle(movie)" x-text="origTitle(movie)"></span>
+                <span class="movie-year" x-text="movie.year || ''"></span>
+              </div>
+            </a>
+          </template>
+        </div>
+
+        <div class="empty-state" x-show="movies.length === 0" x-transition>
+          <i class="ph ph-film-strip"></i>
+          <p>На этой платформе пока нет тайтлов</p>
+        </div>
+
+        <div class="load-more-spinner" x-show="_loadingMore" x-cloak x-transition>
+          <i class="ph ph-circle-notch nz-spin"></i>
+        </div>
+
+        <div id="scroll-sentinel"></div>
+
+      </div>
+    </template>
+
+    <div class="empty-state" x-show="!loading && !platform" x-transition>
+      <i class="ph ph-question"></i>
+      <p x-text="loadError || 'Платформа не найдена'"></p>
+      <a href="/" class="platform-back-link"><i class="ph ph-arrow-left"></i> На главную</a>
+    </div>
+
+  </main>
+
+  <script src="js/header.js?v=1782636292"></script>
+  <script>renderHeader('platform')</script>
+  <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js')</script>
+</body>
+</html>

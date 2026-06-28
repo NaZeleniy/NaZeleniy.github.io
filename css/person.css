@@ -1,0 +1,282 @@
+/* ============================================================
+   NaZeleniy — Страница персоны (/person). Поверх style-top.css + grid.css.
+   ============================================================ */
+
+.person-wrap { max-width: 1180px; margin: 0 auto; }
+
+.person-loading { padding: 90px 0; }
+
+/* ── HERO ─────────────────────────────────────────────── */
+.person-hero {
+  display: flex;
+  gap: 36px;
+  align-items: flex-start;
+  padding: 36px 0 14px;
+  flex-wrap: wrap;
+}
+
+.person-photo-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 248px;
+  flex-shrink: 0;
+}
+
+.person-photo {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--bg-tertiary);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
+}
+.person-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.person-photo img.loaded { opacity: 1; }
+
+.person-quick { display: flex; flex-direction: column; gap: 8px; }
+.person-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: 11px;
+  background: rgba(30, 30, 30, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+.person-link i { color: var(--accent); font-size: 16px; }
+.person-link:hover { background: var(--accent-dim); border-color: var(--accent); color: #fff; }
+
+/* ── Правая колонка ───────────────────────────────────── */
+.person-main { flex: 1; min-width: 300px; }
+
+.person-profrow { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.person-prof-chip {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+  background: var(--accent-dim);
+  border: 1px solid rgba(39, 174, 96, 0.3);
+  padding: 5px 11px;
+  border-radius: 999px;
+}
+
+.person-name {
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.04;
+  color: #f5f5f5;
+}
+.person-name-en {
+  font-size: 18px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-weight: 400;
+}
+
+.person-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  margin-top: 18px;
+}
+.person-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14.5px;
+  color: var(--text-secondary);
+}
+.person-meta-item i { font-size: 17px; color: var(--accent); }
+
+/* ── Мини-статистика ──────────────────────────────────── */
+.person-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+.person-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 11px 18px 10px;
+  border-radius: 13px;
+  background: rgba(30, 30, 30, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  min-width: 78px;
+}
+.person-stat-num {
+  font-size: 22px;
+  font-weight: 700;
+  color: #f3f3f3;
+  letter-spacing: -0.02em;
+}
+.person-stat-label {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  text-transform: lowercase;
+}
+
+/* ── Биография ────────────────────────────────────────── */
+.person-bio { margin-top: 24px; max-width: 760px; }
+.person-bio-text {
+  font-size: 15px;
+  line-height: 1.66;
+  color: var(--text-secondary);
+  white-space: pre-line;
+}
+.person-bio-text.clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.person-bio-toggle {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-light);
+  transition: color 0.2s ease;
+}
+.person-bio-toggle:hover { color: #fff; }
+
+.person-aka {
+  margin-top: 20px;
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.person-aka-label {
+  display: block;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6e6e6e;
+  margin-bottom: 3px;
+}
+
+.person-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 9px 17px;
+  border-radius: 999px;
+  background: rgba(30, 30, 30, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f5f5f7;
+  font-size: 14px;
+  font-weight: 590;
+}
+.person-back i { color: var(--accent); }
+.person-back-top {
+  position: fixed;
+  top: 18px;
+  left: calc(var(--sidebar-w) + 18px);
+  z-index: 60;
+  margin: 0;
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
+  background: rgba(20, 20, 20, 0.72);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  transition: background 0.2s ease, border-color 0.2s ease, left var(--transition);
+}
+.person-back-top:hover { background: rgba(48, 48, 48, 0.8); border-color: rgba(255, 255, 255, 0.18); }
+/* отступ под фиксированную кнопку, чтобы она не накрывала шапку */
+.person-wrap .person-hero { padding-top: 64px; }
+@media (max-width: 720px) {
+  .person-back-top { left: calc(var(--sidebar-w) + 10px); top: 12px; }
+}
+
+/* ── Фильмография ─────────────────────────────────────── */
+.filmo { margin-top: 40px; padding-bottom: 56px; }
+.filmo-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+.filmo-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #f1f1f1;
+}
+.filmo-title i { color: var(--accent); font-size: 24px; }
+
+.filmo-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.filmo-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(30, 30, 30, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  font-weight: 600;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+.filmo-pill:hover { background: rgba(48, 48, 48, 0.7); color: #fff; }
+.filmo-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.filmo-pill-n {
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.65;
+}
+.filmo-pill.active .filmo-pill-n { opacity: 0.85; }
+
+/* роль/персонаж под названием карточки */
+.movie-card-role {
+  font-size: 0.78rem;
+  color: var(--accent-light);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── Адаптив ──────────────────────────────────────────── */
+@media (max-width: 720px) {
+  .person-hero { gap: 22px; padding-top: 24px; }
+  .person-photo-col { width: 150px; }
+  .person-name { font-size: 30px; }
+  .person-quick { flex-direction: row; }
+  .person-link { flex: 1; justify-content: center; }
+  .filmo-title { font-size: 20px; }
+}
+@media (max-width: 460px) {
+  .person-photo-col { width: 120px; }
+  .person-name { font-size: 25px; }
+  .person-stat { min-width: 64px; padding: 9px 13px 8px; }
+  .person-stat-num { font-size: 18px; }
+}

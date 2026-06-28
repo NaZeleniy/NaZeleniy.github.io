@@ -1,0 +1,15 @@
+{
+  "name": "NaZeleniy",
+  "short_name": "NaZeleniy",
+  "description": "Поиск и просмотр фильмов и сериалов",
+  "lang": "ru",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    { "src": "/img/icons/favicon.png", "sizes": "any", "type": "image/png" },
+    { "src": "/img/icons/1024x1024.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
+  ]
+}

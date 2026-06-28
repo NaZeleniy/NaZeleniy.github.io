@@ -1,7 +1,9 @@
-const CACHE = 'nz-1'
+const CACHE = 'nz-3'
 
-// API, WebSocket и прокси постеров — не кешируем
-const SKIP = /^\/api\/|^\/ws\/|^\/proxy\/poster/
+// API, auth, WebSocket и прокси постеров — не кешируем.
+// /auth/ критичен: ответ /auth/telegram/status содержит bearer_token, а
+// networkWithFallback кладёт любой res.ok в кеш, игнорируя Cache-Control: no-store.
+const SKIP = /^\/api\/|^\/auth\/|^\/ws\/|^\/proxy\/poster/
 // URL с ?v= (версионированные ресурсы) — кеш-first навсегда
 const VERSIONED = /[?&]v=\d/
 // Внешние CDN (mc.yandex.ru не трогаем — adblock блокирует, пусть браузер сам разбирается)
@@ -32,15 +34,19 @@ self.addEventListener('fetch', e => {
     return
   }
 
-  // HTML страницы — stale-while-revalidate (сразу из кеша + обновить в фоне)
-  // destination === 'document' покрывает все навигационные запросы включая чистые URL (/top, /me и т.д.)
-  // /movie/{id} обрабатывается отдельно: GitHub Pages отдаёт 404.html со статусом 404 — кешируем его явно
+  // HTML страницы — network-first (свежий документ из сети, кеш только как офлайн-фоллбек).
+  // Раньше был stale-while-revalidate, но он отдавал СТАРЫЙ HTML на первой загрузке после
+  // деплоя: старый HTML ссылается на app.js?v=СТАРЫЙ → старый код (нет скролла/спиннера),
+  // и только ручной refresh подтягивал свежий. HTML маленький, ассеты versioned cache-first
+  // (мгновенно), поэтому network-first почти бесплатен, но всегда отдаёт актуальную страницу.
+  // destination === 'document' покрывает все навигационные запросы включая чистые URL (/top, /me).
+  // /movie/{id}: GitHub Pages отдаёт 404.html со статусом 404 — кешируем его явно (allow404).
   if (request.destination === 'document' || url.pathname === '/' || url.pathname.endsWith('.html')) {
-    e.respondWith(staleWhileRevalidate(request))
+    e.respondWith(networkFirst(request))
     return
   }
   if (/^\/movie\/\d+\/?$/.test(url.pathname)) {
-    e.respondWith(staleWhileRevalidate(request, { allow404: true }))
+    e.respondWith(networkFirst(request, { allow404: true }))
     return
   }
 
@@ -60,16 +66,18 @@ async function cacheFirst(req) {
   }
 }
 
-async function staleWhileRevalidate(req, { allow404 = false } = {}) {
+async function networkFirst(req, { allow404 = false } = {}) {
   const cache = await caches.open(CACHE)
-  const cached = await cache.match(req)
-  const fresh = fetch(req).then(res => {
+  try {
+    const res = await fetch(req)
     // Кешируем успешные ответы; для /movie/{id} кешируем и 404
     // (GitHub Pages намеренно отдаёт 404.html — это наш app shell)
     if (res.ok || (allow404 && res.status === 404)) cache.put(req, res.clone())
     return res
-  }).catch(() => cached || new Response('', { status: 503, statusText: 'Service Unavailable' }))
-  return cached || fresh
+  } catch {
+    // Сеть недоступна (офлайн) — отдаём последнюю закешированную версию
+    return (await cache.match(req)) || new Response('', { status: 503, statusText: 'Service Unavailable' })
+  }
 }
 
 async function networkWithFallback(req) {

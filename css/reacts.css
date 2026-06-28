@@ -3,6 +3,9 @@
   max-width: 1100px;
   margin: 0 auto;
   padding: 32px 16px 80px;
+  /* LIVE-акцент (Twitch «в эфире») */
+  --live: #ff3b47;
+  --live-glow: rgba(255, 59, 71, 0.55);
 }
 
 .reacts-header {
@@ -26,6 +29,40 @@
   flex-shrink: 0;
 }
 
+/* ── LIVE: счётчик в шапке ─────────────────────────── */
+.reacts-live-bar {
+  display: flex;
+  justify-content: center;
+  margin: -8px 0 24px;
+}
+
+.reacts-live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 16px 7px 13px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  color: #ffd9dc;
+  background: linear-gradient(180deg, rgba(255, 59, 71, 0.18), rgba(255, 59, 71, 0.08));
+  border: 1px solid rgba(255, 59, 71, 0.4);
+  box-shadow: 0 0 22px -6px var(--live-glow);
+}
+
+.reacts-live-pill b {
+  color: #fff;
+  font-weight: 700;
+}
+
+.reacts-live-pulse {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--live);
+  box-shadow: 0 0 0 0 var(--live-glow);
+  animation: nz-live-pulse 1.8s ease-out infinite;
+}
+
 /* ── Search ───────────────────────────────────────────── */
 .reacts-search-wrap {
   position: relative;
@@ -41,7 +78,7 @@
   top: 50%;
   transform: translateY(-50%);
   color: var(--text-muted);
-  font-size: 0.82rem;
+  font-size: 0.95rem;
   pointer-events: none;
 }
 
@@ -58,7 +95,9 @@
   box-sizing: border-box;
 }
 
-.reacts-search:focus { border-color: var(--accent); }
+.reacts-search:focus {
+  border-color: var(--accent);
+}
 
 /* ── Notice ───────────────────────────────────────────── */
 .reacts-notice-wrap {
@@ -97,7 +136,7 @@
   text-decoration: underline;
 }
 
-/* ── Grid ─────────────────────────────────────────────── */
+/* ── Grid + card ──────────────────────────────────────── */
 .reacts-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
@@ -105,32 +144,32 @@
   align-items: start;
 }
 
-/* ── Card ─────────────────────────────────────────────── */
 .reacts-card {
-  background: var(--bg-card);
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(255, 255, 255, 0.05), transparent 60%),
+    linear-gradient(180deg, var(--bg-card), color-mix(in srgb, var(--bg-card) 86%, #000));
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 18px 14px 14px;
+  border-radius: 16px;
+  padding: 22px 14px 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  transition: border-color var(--transition), transform var(--transition);
+  transition: border-color var(--transition), transform var(--transition), box-shadow var(--transition);
 }
 
-@media (hover: hover) {
-  .reacts-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), 0 0 20px var(--accent-glow);
-  }
+.reacts-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), 0 0 20px var(--accent-glow);
 }
 
-/* ── Avatar ───────────────────────────────────────────── */
+/* ── Avatar + Twitch badge ────────────────────────────── */
 .reacts-avatar-wrap {
   position: relative;
   width: 72px;
   height: 72px;
   flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .reacts-avatar {
@@ -139,30 +178,24 @@
   border-radius: 50%;
   object-fit: cover;
   background: var(--bg-tertiary);
-  border: 2px solid var(--border);
+  border: 2px solid color-mix(in srgb, var(--border) 70%, transparent);
   transition: border-color var(--transition), opacity 0.3s ease;
   display: block;
 }
 
+.reacts-card:hover .reacts-avatar {
+  border-color: var(--accent);
+}
 
 .reacts-avatar-skeleton {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: linear-gradient(90deg,
-    var(--bg-secondary) 25%,
-    var(--bg-tertiary)  50%,
-    var(--bg-secondary) 75%);
+  background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-tertiary) 50%, var(--bg-secondary) 75%);
   background-size: 200% 100%;
   animation: nz-shimmer 1.5s infinite;
 }
 
-@keyframes nz-shimmer {
-  0%   { background-position:  200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-/* Twitch-бейдж на аватарке */
 .reacts-twitch-badge {
   position: absolute;
   bottom: 1px;
@@ -193,10 +226,11 @@
 
 /* ── Nick ─────────────────────────────────────────────── */
 .reacts-nick {
-  font-size: 0.88rem;
+  font-size: 0.92rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text);
   text-align: center;
+  margin-top: 2px;
 }
 
 /* ── Source buttons ───────────────────────────────────── */
@@ -210,49 +244,71 @@
 .reacts-btn {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 0 12px 0 7px;
-  height: 40px;
-  border-radius: 8px;
-  font-size: 0.82rem;
-  font-weight: 500;
+  gap: 10px;
+  padding: 0 10px 0 6px;
+  height: 44px;
+  border-radius: 11px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   text-decoration: none;
-  transition: opacity var(--transition), transform var(--transition);
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 2px 6px rgba(0, 0, 0, 0.25);
+  transition: opacity var(--transition), transform var(--transition), box-shadow var(--transition), filter var(--transition);
   width: 100%;
   box-sizing: border-box;
   overflow: hidden;
 }
 
 .reacts-btn:hover {
-  opacity: 0.82;
-  transform: translateY(-1px);
+  opacity: 1;
+  transform: translateY(-2px);
+  filter: brightness(1.06);
 }
 
-/* Fallback SVG-иконка платформы */
+/* стрелка-индикатор справа */
+.reacts-btn::after {
+  content: "\2197";
+  margin-left: auto;
+  padding-right: 4px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity var(--transition), transform var(--transition);
+}
+
+.reacts-btn:hover::after {
+  opacity: 0.85;
+  transform: translateX(0);
+}
+
 .reacts-btn-icon {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(2px);
 }
 
 .reacts-btn-icon svg {
-  width: 15px;
-  height: 15px;
+  width: 16px;
+  height: 16px;
 }
 
-/* Аватарка канала */
 .reacts-src-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
   object-fit: cover;
   flex-shrink: 0;
 }
 
-/* Название канала */
 .reacts-btn-label {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -261,11 +317,101 @@
   flex: 1;
 }
 
+.reacts-btn-tg {
+  background: #2AABEE;
+  color: #fff;
+}
 
-.reacts-btn-tg     { background: #2AABEE;           color: #fff; }
-.reacts-btn-yt     { background: #FF0000;            color: #fff; }
-.reacts-btn-twitch { background: #9146FF;            color: #fff; }
-.reacts-btn-other  { background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border); }
+.reacts-btn-tg:hover {
+  box-shadow: 0 6px 16px -6px rgba(42, 171, 238, 0.7);
+}
+
+.reacts-btn-yt {
+  background: #FF0000;
+  color: #fff;
+}
+
+.reacts-btn-yt:hover {
+  box-shadow: 0 6px 16px -6px rgba(255, 0, 0, 0.6);
+}
+
+.reacts-btn-twitch {
+  background: #9146FF;
+  color: #fff;
+}
+
+.reacts-btn-twitch:hover {
+  box-shadow: 0 6px 16px -6px rgba(145, 70, 255, 0.7);
+}
+
+.reacts-btn-other {
+  background: var(--bg-tertiary);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.reacts-btn-other .reacts-btn-icon {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.reacts-btn-other:hover {
+  box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.6);
+}
+
+/* ── LIVE: карточка в эфире ────────────────────────────── */
+.reacts-card.is-live {
+  border-color: rgba(255, 59, 71, 0.5);
+  box-shadow: 0 0 24px -10px var(--live-glow);
+}
+
+.reacts-card.is-live:hover {
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45), 0 0 26px -6px var(--live-glow);
+}
+
+/* кольцо вокруг аватара (mask — без зависимости от фона) */
+.reacts-avatar-wrap.is-live {
+  margin-top: 6px;
+}
+
+.reacts-avatar-wrap.is-live::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  z-index: 0;
+  background: conic-gradient(from 0deg, var(--live), #ff8a4c, var(--live), #ff4655, var(--live));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
+  animation: nz-live-spin 3.2s linear infinite;
+}
+
+.reacts-avatar-wrap.is-live .reacts-avatar {
+  border-color: transparent;
+}
+
+.reacts-avatar-wrap.is-live .reacts-twitch-badge {
+  z-index: 2;
+}
+
+/* бейдж «LIVE» */
+.reacts-live-badge {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #fff;
+  background: var(--live);
+  border: 1.5px solid var(--bg-card);
+  box-shadow: 0 2px 8px var(--live-glow);
+  animation: nz-live-blink 2s ease-in-out infinite;
+  white-space: nowrap;
+}
 
 /* ── Empty state ──────────────────────────────────────── */
 .reacts-empty {
@@ -287,10 +433,36 @@
   margin: 0;
 }
 
-/* ── Mobile ───────────────────────────────────────────── */
+/* ── Анимации ─────────────────────────────────────────── */
+@keyframes nz-shimmer {
+  0%   { background-position:  200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes nz-live-pulse {
+  0%   { box-shadow: 0 0 0 0 var(--live-glow); }
+  70%  { box-shadow: 0 0 0 7px rgba(255, 59, 71, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 59, 71, 0); }
+}
+
+@keyframes nz-live-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes nz-live-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.65; }
+}
+
+/* ── Responsive ───────────────────────────────────────── */
 @media (max-width: 620px) {
-  .reacts-page  { padding: 20px 12px 80px; }
-  .reacts-title { font-size: 1.4rem; }
+  .reacts-page {
+    padding: 20px 12px 80px;
+  }
+
+  .reacts-title {
+    font-size: 1.4rem;
+  }
 
   .reacts-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -299,5 +471,16 @@
 
   .reacts-avatar,
   .reacts-avatar-wrap,
-  .reacts-avatar-skeleton { width: 60px; height: 60px; }
+  .reacts-avatar-skeleton {
+    width: 60px;
+    height: 60px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reacts-live-pulse,
+  .reacts-avatar-wrap.is-live::before,
+  .reacts-live-badge {
+    animation: none;
+  }
 }

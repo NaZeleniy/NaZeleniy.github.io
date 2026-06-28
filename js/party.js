@@ -582,6 +582,9 @@ function sendPlayerCommand(command, value) {
 
 // Vibix-only: raw playlist tree snapshot sent as {event:'file', data: jsonString}
 window.addEventListener('message', e => {
+  // Принимаем сообщения только от текущего iframe плеера — иначе любой фрейм
+  // (рекламный, сторонний) мог бы десинхронизировать совместный просмотр.
+  if (e.source !== getPlayerFrame()?.contentWindow) return
   if (playerType !== 'vibix') return
   const data = e.data
   if (!data || typeof data !== 'object') return
@@ -596,6 +599,7 @@ window.addEventListener('message', e => {
 
 // Unified event handler — normalizes via active adapter
 window.addEventListener('message', e => {
+  if (e.source !== getPlayerFrame()?.contentWindow) return
   if (!adapter) return
   const raw = e.data
   if (raw == null) return
@@ -706,13 +710,20 @@ async function init() {
   let players = []
 
   try {
-    const r = await fetch(`${API_BASE}/api/movie/${movieId}`)
-    if (r.ok) {
-      const movie = await r.json()
+    // Метаданные и плееры — параллельно (плееры вынесены в отдельный эндпоинт)
+    const [movieR, playersR] = await Promise.all([
+      fetch(`${API_BASE}/api/movie/${movieId}`),
+      fetch(`${API_BASE}/api/players/${movieId}`),
+    ])
+    if (movieR.ok) {
+      const movie = normalizeMovie(await movieR.json())
       const title = movie.nameRu || movie.nameEn || 'Untitled'
       document.title = title + ' - Watch Party'
       document.getElementById('partyTitle').textContent = title
-      players = (movie.players || []).filter(p => p.type === 'vibix' || p.type === 'turbo')
+    }
+    if (playersR.ok) {
+      const list = (await playersR.json()).players || []
+      players = list.filter(p => p.type === 'vibix' || p.type === 'turbo')
     }
   } catch {}
 

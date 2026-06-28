@@ -2,23 +2,24 @@
 <html lang="ru">
 
 <head>
-  <script src="js/version.js?v=1780319905"></script>
+  <script src="js/version.js?v=1782636292"></script>
   <meta charset="UTF-8" />
   <link rel="dns-prefetch" href="https://mc.yandex.ru">
   <link rel="dns-prefetch" href="https://nazeleniy.site">
+  <link rel="preconnect" href="https://nazeleniy.site" crossorigin>
   <link rel="dns-prefetch" href="https://decapi.me">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
   <title>NaZeleniy — Реакции</title>
   <link rel="icon" type="image/png" href="img/icons/favicon.png" />
-  <link rel="preload" href="css/style-reacts.css?v=1780319905" as="style">
-  <link rel="stylesheet" href="css/style-reacts.css?v=1780319905" />
-  <link rel="preload" href="css/icons.css?v=1780319905" as="style">
-  <link rel="stylesheet" href="css/icons.css?v=1780319905" />
-  <script src="js/settings.js?v=1780319905"></script>
-  <script defer src="js/api.js?v=1780319905"></script>
-  <script defer src="js/reacts.js?v=1780319905"></script>
-  <script defer src="js/alpine.min.js?v=1780319905"></script>
+  <link rel="preload" href="css/style-reacts.css?v=1782636292" as="style">
+  <link rel="stylesheet" href="css/style-reacts.css?v=1782636292" />
+  <link rel="preload" href="css/icons.css?v=1782636292" as="style">
+  <link rel="stylesheet" href="css/icons.css?v=1782636292" />
+  <script src="js/settings.js?v=1782636292"></script>
+  <script defer src="js/api.js?v=1782636292"></script>
+  <script defer src="js/reacts.js?v=1782636292"></script>
+  <script defer src="js/alpine.min.js?v=1782636292"></script>
   <!-- Yandex.Metrika counter -->
   <script type="text/javascript">
     (function (m, e, t, r, i, k, a) { m[i] = m[i] || function () { (m[i].a = m[i].a || []).push(arguments) }; m[i].l = 1 * new Date(); for (var j = 0; j < document.scripts.length; j++) { if (document.scripts[j].src === r) { return; } } k = e.createElement(t), a = e.getElementsByTagName(t)[0], k.async = 1, k.src = r, a.parentNode.insertBefore(k, a) })(window, document, 'script', 'https://mc.yandex.ru/metrika/tag.js?id=108313126', 'ym');
@@ -45,15 +46,24 @@
         <h1 class="reacts-title">Telegram каналы с реакциями</h1>
       </div>
 
+      <!-- Live counter -->
+      <div class="reacts-live-bar" x-show="liveCount > 0" x-cloak>
+        <span class="reacts-live-pill">
+          <span class="reacts-live-pulse"></span>
+          <b x-text="liveCount"></b>
+          <span x-text="liveCount === 1 ? 'стример в эфире' : (liveCount < 5 ? 'стримера в эфире' : 'стримеров в эфире')"></span>
+        </span>
+      </div>
+
       <div class="reacts-search-wrap">
-        <i class="fas fa-search reacts-search-icon"></i>
+        <i class="ph ph-magnifying-glass reacts-search-icon"></i>
         <input type="text" class="reacts-search" placeholder="Поиск по нику..." x-model="search" autocomplete="off"
           spellcheck="false" />
       </div>
 
       <div class="reacts-notice-wrap">
         <div class="reacts-notice">
-          <i class="fas fa-circle-info"></i>
+          <i class="ph ph-info"></i>
           Знаете ресурс, которого здесь нет?
           <a href="https://t.me/NaZeleniy2?direct" target="_blank" rel="noopener noreferrer">Напишите нам</a>
         </div>
@@ -62,13 +72,14 @@
       <!-- Grid -->
       <div class="reacts-grid" x-show="filtered.length > 0">
         <template x-for="s in filtered" :key="s.nick">
-          <div class="reacts-card">
+          <div class="reacts-card" :class="{ 'is-live': isLive(s.nick) }">
 
             <!-- Avatar + Twitch badge -->
-            <div class="reacts-avatar-wrap">
+            <div class="reacts-avatar-wrap" :class="{ 'is-live': isLive(s.nick) }">
+              <span class="reacts-live-badge" x-show="isLive(s.nick)">LIVE</span>
               <div class="reacts-avatar-skeleton" x-show="!avatarReady(s.nick)"></div>
               <img class="reacts-avatar" :src="avatarSrc(s.nick) || '/img/placeholder.svg'"
-                :style="!avatarReady(s.nick) ? 'opacity:0' : 'opacity:1'" :alt="s.nick"
+                loading="lazy" :style="!avatarReady(s.nick) ? 'opacity:0' : 'opacity:1'" :alt="s.nick"
                 @error="$el.src='/img/placeholder.svg'" />
               <a :href="twitchUrl(s.nick)" target="_blank" rel="noopener noreferrer" class="reacts-twitch-badge"
                 title="Twitch">
@@ -100,14 +111,14 @@
 
       <!-- Empty state -->
       <div class="reacts-empty" x-show="filtered.length === 0" x-cloak>
-        <i class="fas fa-search"></i>
+        <i class="ph ph-magnifying-glass"></i>
         <p>Ничего не найдено</p>
       </div>
 
     </div>
   </main>
 
-  <script src="js/header.js?v=1780319905"></script>
+  <script src="js/header.js?v=1782636292"></script>
   <script>renderHeader('reacts')</script>
   <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js')</script>
 </body>

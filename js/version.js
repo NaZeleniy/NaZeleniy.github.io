@@ -1,12 +1,21 @@
 // Если браузер закэшировал старый HTML — форсируем перезагрузку.
 // Версия обновляется автоматически pre-commit хуком вместе с остальными ?v=
 ;(function () {
-  var V = 'v=1780319905'
+  var V = 'v=1782636292'
   var key = 'nz_page_v'
   var stored = localStorage.getItem(key)
   if (stored !== V) {
     localStorage.setItem(key, V)
-    // hard reload: обходит кэш браузера
+    // Если страницу уже контролирует Service Worker (а он network-first для HTML),
+    // свежий HTML с новыми ?v= уже пришёл из сети — хард-релоад лишний и давал бы
+    // двойную загрузку у каждого вернувшегося юзера на каждый деплой.
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      if (location.search.includes('_nocache')) {
+        history.replaceState(null, '', location.href.replace(/[?&]_nocache=[^&]*/g, '').replace(/[?&]$/, ''))
+      }
+      return
+    }
+    // hard reload: обходит кэш браузера (первый визит / нет SW)
     var url = location.href.replace(/[?&]_nocache=[^&]*/g, '')
     var sep = url.includes('?') ? '&' : '?'
     location.replace(url + sep + '_nocache=' + Date.now())

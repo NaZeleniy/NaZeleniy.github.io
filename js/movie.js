@@ -88,6 +88,7 @@ function selectPlayer(name, url, type) {
     const fresh = document.createElement('iframe')
     fresh.id = 'player-frame'
     fresh.frameBorder = '0'
+    fresh.title = 'Видеоплеер'
     fresh.setAttribute('allow', 'autoplay; fullscreen')
 
     let done = false
@@ -201,15 +202,10 @@ document.addEventListener('click', e => {
 })
 
 function playerSectionHtml(movie) {
+  // Плееры грузятся отдельным запросом GET /api/players/:id (loadPlayers).
+  // Рендерим оболочку сразу (со спиннером), наполняем когда приедут плееры.
   const id = movie.kinopoiskId || movie.imdbId
-  if (!id || !movie.players?.length) return ''
-
-  const hasParty = (movie.players || []).some(p => p.name === 'Vibix' || p.name === 'Turbo')
-  const partyBtn = hasParty ? `
-      <a class="watch-party-btn" href="/party?id=${id}" target="_blank" title="Совместный просмотр">
-        <i class="fas fa-users"></i>
-        <span>Смотреть вместе</span>
-      </a>` : ''
+  if (!id) return ''
 
   return `<details class="player-section">
     <summary class="player-summary">
@@ -225,10 +221,10 @@ function playerSectionHtml(movie) {
         </button>
         <div class="player-dropdown" id="playerDropdown"></div>
       </div>
-      ${partyBtn}
+      <div id="watchPartySlot"></div>
     </div>
     <div class="player-wrapper">
-      <iframe id="player-frame" frameborder="0" allow="autoplay; fullscreen; encrypted-media; picture-in-picture"></iframe>
+      <iframe id="player-frame" title="Видеоплеер" frameborder="0" allow="autoplay; fullscreen; encrypted-media; picture-in-picture"></iframe>
       <div class="player-loading">
         <i class="fas fa-circle-notch fa-spin"></i>
       </div>
@@ -238,6 +234,28 @@ function playerSectionHtml(movie) {
       </div>
     </div>
   </details>`
+}
+
+// «Смотреть вместе» (party) — soft-deleted: точку входа не рендерим.
+// Код party.html/party.js/бэкенд-роуты оставлены на месте (обратимо) — чтобы
+// вернуть фичу, восстановить тело функции ниже.
+function applyWatchParty(id, players) {
+  const slot = document.getElementById('watchPartySlot')
+  if (!slot) return
+  slot.innerHTML = ''
+}
+
+// Асинхронная загрузка плееров (после рендера метаданных)
+async function loadPlayers(res, id) {
+  const section = document.querySelector('.player-section')
+  if (!section) return
+  let players = []
+  try {
+    const r = res ? await res : await fetch(`${API_BASE}/api/players/${movieId}`)
+    if (r.ok) players = (await r.json()).players || []
+  } catch {}
+  applyWatchParty(id, players)
+  initPlayerLazyLoad(players)
 }
 
 function preconnectPlayerDomains(players) {
@@ -274,13 +292,17 @@ function initPlayerLazyLoad(players) {
     return
   }
 
+  // плееры приехали — убираем спиннер «проверки плееров» (выставлен в renderMovie)
+  playerSetState('')
+
   _players = players
   preconnectPlayerDomains(players)
 
   const dropdown = document.getElementById('playerDropdown')
   dropdown.innerHTML = ''
   players.forEach(p => {
-    const opt = document.createElement('div')
+    const opt = document.createElement('button')
+    opt.type = 'button'
     opt.className = 'player-option'
     opt.dataset.name = p.name
     opt.textContent = p.name
@@ -424,9 +446,6 @@ function renderMovie(movie) {
     : ''
 
   document.getElementById('movieContent').innerHTML = `
-    <button class="mob-back-btn" onclick="history.back()">
-      <i class="fas fa-chevron-left"></i> Назад
-    </button>
     <div class="content-header">
       <h1 class="content-title">${safeTitle}</h1>
     </div>
@@ -441,6 +460,7 @@ function renderMovie(movie) {
           ${ageHtml}
         </ul>
         <div id="cast-section"></div>
+        <div id="platforms-section"></div>
         ${descHtml}
       </div>
     </div>
@@ -449,54 +469,141 @@ function renderMovie(movie) {
     <div id="similars-section"></div>
     <div id="comments-section"></div>
   `
-  if (movie.kinopoiskId || movie.imdbId) initPlayerLazyLoad(movie.players || [])
+  // Плееры приедут отдельным запросом (loadPlayers). Пока показываем спиннер в области плеера.
+  if (movie.kinopoiskId || movie.imdbId) playerSetState('loading')
 }
 
-async function loadStaff(res) {
+// Студии / платформы тайтла. Источник — raw.companies (любой kind: network/studio)
+// + raw.availability.platform. Слаги резолвим из /api/filters (platforms[]). Карточки
+// оформлены как каст, но синие. Кликабельны (ведут на /platform/<slug>) те компании,
+// что есть в каталоге платформ; остальные (продакшн-студии) — статичные серые карточки,
+// т.к. бэкенд не умеет фильтровать по произвольной студии.
+async function loadPlatforms(raw) {
+  const section = document.getElementById('platforms-section')
+  if (!section || !raw) return
+
+  // Все компании (network + studio) + availability.platform, дедуп по имени
+  const names = []
+  const seen = new Set()
+  const add = n => {
+    const name = String(n || '').trim()
+    if (!name) return
+    const key = name.toLowerCase()
+    if (seen.has(key)) return
+    seen.add(key)
+    names.push(name)
+  }
+  ;(raw.companies || []).forEach(c => { if (c) add(c.name) })
+  if (raw.availability && raw.availability.platform) add(raw.availability.platform)
+  if (!names.length) return
+
+  // Карта name -> { slug, poster_url } из /api/filters (кеш в sessionStorage)
+  let platforms = []
+  try {
+    const cached = sessionStorage.getItem('nz_platforms')
+    if (cached) platforms = JSON.parse(cached)
+  } catch {}
+  if (!platforms.length) {
+    try {
+      const r = await fetch(`${API_BASE}/api/filters`)
+      if (r.ok) {
+        platforms = (await r.json()).platforms || []
+        try { sessionStorage.setItem('nz_platforms', JSON.stringify(platforms)) } catch {}
+      }
+    } catch {}
+  }
+  const byName = new Map()
+  platforms.forEach(p => byName.set(String(p.name || '').toLowerCase(), p))
+
+  // Кликабельные платформы — вперёд, статичные студии — следом
+  names.sort((a, b) => (byName.has(b.toLowerCase()) ? 1 : 0) - (byName.has(a.toLowerCase()) ? 1 : 0))
+
+  // Просто текстовая надпись (как каст: подчёркивание, через запятую), без hover-карточки.
+  // Синяя+ссылка для каталожных платформ, серая для остальных студий.
+  const renderCompany = name => {
+    const safe = escapeHtml(name)
+    const meta = byName.get(name.toLowerCase())
+    const slug = meta && meta.slug
+    return slug
+      ? `<a class="cast-item cast-item--platform" href="/platform/${encodeURIComponent(slug)}"><span class="cast-name">${safe}</span></a>`
+      : `<span class="cast-item cast-item--platform cast-item--static"><span class="cast-name">${safe}</span></span>`
+  }
+
+  section.innerHTML = `
+    <div class="cast-section">
+      <div class="cast-group">
+        <div class="cast-group-title">${_nzLang === 'en' ? 'Studios & platforms' : 'Студии'}</div>
+        <div class="cast-list">${names.map(renderCompany).join('')}</div>
+      </div>
+    </div>`
+}
+
+// data — уже распарсенный `{cast:[...]}` (встроен в /api/movie через include=cast).
+// Если не передан — фолбэк на отдельный запрос /api/staff.
+async function loadStaff(data) {
   const section = document.getElementById('cast-section')
   if (!section || !movieId) return
   try {
-    const r = res ? await res : await fetch(`${API_BASE}/api/staff/${movieId}`)
-    if (!r.ok) return
-    const staff = await r.json()
+    if (!data) {
+      const r = await fetch(`${API_BASE}/api/staff/${movieId}`)
+      if (!r.ok) return
+      data = await r.json()
+    }
+    const staff = normalizeStaff(data)
 
     const directors = staff.filter(p => p.professionKey === 'DIRECTOR').slice(0, 4)
     const actors    = staff.filter(p => p.professionKey === 'ACTOR').slice(0, 10)
     if (!directors.length && !actors.length) return
 
     const renderPerson = p => {
-      const name  = p.nameRu || p.nameEn || ''
-      const role  = p.description || ''
-      const photo = p.posterUrl || ''
+      const nameRu = p.nameRu || p.nameEn || ''
+      const nameEn = p.nameEn || ''
+      const name   = (_nzLang === 'en' && nameEn) ? nameEn : nameRu
+      const photo  = p.posterUrl || ''
+      const da     = `data-ru="${escapeHtml(nameRu)}" data-en="${escapeHtml(nameEn)}"`
+      const safe   = escapeHtml(name)
+      // Нет kp_id персоны → нет страницы /person и нет данных для карточки:
+      // рендерим обычным текстом, без ссылочного выделения и без hover-карточки.
+      if (!p.staffId) {
+        return `
+          <span class="cast-item cast-item--noperson">
+            <div class="cast-name-wrap">
+              <span class="cast-name" ${da}>${safe}</span>
+            </div>
+          </span>`
+      }
       return `
-        <div class="cast-item" data-staff-id="${p.staffId}">
+        <a class="cast-item" href="/person/${p.staffId}" data-staff-id="${p.staffId}">
           <div class="cast-name-wrap">
-            <span class="cast-name">${name}</span>
+            <span class="cast-name" ${da}>${safe}</span>
           </div>
           <div class="cast-card">
-            ${photo ? `<img class="cast-card-photo" src="${photo}" alt="${name}" loading="lazy" onerror="this.style.display='none'"/>` : ''}
+            ${photo ? `<img class="cast-card-photo" src="${escapeHtml(photo)}" alt="${safe}" loading="lazy" onerror="this.style.display='none'"/>` : ''}
             <div class="cast-card-body">
-              <div class="cast-card-name">${name}</div>
-              ${p.nameEn && p.nameEn !== name ? `<div class="cast-card-name-en">${p.nameEn}</div>` : ''}
+              <div class="cast-card-name" ${da}>${safe}</div>
+              ${nameEn && nameEn !== nameRu ? `<div class="cast-card-name-en">${escapeHtml(nameEn)}</div>` : ''}
               <div class="cast-card-extra"></div>
             </div>
           </div>
-        </div>`
+        </a>`
     }
 
+    const dirTitle = _nzLang === 'en' ? ('Director' + (directors.length > 1 ? 's' : '')) : ('Режиссёр' + (directors.length > 1 ? 'ы' : ''))
+    const castTitle = _nzLang === 'en' ? 'Cast' : 'В ролях'
     let html = '<div class="cast-section">'
     if (directors.length) html += `
       <div class="cast-group">
-        <div class="cast-group-title">Режиссёр${directors.length > 1 ? 'ы' : ''}</div>
+        <div class="cast-group-title">${dirTitle}</div>
         <div class="cast-list">${directors.map(renderPerson).join('')}</div>
       </div>`
     if (actors.length) html += `
       <div class="cast-group">
-        <div class="cast-group-title">В ролях</div>
+        <div class="cast-group-title">${castTitle}</div>
         <div class="cast-list">${actors.map(renderPerson).join('')}</div>
       </div>`
     html += '</div>'
     section.innerHTML = html
+    if (typeof _nzApplyCast === 'function') _nzApplyCast()
 
     const fetched = new Set()
     section.querySelectorAll('.cast-item[data-staff-id]').forEach(item => {
@@ -509,15 +616,13 @@ async function loadStaff(res) {
         try {
           const r = await fetch(`${API_BASE}/api/person/${id}`)
           if (!r.ok) throw new Error()
-          const d = await r.json()
+          const d = normalizePerson(await r.json())
           let metaHtml = ''
-          if (d.birthday) {
-            const [y, m, day] = d.birthday.split('-')
-            const age = d.age ? ` (${d.age})` : ''
-            metaHtml += `<div class="cast-card-meta">${day}.${m}.${y}${age}</div>`
+          if (d.birthYear) {
+            metaHtml += `<div class="cast-card-meta">${d.birthYear} г.р.</div>`
           }
           if (d.birthplace) {
-            metaHtml += `<div class="cast-card-meta cast-card-birthplace">${d.birthplace}</div>`
+            metaHtml += `<div class="cast-card-meta cast-card-birthplace">${escapeHtml(d.birthplace)}</div>`
           }
           extra.innerHTML = metaHtml
         } catch {
@@ -528,31 +633,35 @@ async function loadStaff(res) {
   } catch {}
 }
 
-async function loadSequels(res) {
+// data — уже распарсенный `{items}` (встроен в /api/movie через include=franchise).
+// Если не передан — фолбэк на отдельный запрос /api/sequels.
+async function loadSequels(data) {
   const section = document.getElementById('sequels-section')
   if (!section || !movieId) return
   try {
-    const r = res ? await res : await fetch(`${API_BASE}/api/sequels/${movieId}`)
-    if (!r.ok) { section.innerHTML = ''; return }
-    const items = await r.json()
-    if (!items?.length) { section.innerHTML = ''; return }
-
-    const typeLabel = { SEQUEL: 'Сиквел', PREQUEL: 'Приквел', REMAKE: 'Ремейк' }
+    if (!data) {
+      const r = await fetch(`${API_BASE}/api/sequels/${movieId}`)
+      if (!r.ok) { section.innerHTML = ''; return }
+      data = await r.json()
+    }
+    const items = (data.items || []).map(normalizeStub).filter(m => String(m.filmId) !== String(movieId))
+    if (!items.length) { section.innerHTML = ''; return }
 
     const cards = items.map(m => {
       const id    = m.filmId
       const name  = m.nameRu || m.nameEn || m.nameOriginal || 'Без названия'
+      const safe  = escapeHtml(name)
       const thumb = posterUrl(m.posterUrlPreview || m.posterUrl)
       const full  = posterUrl(m.posterUrl)
-      const meta  = typeLabel[m.relationType] || m.relationType || ''
-      const preview = JSON.stringify({ filmId: id, nameRu: m.nameRu, nameEn: m.nameEn, posterUrl: m.posterUrl, posterUrlPreview: m.posterUrlPreview, year: m.year }).replace(/'/g, '&#39;')
+      const meta  = escapeHtml(String(m.year || ''))
+      const preview = JSON.stringify({ filmId: id, nameRu: m.nameRu, nameEn: m.nameEn, posterUrl: m.posterUrl, posterUrlPreview: m.posterUrlPreview, year: m.year }).replace(/'/g, '&#39;').replace(/"/g, '&quot;')
       return `
         <a class="similar-card" href="/movie/${id}" onclick="sessionStorage.setItem('moviePreview','${preview}')">
           <div class="similar-poster-wrap">
-            <img src="${thumb}" alt="${name}" loading="lazy" onerror="this.src=(this.src!=='${full}'&&'${full}'.indexOf('placeholder')<0)?'${full}':(this.onerror=null,'/img/placeholder.svg')"/>
+            <img src="${thumb}" alt="${safe}" loading="lazy" onerror="this.src=(this.src!=='${full}'&&'${full}'.indexOf('placeholder')<0)?'${full}':(this.onerror=null,'/img/placeholder.svg')"/>
           </div>
           <div class="similar-info">
-            <div class="similar-title">${name}</div>
+            <div class="similar-title">${safe}</div>
             ${meta ? `<div class="similar-meta">${meta}</div>` : ''}
           </div>
         </a>`
@@ -566,30 +675,36 @@ async function loadSequels(res) {
   } catch { section.innerHTML = '' }
 }
 
-async function loadSimilars(res) {
+// data — уже распарсенный `{items,relation}` (встроен в /api/movie через include=similar).
+// Если не передан — фолбэк на отдельный запрос /api/similars.
+async function loadSimilars(data) {
   const section = document.getElementById('similars-section')
   if (!section || !movieId) return
   section.innerHTML = `<div class="similars-loading"><i class="fas fa-circle-notch fa-spin"></i></div>`
   try {
-    const r = res ? await res : await fetch(`${API_BASE}/api/similars/${movieId}`)
-    if (!r.ok) { section.innerHTML = ''; return }
-    const items = await r.json()
-    if (!items?.length) { section.innerHTML = ''; return }
+    if (!data) {
+      const r = await fetch(`${API_BASE}/api/similars/${movieId}`)
+      if (!r.ok) { section.innerHTML = ''; return }
+      data = await r.json()
+    }
+    const items = (data.items || []).map(normalizeStub)
+    if (!items.length) { section.innerHTML = ''; return }
 
     const cards = items.map(m => {
       const id    = m.filmId
       const name  = m.nameRu || m.nameEn || m.nameOriginal || 'Без названия'
+      const safe  = escapeHtml(name)
       const thumb = posterUrl(m.posterUrlPreview || m.posterUrl)
       const full  = posterUrl(m.posterUrl)
-      const meta  = [m.year, m.nameEn && m.nameEn !== m.nameRu ? m.nameEn : null].filter(Boolean).join(' · ')
-      const preview = JSON.stringify({ filmId: id, nameRu: m.nameRu, nameEn: m.nameEn, posterUrl: m.posterUrl, posterUrlPreview: m.posterUrlPreview, year: m.year }).replace(/'/g, '&#39;')
+      const meta  = escapeHtml([m.year, m.nameEn && m.nameEn !== m.nameRu ? m.nameEn : null].filter(Boolean).join(' · '))
+      const preview = JSON.stringify({ filmId: id, nameRu: m.nameRu, nameEn: m.nameEn, posterUrl: m.posterUrl, posterUrlPreview: m.posterUrlPreview, year: m.year }).replace(/'/g, '&#39;').replace(/"/g, '&quot;')
       return `
         <a class="similar-card" href="/movie/${id}" onclick="sessionStorage.setItem('moviePreview','${preview}')">
           <div class="similar-poster-wrap">
-            <img src="${thumb}" alt="${name}" loading="lazy" onerror="this.src=(this.src!=='${full}'&&'${full}'.indexOf('placeholder')<0)?'${full}':(this.onerror=null,'/img/placeholder.svg')"/>
+            <img src="${thumb}" alt="${safe}" loading="lazy" onerror="this.src=(this.src!=='${full}'&&'${full}'.indexOf('placeholder')<0)?'${full}':(this.onerror=null,'/img/placeholder.svg')"/>
           </div>
           <div class="similar-info">
-            <div class="similar-title">${name}</div>
+            <div class="similar-title">${safe}</div>
             ${meta ? `<div class="similar-meta">${meta}</div>` : ''}
           </div>
         </a>`
@@ -744,6 +859,9 @@ async function doDeleteRating() {
 
 async function refreshNzRating() {
   if (!_currentKpId) return
+  // Только для авторизованных: эндпоинт нужен ради ИХ оценки; публичный
+  // агрегат NZ уже приходит в /api/movie. Анонимам — лишний запрос.
+  if (!window._nzUser && !sessionStorage.getItem('nz_me')) return
   try {
     const r = await fetch(`${API_BASE}/api/ratings/${_currentKpId}`, { credentials: _CREDS, headers: _bearerHeader() })
     if (!r.ok) return
@@ -833,7 +951,7 @@ function renderFavoriteBtnLoading() {
 }
 
 async function toggleFavorite() {
-  if (!window._nzUser) {
+  if (!window._nzUser && !sessionStorage.getItem('nz_me')) {
     showAuthRequiredToast()
     return
   }
@@ -843,30 +961,22 @@ async function toggleFavorite() {
   _favoriteInFlight = true
   renderFavoriteBtnLoading()
   try {
-    if (_isFavorited) {
-      const r = await fetch(`${API_BASE}/api/favorites/${kpId}`, {
-        method: 'DELETE',
-        credentials: _CREDS,
-        headers: _bearerHeader(),
-      })
-      if (r.ok || r.status === 404) {
-        _isFavorited = false
-        renderFavoriteBtn()
-      }
-    } else {
-      const r = await fetch(`${API_BASE}/api/favorites/${kpId}`, {
-        method: 'POST',
-        credentials: _CREDS,
-        headers: _bearerHeader(),
-      })
-      if (r.status === 401) { showAuthRequiredToast(); return }
-      if (r.ok) {
-        _isFavorited = true
-        renderFavoriteBtn()
-      }
+    const method = _isFavorited ? 'DELETE' : 'POST'
+    const r = await fetch(`${API_BASE}/api/favorites/${kpId}`, {
+      method,
+      credentials: _CREDS,
+      headers: _bearerHeader(),
+    })
+    if (r.status === 401) { showAuthRequiredToast(); return }
+    // DELETE+404 = уже удалено — считаем успехом
+    if (r.ok || (method === 'DELETE' && r.status === 404)) {
+      _isFavorited = (method === 'POST')
     }
   } finally {
+    // Всегда возвращаем кнопку в актуальное состояние — иначе при ошибке
+    // сервера она залипала бы в disabled-loading до перезагрузки.
     _favoriteInFlight = false
+    renderFavoriteBtn()
   }
 }
 
@@ -1113,6 +1223,297 @@ function renderError(message) {
   `
 }
 
+// ── Полная инфа + переключение языка (порт надстройки из /ref) ──────────────
+// Работает поверх renderMovie: берёт сырой сгруппированный ответ Kinodata
+// (двуязычные поля) и дозаполняет инфо-лист, критиков, описание, факты;
+// тумблер RU/EN перерисовывает всё на лету. Язык хранится в localStorage['nz_lang'].
+
+// Приоритет: ручной выбор тумблером (nz_lang) → язык по умолчанию из настроек
+// (nz_settings.lang) → 'ru'. Settings загружен синхронно (js/settings.js в movie.html).
+let _nzLang = (() => {
+  try {
+    const ov = localStorage.getItem('nz_lang')
+    if (ov) return ov
+    const def = (typeof Settings !== 'undefined') ? Settings.get().lang : null
+    return def || 'ru'
+  } catch { return 'ru' }
+})()
+let _movieRaw = null
+let _movieFacts = []
+let _factsLoaded = false
+let _descExpanded = false
+
+const NZ_UI = {
+  ru: { orig: 'Оригинальное название', year: 'Год выпуска', country: 'Страна', genres: 'Жанры',
+        runtime: 'Длительность', tagline: 'Слоган', mpaa: 'MPAA', budget: 'Бюджет', box: 'Сборы в мире',
+        awards: 'Награды', studio: 'Студии', premiere: 'Премьера', critics: 'Критики',
+        more: 'Подробнее', less: 'Свернуть', trivia: 'Знаете ли вы, что…', bloopers: 'Ошибки в фильме',
+        min: 'мин', spoilerTip: 'Спойлер — нажмите, чтобы показать' },
+  en: { orig: 'Original title', year: 'Year', country: 'Country', genres: 'Genres',
+        runtime: 'Runtime', tagline: 'Tagline', mpaa: 'MPAA', budget: 'Budget', box: 'Box office',
+        awards: 'Awards', studio: 'Studios', premiere: 'Premiere', critics: 'Critics',
+        more: 'Read more', less: 'Show less', trivia: 'Did you know…', bloopers: 'Goofs',
+        min: 'min', spoilerTip: 'Spoiler — click to reveal' },
+}
+
+function _nzPick(ru, en) {
+  const r = (ru == null ? '' : String(ru)).trim()
+  const e = (en == null ? '' : String(en)).trim()
+  return _nzLang === 'en' ? (e || r) : (r || e)
+}
+
+function _nzMoney(n) {
+  if (!n) return ''
+  const m = Math.round(n / 1e6)
+  return _nzLang === 'ru' ? '$' + m + ' млн' : '$' + m + 'M'
+}
+
+// Список постеров по приоритету для текущего языка (без пустых).
+// RU: kp первым (часто с русским названием), EN: imdb/tmdb (англоязычные/оригинальные).
+// Источники иногда отдают мёртвые ссылки (особенно imdb/amazon → 404), поэтому
+// возвращаем всю цепочку — _nzApplyPoster перебирает её при ошибке загрузки.
+function _nzPosterList() {
+  const m = (_movieRaw && _movieRaw.media) || {}
+  const order = _nzLang === 'en'
+    ? [m.poster_imdb, m.poster_tmdb, m.poster_kp, m.backdrop_url]
+    : [m.poster_kp, m.poster_tmdb, m.poster_imdb, m.backdrop_url]
+  return order.filter(Boolean).map(posterUrl)
+}
+
+// Меняет постер карточки и фон под выбранный язык (вызывается из _nzApply).
+// Перебирает источники: если постер 404/не загрузился — пробует следующий,
+// в конце — плейсхолдер. Фон и ссылка обновляются по реально загрузившемуся.
+function _nzApplyPoster() {
+  const list = _nzPosterList()
+  if (!list.length) return
+  const img = document.querySelector('.movie-poster')
+  if (!img) return
+  const link = document.querySelector('.movie-poster-side')
+  const bgEl = document.getElementById('bg-poster')
+
+  let i = 0
+  const showBg = src => {
+    if (link) link.href = src
+    if (bgEl) {
+      bgEl.style.backgroundImage = `url("${src}")`
+      try { localStorage.setItem('nz_bg_poster', src) } catch {}
+    }
+  }
+  img.onload = () => { img.classList.add('loaded'); showBg(img.src) }
+  img.onerror = () => {
+    i++
+    if (i < list.length) { img.src = list[i] }            // следующий источник
+    else { img.onerror = null; img.classList.add('loaded'); img.src = posterUrl('') } // плейсхолдер
+  }
+
+  if (img.getAttribute('src') !== list[0]) {
+    img.classList.remove('loaded')
+    img.src = list[0]
+  } else if (img.complete && img.naturalWidth === 0) {
+    img.onerror()                                          // текущий уже сломан — перебираем
+  } else if (img.complete) {
+    showBg(img.src)                                        // уже загружен — обновим фон/ссылку
+  }
+}
+
+function _nzDate(iso) {
+  if (!iso) return ''
+  try {
+    return new Date(iso).toLocaleDateString(_nzLang === 'en' ? 'en-US' : 'ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+  } catch { return String(iso) }
+}
+
+function _nzAwards(aw) {
+  if (!aw) return ''
+  const en = _nzLang === 'en'
+  const parts = []
+  if (aw.oscars_won)      parts.push(en ? `${aw.oscars_won} Oscars`            : `${aw.oscars_won} «Оскар»`)
+  if (aw.awards_won)      parts.push(en ? `${aw.awards_won} wins`              : `${aw.awards_won} побед`)
+  if (aw.awards_nominated)parts.push(en ? `${aw.awards_nominated} nominations` : `${aw.awards_nominated} номинаций`)
+  return parts.length ? parts.join(' · ') : (aw.awards_text || '')
+}
+
+function enrichMovie(raw) {
+  if (!raw || !raw.ids) return
+  _movieRaw = raw
+  _descExpanded = false
+
+  const header = document.querySelector('.content-header')
+  if (header && !header.querySelector('.nz-lang')) {
+    const toggle = document.createElement('div')
+    toggle.className = 'nz-lang'
+    toggle.innerHTML = `<button data-l="ru">RU</button><button data-l="en">EN</button>`
+    header.appendChild(toggle)
+    toggle.addEventListener('click', e => {
+      const b = e.target.closest('button')
+      if (!b) return
+      _nzLang = b.dataset.l
+      try { localStorage.setItem('nz_lang', _nzLang) } catch {}
+      _nzApply()
+    })
+  }
+  _nzApply()
+}
+
+function _nzApply() {
+  if (!_movieRaw) return
+  document.querySelectorAll('.nz-lang button').forEach(b => b.classList.toggle('on', b.dataset.l === _nzLang))
+  const t = _movieRaw.title || {}
+  const titleEl = document.querySelector('.content-title')
+  if (titleEl) titleEl.textContent = _nzPick(t.title_ru, t.title_en) || t.title_original || 'Без названия'
+  _nzApplyPoster()
+  _nzRenderInfo()
+  _nzRenderCritics()
+  _nzRenderDescription()
+  _nzApplyCast()
+  try { document.documentElement.lang = _nzLang } catch {}
+}
+
+function _nzRenderInfo() {
+  const list = document.querySelector('.info-list')
+  if (!list) return
+  const raw = _movieRaw, L = NZ_UI[_nzLang]
+  const t = raw.title || {}, rel = raw.release || {}, syn = raw.synopsis || {}
+  const cls = raw.classification || {}, fin = raw.finance || {}
+  const titleNow = _nzPick(t.title_ru, t.title_en)
+  const rows = []
+  if (t.title_original && t.title_original !== titleNow) rows.push([L.orig, t.title_original])
+  if (rel.year) rows.push([L.year, rel.year])
+  const countries = (raw.countries || []).map(c => _nzPick(c.name_ru, c.name_en)).filter(Boolean)
+  if (countries.length) rows.push([L.country, countries.join(', ')])
+  const genres = (raw.genres || []).map(g => _nzPick(g.name_ru, g.name_en)).filter(Boolean)
+  if (genres.length) rows.push([L.genres, genres.join(', ')])
+  if (rel.runtime) rows.push([L.runtime, rel.runtime + ' ' + L.min])
+  const tagline = _nzPick(syn.tagline_ru, syn.tagline_en)
+  if (tagline) rows.push([L.tagline, '«' + tagline + '»'])
+  if (fin.budget) rows.push([L.budget, _nzMoney(fin.budget)])
+  const box = fin.box_office || fin.revenue
+  if (box) rows.push([L.box, _nzMoney(box)])
+  const awards = _nzAwards(raw.awards)
+  if (awards) rows.push([L.awards, awards])
+  // Студии больше не в info-блоке: рендерятся карточками в #platforms-section (loadPlatforms)
+  const prem = rel.premiere_ru || rel.premiere_world || rel.release_date
+  if (prem) rows.push([L.premiere, _nzDate(prem)])
+
+  let html = rows.map(([k, v]) => `<li><strong>${escapeHtml(k)}:</strong> ${escapeHtml(String(v))}</li>`).join('')
+  const age = cls.age_limit
+  if (age != null && age !== 0) html += `<li class="rating-boxes"><div class="rating-box age"><strong>${formatAge('age' + age)}</strong></div></li>`
+  list.innerHTML = html
+}
+
+function _nzRenderCritics() {
+  const ratings = document.querySelector('.ratings-links')
+  if (!ratings) return
+  const r = _movieRaw.ratings || {}, L = NZ_UI[_nzLang]
+  const parts = []
+  if (r.rating_rt != null)         parts.push(`<span>Rotten Tomatoes <b>${r.rating_rt}%</b></span>`)
+  if (r.rating_metacritic != null) parts.push(`<span>Metacritic <b>${r.rating_metacritic}</b></span>`)
+  if (r.rating_critics != null)    parts.push(`<span>${L.critics} <b>${Number(r.rating_critics).toFixed(1)}</b></span>`)
+  let el = document.querySelector('.nz-critics')
+  if (!parts.length) { if (el) el.remove(); return }
+  if (!el) { el = document.createElement('div'); el.className = 'nz-critics'; ratings.insertAdjacentElement('afterend', el) }
+  el.innerHTML = parts.join('')
+}
+
+function _nzHasFacts() {
+  return _nzLang === 'ru' && _movieFacts.some(f => f.kind === 'fact' || f.kind === 'blooper')
+}
+
+function _nzFactsHtml() {
+  if (_nzLang !== 'ru') return '' // факты/киноляпы только на русском
+  const L = NZ_UI[_nzLang]
+  const trivia   = _movieFacts.filter(f => f.kind === 'fact')
+  const bloopers = _movieFacts.filter(f => f.kind === 'blooper')
+  const section = (title, headIcon, cls, items, listIcon) => {
+    if (!items.length) return ''
+    const li = items.map(it => {
+      const sc = it.is_spoiler ? ' nz-spoiler' : ''
+      const tip = it.is_spoiler ? ` title="${L.spoilerTip}"` : ''
+      return `<li><i class="ph ${listIcon}"></i><span class="nz-itext${sc}"${tip}>${escapeHtml(it.text)}</span></li>`
+    }).join('')
+    return `<section class="nz-extra"><div class="nz-extra-head ${cls}"><i class="${headIcon}"></i>` +
+      `<h3 class="nz-extra-title">${title}</h3></div><ul class="nz-list ${cls}">${li}</ul></section>`
+  }
+  return section(L.trivia, 'ph-fill ph-lightbulb', 'trivia', trivia, 'ph-lightbulb') +
+         section(L.bloopers, 'ph-fill ph-warning', 'bloop', bloopers, 'ph-warning-circle')
+}
+
+function _nzRenderDescription() {
+  const main = document.querySelector('.movie-layout-main')
+  if (!main) return
+  const syn = _movieRaw.synopsis || {}
+  const full  = _nzPick(syn.overview_ru, syn.overview_en_tmdb || syn.overview_en_imdb || syn.overview_alter)
+  const short = _nzLang === 'ru' ? (syn.short_overview_ru || '') : ''
+  if (!full && !short) { main.querySelector('.content-info')?.remove(); return }
+
+  let info = main.querySelector('.content-info')
+  if (!info) { info = document.createElement('div'); info.className = 'content-info'; main.appendChild(info) }
+
+  const collapsed = short || full
+  const expanded  = full || short
+  const hasToggle = (full && short && full !== short) || _nzHasFacts()
+
+  info.innerHTML = `<p class="content-description-text" id="nz-desc"></p><div id="nz-extended" style="display:none">${_nzFactsHtml()}</div>`
+  const descP = info.querySelector('#nz-desc')
+  const ext = info.querySelector('#nz-extended')
+  ext.addEventListener('click', e => {
+    const sp = e.target.closest('.nz-spoiler')
+    if (sp) sp.classList.add('revealed')
+  })
+
+  let toggle = null
+  if (hasToggle) {
+    toggle = document.createElement('button')
+    toggle.className = 'nz-desc-toggle'
+    toggle.innerHTML = `<span></span><i class="ph ph-caret-down"></i>`
+    info.appendChild(toggle)
+    toggle.addEventListener('click', () => _nzToggleDesc(descP, ext, toggle, collapsed, expanded))
+  }
+  _nzPaintDesc(descP, ext, toggle, collapsed, expanded)
+}
+
+// Раскрытие «Подробнее»: факты грузятся ЛЕНИВО при первом раскрытии (RU) —
+// это самый медленный холодный запрос (~1.6с), и большинству он не нужен.
+async function _nzToggleDesc(descP, ext, toggle, collapsed, expanded) {
+  _descExpanded = !_descExpanded
+  if (_descExpanded && !_factsLoaded && _nzLang === 'ru') {
+    _factsLoaded = true
+    try {
+      const r = await fetch(`${API_BASE}/api/facts/${movieId}`)
+      if (r.ok) _movieFacts = (await r.json()).items || []
+    } catch {}
+    if (_movieFacts.length) { _nzRenderDescription(); return } // перестроит с фактами, _descExpanded сохранится
+  }
+  _nzPaintDesc(descP, ext, toggle, collapsed, expanded)
+}
+
+function _nzPaintDesc(descP, ext, toggle, collapsed, expanded) {
+  const L = NZ_UI[_nzLang]
+  if (descP) descP.textContent = _descExpanded ? expanded : collapsed
+  if (ext) {
+    ext.style.display = _descExpanded ? '' : 'none'
+    ext.querySelectorAll('.nz-extra').forEach(s => { s.style.display = _nzLang === 'ru' ? '' : 'none' })
+  }
+  if (toggle) {
+    toggle.classList.toggle('open', _descExpanded)
+    toggle.querySelector('span').textContent = _descExpanded ? L.less : L.more
+  }
+}
+
+function _nzApplyCast() {
+  document.querySelectorAll('#cast-section .cast-name, #cast-section .cast-card-name').forEach(el => {
+    const ru = el.dataset.ru
+    if (ru == null) return
+    const en = el.dataset.en
+    const target = (_nzLang === 'en' && en) ? en : ru
+    if (el.textContent !== target) el.textContent = target
+  })
+  // в EN режиме английский подзаголовок дублирует имя — прячем
+  document.querySelectorAll('#cast-section .cast-card-name-en').forEach(el => {
+    el.style.display = _nzLang === 'en' ? 'none' : ''
+  })
+}
+
 async function loadMovie() {
   if (!movieId) {
     renderError('ID фильма не указан')
@@ -1127,28 +1528,30 @@ async function loadMovie() {
     }
   } catch {}
 
-  // Запускаем вторичные запросы немедленно, параллельно с основным
-  const staffRes    = fetchWithRetry(`${API_BASE}/api/staff/${movieId}`)
-  const sequelsRes  = fetchWithRetry(`${API_BASE}/api/sequels/${movieId}`)
-  const similarsRes = fetchWithRetry(`${API_BASE}/api/similars/${movieId}`)
+  // Запускаем вторичные запросы немедленно, параллельно с основным.
+  // Каст, похожие и франшиза НЕ запрашиваются отдельно — они встроены в ответ
+  // /api/movie (include=cast,similar,franchise), это экономит холодные upstream-запросы.
+  const playersRes  = fetchWithRetry(`${API_BASE}/api/players/${movieId}`)
   // Предотвращаем unhandled rejection если основной запрос упадёт раньше
-  staffRes.catch(() => {})
-  sequelsRes.catch(() => {})
-  similarsRes.catch(() => {})
+  playersRes.catch(() => {})
 
   try {
     const r = await fetchWithRetry(`${API_BASE}/api/movie/${movieId}`)
     if (!r.ok) throw new Error('Фильм не найден')
-    const movie = await r.json()
+    const raw = await r.json()
+    const movie = normalizeMovie(raw)
     renderMovie(movie)
+    enrichMovie(raw) // полная инфа + языковой тумблер (поверх renderMovie)
     initRatingWidget(movie)
     initFavorite(movie.kinopoiskId || movie.filmId)
     // DOM готов — рендерим всё остальное без ожидания
     refreshNzRating()
     initComments(movie)
-    loadStaff(staffRes)
-    loadSequels(sequelsRes)
-    loadSimilars(similarsRes)
+    loadStaff(raw.cast)         // {cast:[...]} встроен в /api/movie
+    loadPlatforms(raw)          // платформы (networks) → кликабельные синие карточки
+    loadSequels(raw.franchise)  // {items} встроен в /api/movie (include=franchise)
+    loadSimilars(raw.similar)   // {items,relation} встроен в /api/movie
+    loadPlayers(playersRes, movie.kinopoiskId || movie.filmId)
   } catch (e) {
     if (!document.getElementById('movieContent').children.length) {
       renderError(e.message || 'Ошибка загрузки фильма')

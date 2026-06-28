@@ -1,7 +1,50 @@
 /* ── Movie Page ───────────────────────────────────────── */
 
-/* Кнопка "Назад" — только мобильный */
-.mob-back-btn { display: none; }
+/* Cinzel (self-hosted) — крупная цифра в виджете оценки.
+   Раньше грузился с fonts.googleapis.com как render-blocking <link>; в РФ Google
+   часто троттлится → при cross-document View Transitions новая страница не
+   рисовалась, пока шрифт не приедет (до ~5с), и переход «висел». woff2 локально. */
+@font-face {
+  font-family: 'Cinzel';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("cinzel-700-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Cinzel';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("cinzel-700-latinext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* Плавающая кнопка «Назад» (как на /person и /platform) */
+.movie-back-top {
+  position: fixed;
+  top: 16px;
+  left: calc(var(--sidebar-w, 0px) + 16px);
+  z-index: 120;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: rgba(20, 20, 22, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f5f5f7;
+  font-size: 14px;
+  font-weight: 590;
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  transition: background var(--transition), transform var(--transition);
+}
+.movie-back-top:hover { background: rgba(40, 40, 44, 0.85); transform: translateY(-1px); }
+.movie-back-top i { color: var(--accent); font-size: 13px; }
 
 /* Content header */
 .content { min-height: 100vh; }
@@ -341,6 +384,12 @@ a.movie-poster-side img {
 .player-dropdown.open { display: block; }
 
 .player-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  font-family: inherit;
   padding: 10px 14px;
   font-size: 14px;
   color: #ccc;
@@ -442,7 +491,7 @@ a.movie-poster-side img {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  cursor: default;
+  cursor: pointer;
 }
 
 .cast-name {
@@ -454,7 +503,18 @@ a.movie-poster-side img {
   text-decoration: underline;
   text-decoration-color: var(--accent-light);
   text-underline-offset: 3px;
+  transition: color 0.18s ease, text-decoration-color 0.18s ease;
 }
+.cast-item:hover .cast-name { color: #fff; text-decoration-color: #fff; }
+
+/* Актёр без kp_id — нет страницы персоны: обычный текст, без ссылочного выделения. */
+.cast-item--noperson { cursor: default; }
+.cast-item--noperson .cast-name-wrap { cursor: default; }
+.cast-item--noperson .cast-name {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.cast-item--noperson:hover .cast-name { color: var(--text-secondary); }
 
 /* hover card */
 .cast-card {
@@ -507,6 +567,17 @@ a.movie-poster-side img {
 }
 
 .cast-card-spinner { font-size: 11px; color: var(--text-muted); margin-top: 6px; display: block; }
+
+/* ── Платформы (как каст, но синие) ───────────────────── */
+.cast-item--platform .cast-name {
+  color: #4aa3ff;
+  text-decoration-color: #4aa3ff;
+}
+.cast-item--platform:hover .cast-name { color: #fff; text-decoration-color: #fff; }
+/* Студии вне каталога платформ — некликабельны, нейтральный цвет */
+.cast-item--platform.cast-item--static { cursor: default; }
+.cast-item--platform.cast-item--static .cast-name { color: var(--text-secondary); text-decoration: none; }
+.cast-item--platform.cast-item--static:hover .cast-name { color: #fff; }
 
 /* ── Similar movies ───────────────────────────────────── */
 .similars-loading {
@@ -612,23 +683,8 @@ a.movie-poster-side img {
   .rating-boxes { flex-wrap: wrap; }
   .rating-box { font-size: 13px; padding: 3px 6px; }
 
-  /* mobile back button */
-  .mob-back-btn {
-    order: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--text-muted);
-    font-size: 14px;
-    padding: 0 0 10px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    width: fit-content;
-    transition: color var(--transition);
-  }
-
-  .mob-back-btn:hover { color: var(--accent); }
+  /* На мобильном сдвигаем плавающую кнопку «Назад» к краю */
+  .movie-back-top { top: 12px; left: 12px; padding: 8px 14px; }
 
   .similars-list { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 10px; }
   .similar-info { margin-top: 5px; padding: 0 1px; }
@@ -659,33 +715,43 @@ a.movie-poster-side img {
 }
 
 /* ── Open button ── */
-.nz-rate-open-btn {
+/* ── Movie action buttons (Оценить фильм / Буду смотреть) — общий визуал ── */
+.nz-rate-open-btn,
+.nz-favorite-btn {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  padding: 8px 12px;
-  background: transparent;
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 6px;
-  color: rgba(255,255,255,0.45);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.03em;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
-}
-
-.nz-rate-open-btn:hover {
-  border-color: rgba(255,255,255,0.2);
-  color: rgba(255,255,255,0.7);
-  background: rgba(255,255,255,0.03);
-}
-
-.nz-rate-open-icon {
+  gap: 8px;
+  padding: 0 14px;
+  height: 42px;
+  border-radius: 10px;
   font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.12);
+  transition: border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
+}
+
+.nz-rate-open-icon,
+.nz-favorite-icon {
+  font-size: 15px;
   line-height: 1;
+}
+
+/* «Оценить фильм» — золото */
+.nz-rate-open-btn {
+  color: #e8e0cf;
+}
+.nz-rate-open-btn .nz-rate-open-icon {
+  color: #f5b50a;
+}
+.nz-rate-open-btn:hover {
+  color: #fff;
+  border-color: rgba(245,181,10,0.5);
+  background: rgba(245,181,10,0.08);
 }
 
 /* ── Rated display ── */
@@ -860,49 +926,41 @@ a.movie-poster-side img {
   margin-top: 8px;
 }
 
+/* «Буду смотреть» — зелёный */
 .nz-favorite-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  padding: 8px 12px;
-  background: transparent;
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 6px;
-  color: rgba(255,255,255,0.45);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.03em;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  color: #d4ded8;
 }
-
+.nz-favorite-btn .nz-favorite-icon {
+  color: var(--accent-light);
+}
 .nz-favorite-btn:hover {
-  border-color: rgba(39,174,96,0.45);
-  color: rgba(39,174,96,0.85);
+  color: #fff;
+  border-color: rgba(39,174,96,0.5);
+  background: rgba(39,174,96,0.08);
 }
 
+/* активное — в списке (единственная залитая кнопка) */
 .nz-favorite-btn--active {
-  border-color: rgba(39,174,96,0.4);
-  color: rgba(39,174,96,0.9);
-  background: rgba(39,174,96,0.07);
+  color: #fff;
+  background: rgba(39,174,96,0.16);
+  border-color: rgba(39,174,96,0.55);
 }
-
+.nz-favorite-btn--active .nz-favorite-icon {
+  color: #fff;
+}
 .nz-favorite-btn--active:hover {
-  border-color: rgba(231,76,60,0.4);
-  color: rgba(231,76,60,0.75);
-  background: rgba(231,76,60,0.05);
+  color: #fff;
+  background: rgba(231,76,60,0.12);
+  border-color: rgba(231,76,60,0.5);
 }
 
 .nz-favorite-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.65;
   cursor: default;
 }
-
-.nz-favorite-icon {
-  font-size: 13px;
-  line-height: 1;
+.nz-favorite-btn:disabled:hover {
+  background: rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.12);
 }
 
 /* ── Comments ─────────────────────────────────────────────── */
@@ -1104,3 +1162,65 @@ a.movie-poster-side img {
 .nz-toast.nz-toast-error              { border-color: #e74c3c; color: #e74c3c; }
 .nz-toast.nz-toast-error a            { color: #e74c3c; text-decoration: underline; pointer-events: auto; }
 .nz-toast.nz-toast-success            { border-color: var(--accent); color: var(--accent-light); }
+
+/* ── Phosphor-иконки страницы фильма (self-hosted) ───── */
+.ph-caret-down { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='currentColor'%3E%3Cpath d='M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='currentColor'%3E%3Cpath d='M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E"); }
+.ph-warning-circle { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='currentColor'%3E%3Cpath d='M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-80V80a8,8,0,0,1,16,0v56a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,172Z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='currentColor'%3E%3Cpath d='M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-80V80a8,8,0,0,1,16,0v56a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,172Z'/%3E%3C/svg%3E"); }
+.ph-translate { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='currentColor'%3E%3Cpath d='M247.15,212.42l-56-112a8,8,0,0,0-14.31,0l-21.71,43.43A88,88,0,0,1,108,126.93,103.65,103.65,0,0,0,135.69,64H160a8,8,0,0,0,0-16H104V32a8,8,0,0,0-16,0V48H32a8,8,0,0,0,0,16h87.63A87.76,87.76,0,0,1,96,116.35a87.74,87.74,0,0,1-19-31,8,8,0,1,0-15.08,5.34A103.63,103.63,0,0,0,84,127a87.55,87.55,0,0,1-52,17,8,8,0,0,0,0,16,103.46,103.46,0,0,0,64-22.08,104.18,104.18,0,0,0,51.44,21.31l-26.6,53.19a8,8,0,0,0,14.31,7.16L148.94,192h70.11l13.79,27.58A8,8,0,0,0,240,224a8,8,0,0,0,7.15-11.58ZM156.94,176,184,121.89,211.05,176Z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='currentColor'%3E%3Cpath d='M247.15,212.42l-56-112a8,8,0,0,0-14.31,0l-21.71,43.43A88,88,0,0,1,108,126.93,103.65,103.65,0,0,0,135.69,64H160a8,8,0,0,0,0-16H104V32a8,8,0,0,0-16,0V48H32a8,8,0,0,0,0,16h87.63A87.76,87.76,0,0,1,96,116.35a87.74,87.74,0,0,1-19-31,8,8,0,1,0-15.08,5.34A103.63,103.63,0,0,0,84,127a87.55,87.55,0,0,1-52,17,8,8,0,0,0,0,16,103.46,103.46,0,0,0,64-22.08,104.18,104.18,0,0,0,51.44,21.31l-26.6,53.19a8,8,0,0,0,14.31,7.16L148.94,192h70.11l13.79,27.58A8,8,0,0,0,240,224a8,8,0,0,0,7.15-11.58ZM156.94,176,184,121.89,211.05,176Z'/%3E%3C/svg%3E"); }
+.ph-lightbulb { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='currentColor'%3E%3Cpath d='M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-16,0a72,72,0,0,0-73.74-72c-39,.92-70.47,33.39-70.26,72.39a71.65,71.65,0,0,0,27.64,56.3A32,32,0,0,1,96,186v6h64v-6a32.15,32.15,0,0,1,12.47-25.35A71.65,71.65,0,0,0,200,104Zm-16.11-9.34a57.6,57.6,0,0,0-46.56-46.55,8,8,0,0,0-2.66,15.78c16.57,2.79,30.63,16.85,33.44,33.45A8,8,0,0,0,176,104a9,9,0,0,0,1.35-.11A8,8,0,0,0,183.89,94.66Z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='currentColor'%3E%3Cpath d='M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-16,0a72,72,0,0,0-73.74-72c-39,.92-70.47,33.39-70.26,72.39a71.65,71.65,0,0,0,27.64,56.3A32,32,0,0,1,96,186v6h64v-6a32.15,32.15,0,0,1,12.47-25.35A71.65,71.65,0,0,0,200,104Zm-16.11-9.34a57.6,57.6,0,0,0-46.56-46.55,8,8,0,0,0-2.66,15.78c16.57,2.79,30.63,16.85,33.44,33.45A8,8,0,0,0,176,104a9,9,0,0,0,1.35-.11A8,8,0,0,0,183.89,94.66Z'/%3E%3C/svg%3E"); }
+.ph-fill.ph-lightbulb { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='currentColor'%3E%3Cpath d='M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-32.11-9.34a57.6,57.6,0,0,0-46.56-46.55,8,8,0,0,0-2.66,15.78c16.57,2.79,30.63,16.85,33.44,33.45A8,8,0,0,0,176,104a9,9,0,0,0,1.35-.11A8,8,0,0,0,183.89,94.66Z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='currentColor'%3E%3Cpath d='M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-32.11-9.34a57.6,57.6,0,0,0-46.56-46.55,8,8,0,0,0-2.66,15.78c16.57,2.79,30.63,16.85,33.44,33.45A8,8,0,0,0,176,104a9,9,0,0,0,1.35-.11A8,8,0,0,0,183.89,94.66Z'/%3E%3C/svg%3E"); }
+.ph-warning { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='currentColor'%3E%3Cpath d='M236.8,188.09,149.35,36.22h0a24.76,24.76,0,0,0-42.7,0L19.2,188.09a23.51,23.51,0,0,0,0,23.72A24.35,24.35,0,0,0,40.55,224h174.9a24.35,24.35,0,0,0,21.33-12.19A23.51,23.51,0,0,0,236.8,188.09ZM222.93,203.8a8.5,8.5,0,0,1-7.48,4.2H40.55a8.5,8.5,0,0,1-7.48-4.2,7.59,7.59,0,0,1,0-7.72L120.52,44.21a8.75,8.75,0,0,1,15,0l87.45,151.87A7.59,7.59,0,0,1,222.93,203.8ZM120,144V104a8,8,0,0,1,16,0v40a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,180Z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='currentColor'%3E%3Cpath d='M236.8,188.09,149.35,36.22h0a24.76,24.76,0,0,0-42.7,0L19.2,188.09a23.51,23.51,0,0,0,0,23.72A24.35,24.35,0,0,0,40.55,224h174.9a24.35,24.35,0,0,0,21.33-12.19A23.51,23.51,0,0,0,236.8,188.09ZM222.93,203.8a8.5,8.5,0,0,1-7.48,4.2H40.55a8.5,8.5,0,0,1-7.48-4.2,7.59,7.59,0,0,1,0-7.72L120.52,44.21a8.75,8.75,0,0,1,15,0l87.45,151.87A7.59,7.59,0,0,1,222.93,203.8ZM120,144V104a8,8,0,0,1,16,0v40a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,180Z'/%3E%3C/svg%3E"); }
+.ph-fill.ph-warning { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='currentColor'%3E%3Cpath d='M236.8,188.09,149.35,36.22h0a24.76,24.76,0,0,0-42.7,0L19.2,188.09a23.51,23.51,0,0,0,0,23.72A24.35,24.35,0,0,0,40.55,224h174.9a24.35,24.35,0,0,0,21.33-12.19A23.51,23.51,0,0,0,236.8,188.09ZM120,104a8,8,0,0,1,16,0v40a8,8,0,0,1-16,0Zm8,88a12,12,0,1,1,12-12A12,12,0,0,1,128,192Z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='currentColor'%3E%3Cpath d='M236.8,188.09,149.35,36.22h0a24.76,24.76,0,0,0-42.7,0L19.2,188.09a23.51,23.51,0,0,0,0,23.72A24.35,24.35,0,0,0,40.55,224h174.9a24.35,24.35,0,0,0,21.33-12.19A23.51,23.51,0,0,0,236.8,188.09ZM120,104a8,8,0,0,1,16,0v40a8,8,0,0,1-16,0Zm8,88a12,12,0,1,1,12-12A12,12,0,0,1,128,192Z'/%3E%3C/svg%3E"); }
+
+/* ── Языковой тумблер + расширенная инфа (порт из /ref) ── */
+.nz-lang {
+  display: inline-flex; background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px;
+}
+.nz-lang button {
+  font: inherit; font-size: 13px; font-weight: 600; color: var(--text-muted);
+  background: none; border: none; padding: 6px 14px; border-radius: 999px;
+  cursor: pointer; transition: all .2s ease;
+}
+.nz-lang button.on { background: var(--accent); color: #fff; }
+
+.nz-critics {
+  display: flex; justify-content: center; flex-wrap: wrap; gap: 8px 18px;
+  margin: 6px 0 18px; font-size: 13px; color: var(--text-muted);
+}
+.nz-critics b { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.nz-desc-toggle {
+  display: inline-flex; align-items: center; gap: 7px; margin-top: 10px;
+  padding: 8px 16px; border-radius: 999px; background: transparent;
+  border: 1px solid var(--border); color: var(--text-secondary);
+  font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .2s ease;
+}
+.nz-desc-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.nz-desc-toggle i { font-size: 12px; transition: transform .25s ease; }
+.nz-desc-toggle.open i { transform: rotate(180deg); }
+
+#nz-extended { margin-top: 18px; }
+.nz-extra { margin: 22px 0 0; }
+.nz-extra-head { display: flex; align-items: center; gap: 9px; margin: 0 0 12px; }
+.nz-extra-head i { font-size: 18px; }
+.nz-extra-head.trivia i { color: var(--accent); }
+.nz-extra-head.bloop i { color: #e8b84b; }
+.nz-extra-title { font-size: 17px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+
+.nz-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.nz-list li {
+  display: flex; gap: 13px; align-items: flex-start; padding: 13px 16px;
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+  border-radius: 12px; font-size: 14px; line-height: 1.55; color: var(--text-secondary);
+}
+.nz-list li i { font-size: 15px; margin-top: 2px; flex-shrink: 0; }
+.nz-list.trivia li i { color: var(--accent); }
+.nz-list.bloop li i { color: #e8b84b; }
+
+.nz-spoiler {
+  filter: blur(6px); cursor: pointer; border-radius: 4px; transition: filter .3s ease;
+  -webkit-user-select: none; user-select: none;
+}
+.nz-spoiler:hover { filter: blur(4px); }
+.nz-spoiler.revealed { filter: none; cursor: auto; -webkit-user-select: auto; user-select: auto; }

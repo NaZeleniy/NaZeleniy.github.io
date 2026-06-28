@@ -5,8 +5,8 @@
          role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
       <div class="auth-modal-backdrop"></div>
       <div class="auth-modal-card login-card">
-        <button class="auth-modal-close" aria-label="Закрыть"><i class="fas fa-times"></i></button>
-        <div class="login-logo"><i class="fas fa-paper-plane"></i></div>
+        <button class="auth-modal-close" aria-label="Закрыть"><i class="ph ph-x"></i></button>
+        <div class="login-logo"><i class="ph-fill ph-paper-plane-tilt"></i></div>
         <h2 class="login-title" id="auth-modal-title">Войти через Telegram</h2>
         <p class="login-subtitle">Откройте бота и подтвердите вход</p>
         <div id="auth-modal-body"></div>
@@ -78,30 +78,33 @@
     if (_step === 'idle') {
       body.innerHTML = `
         <button class="login-start-btn" id="_am_s">
+          <i class="ph ph-telegram-logo"></i>
           Получить ссылку для входа
         </button>`
       document.getElementById('_am_s').onclick = _start
 
     } else if (_step === 'loading') {
-      body.innerHTML = `<div class="login-spinner"><i class="fas fa-circle-notch fa-spin"></i></div>`
+      body.innerHTML = `<div class="login-spinner"><i class="ph ph-circle-notch nz-spin"></i></div>`
 
     } else if (_step === 'waiting') {
       // Проверяем что URL пришёл с нашего бэкенда и является безопасным
       const safeUrl = _botUrl && /^https:\/\//.test(_botUrl) ? _esc(_botUrl) : '#'
       body.innerHTML = `
         <div class="login-waiting">
-          <div id="_am_qr" class="login-qr"></div>
           <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="login-tg-btn">
+            <i class="ph ph-telegram-logo"></i>
             Открыть Telegram
           </a>
+          <div class="login-or">или отсканируйте код</div>
+          <div id="_am_qr" class="login-qr"></div>
           <div class="login-status">
-            <i class="fas fa-circle-notch fa-spin"></i>
+            <i class="ph ph-circle-notch nz-spin"></i>
             Ожидаем подтверждения…
             <span class="login-timer" id="_am_t">(${_timeLeft}с)</span>
           </div>
           <div class="login-security-note">
-            <i class="fas fa-shield-alt"></i>
-            <span>Это <strong>не авторизация через Telegram</strong> — мы не получаем доступ к вашему аккаунту. QR-код открывает нашего бота, который просто подтверждает что это вы.</span>
+            <i class="ph ph-shield-check"></i>
+            <span>Вход через Telegram. Отсканируйте QR-код — бот подтвердит, что это вы.</span>
           </div>
         </div>`
       _withQR(() => {
@@ -120,7 +123,7 @@
     } else if (_step === 'done') {
       body.innerHTML = `
         <div class="login-done">
-          <i class="fas fa-check-circle"></i>
+          <i class="ph-fill ph-check-circle"></i>
           <span>Вход выполнен!</span>
         </div>`
 

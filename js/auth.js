@@ -133,6 +133,7 @@ function _renderUserBtn(container, data) {
   const name = _escapeHtml((data.name || 'Профиль').replace(/^@/, ''))
   container.innerHTML = `
     <button class="auth-btn auth-btn--out" onclick="authLogout()" title="Выйти">
+      <i class="ph ph-sign-out"></i>
       <span>${name}</span>
     </button>`
 }
@@ -140,6 +141,7 @@ function _renderUserBtn(container, data) {
 function renderLoginBtn(container) {
   container.innerHTML = `
     <button class="auth-btn auth-btn--in" onclick="openAuthModal()">
+      <i class="ph ph-telegram-logo"></i>
       <span>Войти</span>
     </button>`
 }
