@@ -72,18 +72,56 @@ button {
   navigation: auto;
 }
 
-::view-transition-old(root) {
-  animation: vt-out 0.18s ease forwards;
+/* Постоянный «каркас» приложения (сайдбар, фон, кнопка входа) получает
+   собственные view-transition-name → исключается из кросс-фейда root и
+   остаётся статичным при навигации. Анимируется только область контента. */
+.side-panel  { view-transition-name: nz-sidebar; }
+.bg-poster   { view-transition-name: nz-bg; }
+#auth-btn    { view-transition-name: nz-auth; }
+.main-content { view-transition-name: nz-content; }
+
+/* Каркас не анимируем вовсе — мгновенный, без мерцания */
+::view-transition-old(nz-sidebar),
+::view-transition-new(nz-sidebar),
+::view-transition-old(nz-bg),
+::view-transition-new(nz-bg),
+::view-transition-old(nz-auth),
+::view-transition-new(nz-auth) {
+  animation: none;
+  mix-blend-mode: normal;
 }
 
+/* Контент: мягкий fade + лёгкий сдвиг */
+::view-transition-old(nz-content) {
+  animation: vt-out 0.16s ease forwards;
+}
+::view-transition-new(nz-content) {
+  animation: vt-in 0.26s cubic-bezier(.22,.61,.36,1) forwards;
+}
+
+/* Фон страницы (root) — просто короткий кросс-фейд, без сдвига */
+::view-transition-old(root) {
+  animation: vt-fade-out 0.16s ease forwards;
+}
 ::view-transition-new(root) {
-  animation: vt-in 0.28s ease forwards;
+  animation: vt-fade-in 0.26s ease forwards;
 }
 
 @keyframes vt-out {
-  to { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 0; transform: translateY(-6px); }
 }
 
 @keyframes vt-in {
-  from { opacity: 0; transform: translateY(7px); }
+  from { opacity: 0; transform: translateY(8px); }
+}
+
+@keyframes vt-fade-out { to   { opacity: 0; } }
+@keyframes vt-fade-in  { from { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }
