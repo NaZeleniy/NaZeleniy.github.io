@@ -352,10 +352,22 @@ function initPlayerLazyLoad(players) {
   }
 }
 
+let _movieRenderedId = null
+
 function renderMovie(movie) {
-  // Сброс состояния плеера при каждом перерендере (preview → full data)
-  if (_playerCleanup) { _playerCleanup(); _playerCleanup = null }
-  _playerGen = 0
+  // Превью (из карточки) и полные данные приходят разными вызовами. Если это тот же
+  // фильм и DOM уже построен — патчим существующие узлы вместо пересборки innerHTML,
+  // иначе постер перезагружается и страница «мигает» (видимая пересборка).
+  const _id = String(movie.kinopoiskId || movie.filmId || '')
+  const isPatch = _movieRenderedId === _id && _id !== '' &&
+                  !!document.querySelector('#movieContent .movie-layout')
+  _movieRenderedId = _id
+
+  // Сброс состояния плеера только при настоящей пересборке (не при патче того же фильма)
+  if (!isPatch) {
+    if (_playerCleanup) { _playerCleanup(); _playerCleanup = null }
+    _playerGen = 0
+  }
 
   historyAdd(movie)
   const title = movie.nameRu || movie.nameEn || 'Без названия'
@@ -444,6 +456,30 @@ function renderMovie(movie) {
   const descHtml = desc
     ? `<div class="content-info"><p class="content-description-text">${escapeHtml(desc)}</p></div>`
     : ''
+
+  // Патч-путь: тот же фильм уже отрисован (превью → полные данные). Обновляем
+  // только изменившиеся узлы, не трогая постер/плеер/подсекции — без вспышки.
+  if (isPatch) {
+    const c = document.getElementById('movieContent')
+    const titleEl = c.querySelector('.content-title')
+    if (titleEl) titleEl.textContent = title
+    const rl = c.querySelector('.ratings-links')
+    if (rl) rl.innerHTML = ratingsHtml
+    const il = c.querySelector('.info-list')
+    if (il) il.innerHTML = infoRowsHtml + '\n' + ageHtml
+    const img = c.querySelector('.movie-poster')
+    if (img && posterSrc && img.getAttribute('src') !== posterSrc) img.src = posterSrc
+    const plink = c.querySelector('.movie-poster-side')
+    if (plink && posterFull) plink.setAttribute('href', posterFull)
+    const descP = c.querySelector('.content-description-text')
+    if (desc) {
+      if (descP) descP.textContent = desc
+      else c.querySelector('.movie-layout-main')?.insertAdjacentHTML('beforeend', descHtml)
+    } else if (descP) {
+      descP.closest('.content-info')?.remove()
+    }
+    return
+  }
 
   document.getElementById('movieContent').innerHTML = `
     <div class="content-header">
