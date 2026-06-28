@@ -204,7 +204,10 @@ document.addEventListener('click', e => {
 function playerSectionHtml(movie) {
   // Плееры грузятся отдельным запросом GET /api/players/:id (loadPlayers).
   // Рендерим оболочку сразу (со спиннером), наполняем когда приедут плееры.
-  const id = movie.kinopoiskId || movie.imdbId
+  // Важно: учитываем и filmId — превью из /me и из похожих/сиквелов кладёт только
+  // его (без kinopoiskId). Иначе виджет не создаётся на превью-рендере, а полный
+  // рендер идёт по patch-пути и его уже не добавляет (нужен был refresh).
+  const id = movie.kinopoiskId || movie.filmId || movie.imdbId
   if (!id) return ''
 
   return `<details class="player-section">

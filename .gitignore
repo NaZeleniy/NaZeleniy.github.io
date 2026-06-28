@@ -1,4 +1,16 @@
+# WSL метаданные
 *.Identifier
-CLAUDE.md
+*:Zone.Identifier
+
+# Локальные/служебные
 .claude
+.env
+*.bak
+
+# Внутренние доки и скрипты — не публикуем в зеркало github.io
+# (совпадает со списком исключений в deploy-front.sh)
+CLAUDE.md
 FAVORITES.md
+SEO-ROADMAP.md
+deploy-front.sh
+alloha-test.html
