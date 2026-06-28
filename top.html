@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <script src="js/version.js?v=1782658354"></script>
+  <script src="js/version.js?v=1782660195"></script>
   <meta charset="UTF-8"/>
   
   <link rel="dns-prefetch" href="https://mc.yandex.ru">
@@ -22,15 +22,15 @@
   <meta property="og:url" content="https://nazeleniy.site/top"/>
   <meta property="og:image" content="https://nazeleniy.site/img/icons/1024x1024.png"/>
   <link rel="icon" type="image/png" href="img/icons/favicon.png"/>
-  <link rel="preload" href="css/style-top.css?v=1782658354" as="style">
-  <link rel="stylesheet" href="css/style-top.css?v=1782658354"/>
-  <link rel="preload" href="css/icons.css?v=1782658354" as="style">
-  <link rel="stylesheet" href="css/icons.css?v=1782658354"/>
-  <script src="js/settings.js?v=1782658354"></script>
-  <script defer src="js/history.js?v=1782658354"></script>
-  <script defer src="js/api.js?v=1782658354"></script>
-  <script defer src="js/app.js?v=1782658354"></script>
-  <script defer src="js/alpine.min.js?v=1782658354"></script>
+  <link rel="preload" href="css/style-top.css?v=1782660195" as="style">
+  <link rel="stylesheet" href="css/style-top.css?v=1782660195"/>
+  <link rel="preload" href="css/icons.css?v=1782660195" as="style">
+  <link rel="stylesheet" href="css/icons.css?v=1782660195"/>
+  <script src="js/settings.js?v=1782660195"></script>
+  <script defer src="js/history.js?v=1782660195"></script>
+  <script defer src="js/api.js?v=1782660195"></script>
+  <script defer src="js/app.js?v=1782660195"></script>
+  <script defer src="js/alpine.min.js?v=1782660195"></script>
   <!-- Yandex.Metrika counter -->
   <script type="text/javascript">
     (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=108313126','ym');
@@ -45,13 +45,16 @@
        :style="bgPoster ? 'background-image: url(' + bgPoster + ')' : ''"
        :class="{ visible: bgPoster }"></div>
 
-  <div id="app-sidebar"></div>
+  <div id="app-sidebar"><!--SSR-NAV-START--><!--SSR-NAV-END--></div>
 
   <main class="main-content">
 
     <h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0">Популярные фильмы и сериалы онлайн</h1>
 
     <div id="app-search"></div>
+
+    <!-- Серверный грид популярного для краулеров/без-JS (app.js удаляет [data-ssr-cleanup] при гидрации). -->
+    <!--SSR-GRID-START--><!--SSR-GRID-END-->
 
     <!-- Movie grid -->
     <div class="loading-spinner" x-show="loading" x-transition>
@@ -105,7 +108,7 @@
 
   </main>
 
-  <script src="js/header.js?v=1782658354"></script>
+  <script src="js/header.js?v=1782660195"></script>
   <script>renderHeader('top')</script>
   <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js')</script>
 </body>

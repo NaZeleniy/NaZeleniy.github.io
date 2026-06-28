@@ -112,7 +112,14 @@ function app() {
       if (url) localStorage.setItem('nz_bg_poster', url)
     },
 
+    // Серверный SSR-грид (для краулеров/без-JS) перетирается клиентским рендером —
+    // убираем его при гидрации, чтобы не было дублей карточек.
+    _removeSSR() {
+      document.querySelectorAll('[data-ssr-cleanup]').forEach(el => el.remove())
+    },
+
     init() {
+      this._removeSSR()
       this.searchType = 'name'
       this.loading = false
       this._loadHistory()
@@ -385,6 +392,7 @@ function app() {
     },
 
     async fetchTop() {
+      this._removeSSR()
       if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
       // Снять активный observer/scroll-handler СРАЗУ, до await. Иначе стейл-триггер
       // от предыдущего режима (discover) может сработать во время загрузки — пока

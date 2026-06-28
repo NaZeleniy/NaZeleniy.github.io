@@ -245,15 +245,27 @@ function applyWatchParty(id, players) {
   slot.innerHTML = ''
 }
 
-// Асинхронная загрузка плееров (после рендера метаданных)
+// Один запрос за плеерами → массив (пустой при ошибке/пустом ответе)
+async function _fetchPlayers(res) {
+  try {
+    const r = res ? await res : await fetch(`${API_BASE}/api/players/${movieId}`)
+    if (r.ok) return (await r.json()).players || []
+  } catch {}
+  return []
+}
+
+// Асинхронная загрузка плееров (после рендера метаданных).
+// Холодный тайтл: бэкенд не успевает опросить провайдеров за свой таймаут и отдаёт
+// пустой список (он не кешируется → повторный запрос обычно уже находит плееры).
+// Поэтому при пустом ответе ретраим, держа спиннер «проверки», вместо «Нет плееров».
 async function loadPlayers(res, id) {
   const section = document.querySelector('.player-section')
   if (!section) return
-  let players = []
-  try {
-    const r = res ? await res : await fetch(`${API_BASE}/api/players/${movieId}`)
-    if (r.ok) players = (await r.json()).players || []
-  } catch {}
+  let players = await _fetchPlayers(res)
+  for (let i = 0; players.length === 0 && i < 3; i++) {
+    await new Promise(r => setTimeout(r, 2000))
+    players = await _fetchPlayers(null)
+  }
   applyWatchParty(id, players)
   initPlayerLazyLoad(players)
 }
