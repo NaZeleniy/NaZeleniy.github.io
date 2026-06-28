@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <base href="/">
-  <script src="js/version.js?v=1782650817"></script>
+  <script src="js/version.js?v=1782658138"></script>
   <meta charset="UTF-8"/>
   
   <!-- Cinzel — self-hosted (см. @font-face в css/movie.css). Внешний Google Fonts убран:
@@ -10,22 +10,29 @@
   <link rel="dns-prefetch" href="https://mc.yandex.ru">
   <link rel="dns-prefetch" href="https://nazeleniy.site">
   <link rel="preconnect" href="https://nazeleniy.site" crossorigin>
+  <link rel="preconnect" href="https://avatars.mds.yandex.net" crossorigin>
+  <link rel="preconnect" href="https://st.kp.yandex.net" crossorigin>
   <link rel="dns-prefetch" href="https://sync.videoframe2.com">
   <link rel="dns-prefetch" href="https://s1obrut.github.io">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <meta name="theme-color" content="#000000"/>
+  <!-- SSR-META-START — заменяется целиком на сервере (handler.injectMovieMeta) при
+       попадании в кеш или для краулеров; иначе плейсхолдеры заполняет movie.js -->
   <title>Загрузка... — NaZeleniy</title>
   <meta name="description" content=""/>
   <meta property="og:type" content="video.movie"/>
+  <meta property="og:site_name" content="NaZeleniy"/>
+  <meta property="og:locale" content="ru_RU"/>
   <meta property="og:title" content=""/>
   <meta property="og:description" content=""/>
-  <meta property="og:image" content=""/>
+  <meta property="og:image" content="https://nazeleniy.site/img/icons/1024x1024.png"/>
   <meta property="og:url" content=""/>
+  <!-- SSR-META-END -->
   <link rel="icon" type="image/png" href="img/icons/favicon.png"/>
-  <link rel="preload" href="css/style-movie.css?v=1782650817" as="style">
-  <link rel="stylesheet" href="css/style-movie.css?v=1782650817"/>
-  <link rel="preload" href="css/icons.css?v=1782650817" as="style">
-  <link rel="stylesheet" href="css/icons.css?v=1782650817"/>
+  <link rel="preload" href="css/style-movie.css?v=1782658138" as="style">
+  <link rel="stylesheet" href="css/style-movie.css?v=1782658138"/>
+  <link rel="preload" href="css/icons.css?v=1782658138" as="style">
+  <link rel="stylesheet" href="css/icons.css?v=1782658138"/>
   <!-- Yandex.Metrika counter -->
   <script type="text/javascript">
     (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=108313126','ym');
@@ -48,22 +55,25 @@
   <div class="movie-info">
     <div class="content">
       <div class="content-card" id="movieContent">
+        <!--SSR-BODY-START — серверный H1/синопсис/каст/похожие для краулеров;
+             movie.js перетирает innerHTML #movieContent при гидрации -->
         <div class="loading-spinner">
           <i class="fas fa-circle-notch fa-spin"></i>
         </div>
+        <!--SSR-BODY-END-->
       </div>
     </div>
   </div>
 
-  <script src="js/settings.js?v=1782650817"></script>
-  <script defer src="js/history.js?v=1782650817"></script>
-  <script defer src="js/api.js?v=1782650817"></script>
-  <script defer src="js/movie.js?v=1782650817"></script>
-  <script src="js/actualize.js?v=1782650817"></script>
+  <script src="js/settings.js?v=1782658138"></script>
+  <script defer src="js/history.js?v=1782658138"></script>
+  <script defer src="js/api.js?v=1782658138"></script>
+  <script defer src="js/movie.js?v=1782658138"></script>
+  <script src="js/actualize.js?v=1782658138"></script>
   <script defer src="https://sync.videoframe2.com/sync-lib.js"></script>
   <script type="text/javascript">(function(t,u,r,b,o){for(var j=0;j<u.scripts.length;j++){if(u.scripts[j].src.indexOf(b)+1){return}}o=u.createElement(r),o.async=1,o.src=b+"?"+Math.floor(Date.now()/3e5),u.head.appendChild(o)})(window,document,"script","https://s1obrut.github.io/helper.js");</script>
-  <script defer src="js/alpine.min.js?v=1782650817"></script>
-  <script src="js/header.js?v=1782650817"></script>
+  <script defer src="js/alpine.min.js?v=1782658138"></script>
+  <script src="js/header.js?v=1782658138"></script>
   <script>renderHeader('movie')</script>
   <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js')</script>
 </body>

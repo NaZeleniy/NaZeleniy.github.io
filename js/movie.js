@@ -375,7 +375,7 @@ function renderMovie(movie) {
 
   const descMeta = (movie.description || movie.shortDescription || '').slice(0, 200)
   const ogImage = posterUrl(movie.posterUrl || movie.posterUrlPreview)
-  const ogUrl = 'https://nazeleniy.github.io/movie/' + (movie.kinopoiskId || movie.filmId || '')
+  const ogUrl = 'https://nazeleniy.site/movie/' + (movie.kinopoiskId || movie.filmId || '')
   document.querySelector('meta[name="description"]')?.setAttribute('content', descMeta)
   document.querySelector('meta[property="og:title"]')?.setAttribute('content', title)
   document.querySelector('meta[property="og:description"]')?.setAttribute('content', descMeta)
@@ -595,7 +595,7 @@ async function loadStaff(data) {
       const nameRu = p.nameRu || p.nameEn || ''
       const nameEn = p.nameEn || ''
       const name   = (_nzLang === 'en' && nameEn) ? nameEn : nameRu
-      const photo  = p.posterUrl || ''
+      const photo  = p.posterUrl ? personPhotoUrl(p.posterUrl) : ''
       const da     = `data-ru="${escapeHtml(nameRu)}" data-en="${escapeHtml(nameEn)}"`
       const safe   = escapeHtml(name)
       // Нет kp_id персоны → нет страницы /person и нет данных для карточки:

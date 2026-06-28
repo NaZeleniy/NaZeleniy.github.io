@@ -371,7 +371,10 @@ function app() {
     },
 
     prefetchPosters(movies) {
-      const limit = 20
+      // Греем только первый экран. 20 параллельных new Image() конкурировали за
+      // соединения с LCP-постером и роняли его время отрисовки; 8 покрывает
+      // видимый ряд(ы), остальное догрузят сами <img> по мере скролла (lazy).
+      const limit = 8
       for (let i = 0; i < Math.min(movies.length, limit); i++) {
         const src = this.posterFor(movies[i])
         if (src) {

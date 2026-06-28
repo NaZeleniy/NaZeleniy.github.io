@@ -1,25 +1,36 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <script src="js/version.js?v=1782650817"></script>
+  <script src="js/version.js?v=1782658138"></script>
   <meta charset="UTF-8"/>
   
   <link rel="dns-prefetch" href="https://mc.yandex.ru">
   <link rel="dns-prefetch" href="https://nazeleniy.site">
   <link rel="preconnect" href="https://nazeleniy.site" crossorigin>
+  <link rel="preconnect" href="https://avatars.mds.yandex.net" crossorigin>
+  <link rel="preconnect" href="https://st.kp.yandex.net" crossorigin>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <meta name="theme-color" content="#000000"/>
-  <title>NaZeleniy — Популярное</title>
+  <title>Популярные фильмы и сериалы онлайн — NaZeleniy</title>
+  <link rel="canonical" href="https://nazeleniy.site/top"/>
+  <meta name="description" content="Популярные фильмы и сериалы онлайн: актуальные тренды и самое смотрибельное прямо сейчас, с оценками Кинопоиска и IMDb. Подборка лучшего на NaZeleniy."/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:site_name" content="NaZeleniy"/>
+  <meta property="og:locale" content="ru_RU"/>
+  <meta property="og:title" content="Популярные фильмы и сериалы онлайн — NaZeleniy"/>
+  <meta property="og:description" content="Актуальные тренды и самое смотрибельное прямо сейчас, с оценками Кинопоиска и IMDb."/>
+  <meta property="og:url" content="https://nazeleniy.site/top"/>
+  <meta property="og:image" content="https://nazeleniy.site/img/icons/1024x1024.png"/>
   <link rel="icon" type="image/png" href="img/icons/favicon.png"/>
-  <link rel="preload" href="css/style-top.css?v=1782650817" as="style">
-  <link rel="stylesheet" href="css/style-top.css?v=1782650817"/>
-  <link rel="preload" href="css/icons.css?v=1782650817" as="style">
-  <link rel="stylesheet" href="css/icons.css?v=1782650817"/>
-  <script src="js/settings.js?v=1782650817"></script>
-  <script defer src="js/history.js?v=1782650817"></script>
-  <script defer src="js/api.js?v=1782650817"></script>
-  <script defer src="js/app.js?v=1782650817"></script>
-  <script defer src="js/alpine.min.js?v=1782650817"></script>
+  <link rel="preload" href="css/style-top.css?v=1782658138" as="style">
+  <link rel="stylesheet" href="css/style-top.css?v=1782658138"/>
+  <link rel="preload" href="css/icons.css?v=1782658138" as="style">
+  <link rel="stylesheet" href="css/icons.css?v=1782658138"/>
+  <script src="js/settings.js?v=1782658138"></script>
+  <script defer src="js/history.js?v=1782658138"></script>
+  <script defer src="js/api.js?v=1782658138"></script>
+  <script defer src="js/app.js?v=1782658138"></script>
+  <script defer src="js/alpine.min.js?v=1782658138"></script>
   <!-- Yandex.Metrika counter -->
   <script type="text/javascript">
     (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=108313126','ym');
@@ -38,6 +49,8 @@
 
   <main class="main-content">
 
+    <h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0">Популярные фильмы и сериалы онлайн</h1>
+
     <div id="app-search"></div>
 
     <!-- Movie grid -->
@@ -54,7 +67,10 @@
             <img
               class="movie-poster"
               :src="posterFor(movie)"
-              :alt="movie.nameRu || movie.nameEn || 'Постер'"
+              :alt="'Постер: ' + (movie.nameRu || movie.nameEn || movie.nameOriginal || 'фильм') + (movie.year ? ', ' + movie.year : '')"
+              :loading="i < 8 ? 'eager' : 'lazy'"
+              :fetchpriority="i === 0 ? 'high' : 'auto'"
+              width="300" height="450"
               x-init="posterInit($el)"
               @load="$el.classList.add('loaded')"
               @error="posterError($el, movie)"
@@ -89,7 +105,7 @@
 
   </main>
 
-  <script src="js/header.js?v=1782650817"></script>
+  <script src="js/header.js?v=1782658138"></script>
   <script>renderHeader('top')</script>
   <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js')</script>
 </body>

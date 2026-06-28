@@ -33,6 +33,21 @@ function posterUrl(url) {
   return url
 }
 
+// Известные CDN-хосты фото персон (совпадают с белым списком бэкенда posterHosts).
+const _PERSON_HOSTS = /avatars\.mds\.yandex\.net|st\.kp\.yandex\.net|image\.tmdb\.org|m\.media-amazon\.com|kinopoiskapiunofficial\.tech|api\.kinodata\.space/
+
+// Фото персон всегда проксируем через бэкенд — в отличие от постеров, где KP/Яндекс
+// отдаются напрямую. Портреты с KP/Кинопоиска часто отдаются с hotlink-защитой и
+// нестабильны при прямой загрузке; прокси даёт надёжность, WebP-конверсию и кеш 24ч.
+// Неизвестные хосты — напрямую (бэкенд принимает только белый список → иначе 403).
+function personPhotoUrl(url) {
+  if (!url || url.includes('no-poster')) return PLACEHOLDER
+  if (_PERSON_HOSTS.test(url)) {
+    return API_BASE + '/proxy/poster?url=' + encodeURIComponent(url)
+  }
+  return url
+}
+
 // Уменьшенный постер для миниатюр в сетке — режет трафик в разы (для прямой
 // загрузки и для прокси). KP: .../600x900 → /300x450; TMDB: original → w342.
 function _previewPoster(full) {
