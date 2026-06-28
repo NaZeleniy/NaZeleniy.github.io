@@ -519,9 +519,9 @@ a.movie-poster-side img {
 /* hover card */
 .cast-card {
   position: absolute;
-  bottom: calc(100% + 8px);
+  bottom: calc(100% + 12px);
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateY(4px);
   width: 320px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
@@ -531,12 +531,41 @@ a.movie-poster-side img {
   gap: 14px;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease, transform 0.15s ease;
   z-index: 50;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
 }
 
-.cast-item:hover .cast-card { opacity: 1; }
+/* Хвостик-указатель к конкретному имени: внешний треугольник = рамка карточки */
+.cast-card::before,
+.cast-card::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-bottom: 0;
+}
+.cast-card::before {
+  top: 100%;
+  transform: translateX(-50%);
+  border-width: 9px 9px 0 9px;
+  border-top-color: var(--border);
+}
+/* внутренний = заливка, на 1px выше — перекрывает нижнюю границу карточки,
+   оставляя 1px рамку на скошенных сторонах стрелки */
+.cast-card::after {
+  top: calc(100% - 1px);
+  transform: translateX(-50%);
+  border-width: 8px 8px 0 8px;
+  border-top-color: var(--bg-secondary);
+}
+
+.cast-item:hover .cast-card {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
 
 .cast-card-photo {
   width: 64px;
