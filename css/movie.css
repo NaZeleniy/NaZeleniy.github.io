@@ -519,9 +519,12 @@ a.movie-poster-side img {
 /* hover card */
 .cast-card {
   position: absolute;
-  bottom: calc(100% + 12px);
+  /* НЕ использовать calc(100% + N) — минификатор срезает пробелы вокруг "+" →
+     calc(100%+12px) невалиден, браузер дропает свойство, карточка падает под
+     курсор. Зазор над именем задаём смещением в transform (translateY). */
+  bottom: 100%;
   left: 50%;
-  transform: translateX(-50%) translateY(4px);
+  transform: translate(-50%, -8px);
   width: 320px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
@@ -556,7 +559,8 @@ a.movie-poster-side img {
 /* внутренний = заливка, на 1px выше — перекрывает нижнюю границу карточки,
    оставляя 1px рамку на скошенных сторонах стрелки */
 .cast-card::after {
-  top: calc(100% - 1px);
+  top: 100%;
+  margin-top: -1px;
   transform: translateX(-50%);
   border-width: 8px 8px 0 8px;
   border-top-color: var(--bg-secondary);
@@ -564,7 +568,7 @@ a.movie-poster-side img {
 
 .cast-item:hover .cast-card {
   opacity: 1;
-  transform: translateX(-50%) translateY(0);
+  transform: translate(-50%, -12px);
 }
 
 .cast-card-photo {

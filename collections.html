@@ -2,7 +2,19 @@
 <html lang="ru">
 <head>
   <base href="/">
-  <script src="js/version.js?v=1782661777"></script>
+  <script>
+    // /collections/{slug} на GitHub Pages приходит через 404.html → редирект на
+    // /collections.html?slug=... ; синхронно возвращаем чистый путь в адресную
+    // строку. На Go-бэкенде путь уже чистый — no-op.
+    (function () {
+      var p = new URLSearchParams(location.search)
+      var slug = p.get('slug') || p.get('collection')
+      if (slug && !/\/collections\/[^/]+/.test(location.pathname)) {
+        try { history.replaceState(null, '', '/collections/' + encodeURIComponent(slug)) } catch (e) {}
+      }
+    })()
+  </script>
+  <script src="js/version.js?v=1782736285"></script>
   <meta charset="UTF-8"/>
 
   <link rel="dns-prefetch" href="https://mc.yandex.ru">
@@ -10,17 +22,19 @@
   <link rel="preconnect" href="https://nazeleniy.site" crossorigin>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <meta name="theme-color" content="#000000"/>
+  <!-- SSR-META-START -->
   <title>Подборки — NaZeleniy</title>
   <meta name="description" content="Тематические коллекции фильмов и сериалов на NaZeleniy."/>
+  <!-- SSR-META-END -->
   <link rel="icon" type="image/png" href="img/icons/favicon.png"/>
-  <link rel="preload" href="css/style-collections.css?v=1782661777" as="style">
-  <link rel="stylesheet" href="css/style-collections.css?v=1782661777"/>
-  <link rel="preload" href="css/icons.css?v=1782661777" as="style">
-  <link rel="stylesheet" href="css/icons.css?v=1782661777"/>
-  <script src="js/settings.js?v=1782661777"></script>
-  <script defer src="js/api.js?v=1782661777"></script>
-  <script defer src="js/collections.js?v=1782661777"></script>
-  <script defer src="js/alpine.min.js?v=1782661777"></script>
+  <link rel="preload" href="css/style-collections.css?v=1782736285" as="style">
+  <link rel="stylesheet" href="css/style-collections.css?v=1782736285"/>
+  <link rel="preload" href="css/icons.css?v=1782736285" as="style">
+  <link rel="stylesheet" href="css/icons.css?v=1782736285"/>
+  <script src="js/settings.js?v=1782736285"></script>
+  <script defer src="js/api.js?v=1782736285"></script>
+  <script defer src="js/collections.js?v=1782736285"></script>
+  <script defer src="js/alpine.min.js?v=1782736285"></script>
   <!-- Yandex.Metrika counter -->
   <script type="text/javascript">
     (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=108313126','ym');
@@ -81,6 +95,9 @@
         <i class="ph ph-arrow-left"></i> Назад
       </button>
 
+      <!-- Серверный SSR-блок подборки для краулеров/без-JS (collections.js удаляет [data-ssr-cleanup] при гидрации). -->
+      <!--SSR-CGRID-START--><!--SSR-CGRID-END-->
+
       <div class="collection-detail-head">
         <div class="collection-detail-title">
           <h1 x-text="active ? active.name : ''"></h1>
@@ -128,7 +145,7 @@
 
   </main>
 
-  <script src="js/header.js?v=1782661777"></script>
+  <script src="js/header.js?v=1782736285"></script>
   <script>renderHeader('collections')</script>
   <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js')</script>
 </body>

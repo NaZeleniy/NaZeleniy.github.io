@@ -24,6 +24,12 @@ function collections() {
     _prefetched: new Set(),
 
     async fetchCollections() {
+      // Серверный SSR-блок детальной подборки (для краулеров/без-JS) — убираем
+      // при гидрации, чтобы Alpine не дублировал карточки.
+      this._removeSSR()
+      window.addEventListener('popstate', () => this._syncFromUrl())
+      // Deep-link /collections/{slug}: сразу показываем детальный вид, без мелькания индекса.
+      if (this._slugFromUrl()) this.view = 'detail'
       try {
         const r = await fetch(`${API_BASE}/api/collections`)
         if (!r.ok) throw new Error('upstream ' + r.status)
@@ -37,6 +43,40 @@ function collections() {
       }
       // обложка-монтаж: тянем по 3 постера на подборку (best-effort, параллельно)
       this.list.forEach(c => this._loadCovers(c))
+      // открыть подборку из URL (deep-link / переход назад-вперёд)
+      this._openFromUrl()
+    },
+
+    _removeSSR() {
+      document.querySelectorAll('[data-ssr-cleanup]').forEach(el => el.remove())
+    },
+
+    // slug из чистого пути /collections/{slug} или из ?slug=/?collection=
+    _slugFromUrl() {
+      const m = location.pathname.match(/^\/collections\/([^/]+)\/?$/)
+      if (m) return decodeURIComponent(m[1])
+      const q = new URLSearchParams(location.search)
+      return q.get('slug') || q.get('collection') || ''
+    },
+
+    _openFromUrl() {
+      const slug = this._slugFromUrl()
+      if (!slug) return
+      const c = (this.list || []).find(x => x.slug === slug)
+      if (c) this.open(c, { fromUrl: true })
+      else this._backToIndex() // неизвестный slug — показываем индекс
+    },
+
+    // Синхронизация при кнопках назад/вперёд браузера
+    _syncFromUrl() {
+      const slug = this._slugFromUrl()
+      if (slug) {
+        if (this.view === 'detail' && this.active && this.active.slug === slug) return
+        const c = (this.list || []).find(x => x.slug === slug)
+        if (c) this.open(c, { fromUrl: true })
+      } else if (this.view !== 'index') {
+        this._backToIndex()
+      }
     },
 
     async _loadCovers(c) {
@@ -58,10 +98,15 @@ function collections() {
       return c.poster_url ? [API_BASE + '/proxy/poster?url=' + encodeURIComponent(c.poster_url)] : []
     },
 
-    async open(c) {
+    async open(c, opts = {}) {
+      this._removeSSR()
       this._cleanupScroll()
       this.active = c
       this.view = 'detail'
+      // Чистый URL подборки (кроме случая, когда мы и так пришли по этому URL)
+      if (!opts.fromUrl) {
+        try { history.pushState({ collection: c.slug }, '', '/collections/' + encodeURIComponent(c.slug)) } catch {}
+      }
       this.movies = []
       this._offset = 0
       this._hasMore = false
@@ -154,6 +199,11 @@ function collections() {
     },
 
     back() {
+      this._backToIndex()
+      try { history.pushState(null, '', '/collections') } catch {}
+    },
+
+    _backToIndex() {
       this._cleanupScroll()
       this.view = 'index'
       this.active = null
