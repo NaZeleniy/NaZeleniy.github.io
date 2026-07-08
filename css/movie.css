@@ -1257,3 +1257,30 @@ a.movie-poster-side img {
 }
 .nz-spoiler:hover { filter: blur(4px); }
 .nz-spoiler.revealed { filter: none; cursor: auto; -webkit-user-select: auto; user-select: auto; }
+
+/* ── Заблокированный тайтл (жалоба правообладателя) ──────── */
+.movie-blocked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 18px;
+  padding: 90px 24px;
+  min-height: 50vh;
+}
+.movie-blocked-icon { font-size: 58px; color: var(--text-muted); opacity: 0.55; }
+.movie-blocked-title {
+  font-size: 22px; font-weight: 700; color: var(--text);
+  margin: 0; max-width: 560px; line-height: 1.3; letter-spacing: -0.01em;
+}
+.movie-blocked-text {
+  font-size: 15px; color: var(--text-secondary);
+  margin: 0; max-width: 480px; line-height: 1.55;
+}
+.movie-blocked-home {
+  margin-top: 6px; padding: 11px 26px; border-radius: 10px;
+  background: var(--accent); color: #fff; font-weight: 600; font-size: 14px;
+  transition: background var(--transition);
+}
+.movie-blocked-home:hover { background: var(--accent-hover); }

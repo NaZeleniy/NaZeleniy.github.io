@@ -4,6 +4,13 @@ const movieId = (() => {
   return fromPath ? fromPath[1] : new URLSearchParams(location.search).get('id')
 })()
 
+// Тайтлы, недоступные по требованию правообладателя (жалобы / DMCA).
+// Добавляйте сюда kinopoiskId (строкой) при получении жалобы — страница /movie/<id>
+// покажет заглушку (renderBlocked), запросы к /api и плееры не выполняются.
+const NZ_BLOCKED_TITLES = new Set([
+  '5106881', // жалоба правообладателя, 2026-07-08
+])
+
 async function fetchWithRetry(url, opts, retries = 2, delay = 1200) {
   for (let i = 0; i <= retries; i++) {
     try {
@@ -1274,6 +1281,29 @@ function renderError(message) {
   `
 }
 
+// Заглушка для тайтла, снятого по требованию правообладателя (см. NZ_BLOCKED_TITLES).
+function renderBlocked() {
+  document.title = 'Недоступно — NaZeleniy'
+  // Не индексируем заблокированную страницу (для JS-краулеров вроде Googlebot)
+  let robots = document.querySelector('meta[name="robots"]')
+  if (!robots) {
+    robots = document.createElement('meta')
+    robots.setAttribute('name', 'robots')
+    document.head.appendChild(robots)
+  }
+  robots.setAttribute('content', 'noindex')
+
+  const c = document.getElementById('movieContent')
+  if (!c) return
+  c.innerHTML = `
+    <div class="movie-blocked">
+      <i class="fas fa-lock movie-blocked-icon"></i>
+      <h1 class="movie-blocked-title">Недоступно по требованию правообладателя</h1>
+      <p class="movie-blocked-text">Страница этого тайтла удалена по жалобе правообладателя.</p>
+      <a class="movie-blocked-home" href="/">На главную</a>
+    </div>`
+}
+
 // ── Полная инфа + переключение языка (порт надстройки из /ref) ──────────────
 // Работает поверх renderMovie: берёт сырой сгруппированный ответ Kinodata
 // (двуязычные поля) и дозаполняет инфо-лист, критиков, описание, факты;
@@ -1568,6 +1598,13 @@ function _nzApplyCast() {
 async function loadMovie() {
   if (!movieId) {
     renderError('ID фильма не указан')
+    return
+  }
+
+  // Тайтл заблокирован по требованию правообладателя — заглушка вместо страницы,
+  // не грузим ни превью, ни /api/movie, ни плееры.
+  if (NZ_BLOCKED_TITLES.has(String(movieId))) {
+    renderBlocked()
     return
   }
 
