@@ -9,6 +9,7 @@ const movieId = (() => {
 // покажет заглушку (renderBlocked), запросы к /api и плееры не выполняются.
 const NZ_BLOCKED_TITLES = new Set([
   '5106881', // жалоба правообладателя, 2026-07-08
+  '9932878', // жалоба правообладателя, 2026-07-09
 ])
 
 async function fetchWithRetry(url, opts, retries = 2, delay = 1200) {
