@@ -1,4 +1,4 @@
-const CACHE = 'nz-3'
+const CACHE = 'nz-4'
 
 // API, auth, WebSocket и прокси постеров — не кешируем.
 // /auth/ критичен: ответ /auth/telegram/status содержит bearer_token, а
@@ -34,19 +34,13 @@ self.addEventListener('fetch', e => {
     return
   }
 
-  // HTML страницы — network-first (свежий документ из сети, кеш только как офлайн-фоллбек).
-  // Раньше был stale-while-revalidate, но он отдавал СТАРЫЙ HTML на первой загрузке после
-  // деплоя: старый HTML ссылается на app.js?v=СТАРЫЙ → старый код (нет скролла/спиннера),
-  // и только ручной refresh подтягивал свежий. HTML маленький, ассеты versioned cache-first
-  // (мгновенно), поэтому network-first почти бесплатен, но всегда отдаёт актуальную страницу.
-  // destination === 'document' покрывает все навигационные запросы включая чистые URL (/top, /me).
-  // /movie/{id}: GitHub Pages отдаёт 404.html со статусом 404 — кешируем его явно (allow404).
-  if (request.destination === 'document' || url.pathname === '/' || url.pathname.endsWith('.html')) {
-    e.respondWith(networkFirst(request))
-    return
-  }
-  if (/^\/movie\/\d+\/?$/.test(url.pathname)) {
-    e.respondWith(networkFirst(request, { allow404: true }))
+  // Навигации/документы НЕ перехватываем — браузер грузит их сам. Иначе разовый
+  // сетевой сбой внутри SW превращается в ERR_FAILED на переходе (reload лечит,
+  // следующий клик снова падает). Ассеты (versioned выше) остаются cache-first.
+  // Покрывает чистые URL (/, /top, /me), *.html и /movie/{id} (GH Pages 404-shell).
+  if (request.mode === 'navigate' || request.destination === 'document' ||
+      url.pathname === '/' || url.pathname.endsWith('.html') ||
+      /^\/movie\/\d+\/?$/.test(url.pathname)) {
     return
   }
 
@@ -63,20 +57,6 @@ async function cacheFirst(req) {
     return res
   } catch {
     return new Response('', { status: 503, statusText: 'Service Unavailable' })
-  }
-}
-
-async function networkFirst(req, { allow404 = false } = {}) {
-  const cache = await caches.open(CACHE)
-  try {
-    const res = await fetch(req)
-    // Кешируем успешные ответы; для /movie/{id} кешируем и 404
-    // (GitHub Pages намеренно отдаёт 404.html — это наш app shell)
-    if (res.ok || (allow404 && res.status === 404)) cache.put(req, res.clone())
-    return res
-  } catch {
-    // Сеть недоступна (офлайн) — отдаём последнюю закешированную версию
-    return (await cache.match(req)) || new Response('', { status: 503, statusText: 'Service Unavailable' })
   }
 }
 
