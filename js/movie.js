@@ -692,8 +692,8 @@ async function loadStaff(data) {
   } catch {}
 }
 
-// data — уже распарсенный `{items}` (встроен в /api/movie через include=franchise).
-// Если не передан — фолбэк на отдельный запрос /api/sequels.
+// data — обычно не передаётся: франшиза грузится отдельным /api/sequels/:id
+// (там фильтр required=kp_id). Аргумент оставлен для обратной совместимости.
 async function loadSequels(data) {
   const section = document.getElementById('sequels-section')
   if (!section || !movieId) return
@@ -1618,8 +1618,9 @@ async function loadMovie() {
   } catch {}
 
   // Запускаем вторичные запросы немедленно, параллельно с основным.
-  // Каст, похожие и франшиза НЕ запрашиваются отдельно — они встроены в ответ
-  // /api/movie (include=cast,similar,franchise), это экономит холодные upstream-запросы.
+  // Каст и похожие встроены в ответ /api/movie (include=cast,similar) — экономят
+  // холодные upstream-запросы. Франшиза грузится отдельным /api/sequels/:id, т.к.
+  // встроенный include игнорирует фильтр required=kp_id и тянет тайтлы без kp_id.
   const playersRes  = fetchWithRetry(`${API_BASE}/api/players/${movieId}`)
   // Предотвращаем unhandled rejection если основной запрос упадёт раньше
   playersRes.catch(() => {})
@@ -1638,7 +1639,7 @@ async function loadMovie() {
     initComments(movie)
     loadStaff(raw.cast)         // {cast:[...]} встроен в /api/movie
     loadPlatforms(raw)          // платформы (networks) → кликабельные синие карточки
-    loadSequels(raw.franchise)  // {items} встроен в /api/movie (include=franchise)
+    loadSequels()               // отдельный /api/sequels/:id — там фильтр required=kp_id
     loadSimilars(raw.similar)   // {items,relation} встроен в /api/movie
     loadPlayers(playersRes, movie.kinopoiskId || movie.filmId)
   } catch (e) {
