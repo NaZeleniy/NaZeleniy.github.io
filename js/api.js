@@ -1,5 +1,5 @@
 const API_BASE = window.location.hostname.endsWith('github.io')
-  ? 'https://nazeleniy.site'
+  ? 'https://aucklanda.online'
   : ''
 
 // credentials mode для fetch:
@@ -20,7 +20,7 @@ const PLACEHOLDER = '/img/placeholder.svg'
 // Хосты KP/Яндекса — отдаём напрямую (быстро в РФ, нам бесплатно, не грузит наш
 // сервер). Остальные разрешённые прокси-хосты (TMDB/IMDb) в РФ часто заблокированы
 // и выгоднее идти через наш /proxy/poster (доступность + конверсия в WebP, кеш 24ч).
-const _KP_HOSTS    = /avatars\.mds\.yandex\.net|st\.kp\.yandex\.net/
+const _KP_HOSTS = /avatars\.mds\.yandex\.net|st\.kp\.yandex\.net/
 const _PROXY_HOSTS = /image\.tmdb\.org|m\.media-amazon\.com|kinopoiskapiunofficial\.tech/
 
 // Возвращает готовый src постера. KP — напрямую, TMDB/IMDb — через /proxy/poster,
@@ -52,7 +52,7 @@ function personPhotoUrl(url) {
 // загрузки и для прокси). KP: .../600x900 → /300x450; TMDB: original → w342.
 function _previewPoster(full) {
   if (!full) return ''
-  if (_KP_HOSTS.test(full))         return full.replace(/\/\d+x\d+$/, '/300x450')
+  if (_KP_HOSTS.test(full)) return full.replace(/\/\d+x\d+$/, '/300x450')
   if (full.includes('image.tmdb')) return full.replace('/t/p/original/', '/t/p/w342/')
   return full
 }
@@ -71,10 +71,10 @@ function _pickPoster(o) {
 // kind Kinodata (movie|series|mini_series|tv_show|anime|cartoon|short) → старый type
 function _kindToType(kind) {
   switch (kind) {
-    case 'series':      return 'TV_SERIES'
+    case 'series': return 'TV_SERIES'
     case 'mini_series': return 'MINI_SERIES'
-    case 'tv_show':     return 'TV_SHOW'
-    default:            return 'FILM' // movie, anime, cartoon, short
+    case 'tv_show': return 'TV_SHOW'
+    default: return 'FILM' // movie, anime, cartoon, short
   }
 }
 
