@@ -1,10 +1,10 @@
 # Этот файл управляет индексацией ТОЛЬКО зеркала на GitHub Pages (nazeleniy.github.io).
-# На проде nazeleniy.site robots.txt отдаёт Go-бэкенд (handler.Robots) — этот файл там
+# На проде aucklanda.online robots.txt отдаёт Go-бэкенд (handler.Robots) — этот файл там
 # игнорируется (маршрут /robots.txt перекрывает статику). Поэтому фронт един для обоих
 # доменов, а различается лишь поведение robots.
 #
-# Пока nazeleniy.site не стал основным для пользователей — держим зеркало индексируемым.
+# Пока aucklanda.online не стал основным для пользователей — держим зеркало индексируемым.
 # Чтобы деиндексировать зеркало позже: замени тело ниже на «Disallow: /» и запушь в Pages.
 User-agent: *
 Allow: /
-Sitemap: https://nazeleniy.site/sitemap.xml
+Sitemap: https://aucklanda.online/sitemap.xml

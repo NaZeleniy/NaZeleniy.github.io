@@ -17,7 +17,7 @@ const _CACHE_TTL = 15 * 60 * 1000 // 15 минут
 // а auth.js — синхронный скрипт (index.html). Дублирует логику из auth-modal.js._api().
 function _apiBase() {
   if (typeof API_BASE !== 'undefined') return API_BASE
-  return location.hostname.endsWith('github.io') ? 'https://nazeleniy.site' : ''
+  return location.hostname.endsWith('github.io') ? 'https://aucklanda.online' : ''
 }
 
 function _getCachedUser() {

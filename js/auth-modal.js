@@ -26,7 +26,7 @@
 
   function _api() {
     if (typeof API_BASE !== 'undefined') return API_BASE
-    return location.hostname.endsWith('github.io') ? 'https://nazeleniy.site' : ''
+    return location.hostname.endsWith('github.io') ? 'https://aucklanda.online' : ''
   }
   function _creds() {
     if (!_api()) return 'include'

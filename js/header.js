@@ -9,17 +9,17 @@ function renderHeader(activePage) {
   _initBgParallax()
 }
 
-// Canonical (дедуп github.io ↔ nazeleniy.site), PWA-манифест и apple-touch-icon.
+// Canonical (дедуп github.io ↔ aucklanda.online), PWA-манифест и apple-touch-icon.
 // Инжектим из одной точки, чтобы не дублировать в <head> каждой страницы.
 function _injectHeadMeta() {
   if (window._headMetaInit) return
   window._headMetaInit = true
   const head = document.head
-  // Канонический домен — всегда nazeleniy.site, на каком бы хосте ни открыли.
+  // Канонический домен — всегда aucklanda.online, на каком бы хосте ни открыли.
   if (!head.querySelector('link[rel="canonical"]')) {
     const link = document.createElement('link')
     link.rel = 'canonical'
-    link.href = 'https://nazeleniy.site' + location.pathname
+    link.href = 'https://aucklanda.online' + location.pathname
     head.appendChild(link)
   }
   if (!head.querySelector('link[rel="manifest"]')) {
