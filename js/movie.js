@@ -329,16 +329,35 @@ function initPlayerLazyLoad(players) {
     opt.className = 'player-option'
     opt.dataset.name = p.name
     opt.textContent = p.name
-    opt.addEventListener('click', () => selectPlayer(p.name, p.url, p.type))
+    opt.addEventListener('click', () => {
+      try { localStorage.setItem('nz_player', p.name) } catch {}
+      selectPlayer(p.name, p.url, p.type)
+    })
     dropdown.appendChild(opt)
   })
+
+  // Восстанавливаем ранее выбранный плеер (глобальная настройка nz_player),
+  // если он доступен для этого фильма; иначе — первый в списке.
+  let preferred = players[0]
+  let hasSaved = false
+  try {
+    const saved = localStorage.getItem('nz_player')
+    if (saved) {
+      const match = players.find(p => p.name === saved)
+      if (match) { preferred = match; hasSaved = true }
+    }
+  } catch {}
 
   let started = false
   const startFirstPlayer = () => {
     if (started) return
     started = true
-    selectPlayer(players[0].name, players[0].url, players[0].type)
+    selectPlayer(preferred.name, preferred.url, preferred.type)
   }
+
+  // Если у пользователя есть сохранённый плеер — раскрываем «Смотреть онлайн»
+  // сразу (toggle-событие само запустит startFirstPlayer).
+  if (hasSaved && 'open' in details) details.open = true
 
   // Начинаем загрузку при наведении (до клика), с debounce 200ms
   const summary = details.querySelector('summary')

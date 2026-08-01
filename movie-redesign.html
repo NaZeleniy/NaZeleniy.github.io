@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<base href="/">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>Матрица (1999) — редизайн /movie · NaZeleniy</title>
+<link rel="icon" type="image/png" href="img/icons/favicon.png">
+<!-- Реальные стили сайта — референс наследует точный визуальный язык проекта -->
+<link rel="stylesheet" href="css/style-movie.css">
+<link rel="stylesheet" href="css/icons.css">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   ТОЛЬКО новый компонент: вкладки + панели для новых секций.
+   Всё остальное — родные классы сайта (content-card, content-title,
+   ratings-links, movie-layout, similar-card, nz-section-title…).
+   Стиль вкладок: минимализм, без рамок — только скользящее
+   подчёркивание акцентом; палитра/шрифт/переменные — из проекта.
+   Моторика: cubic-bezier(.23,1,.32,1), <300мс (Emil Kowalski).
+   ───────────────────────────────────────────────────────────── */
+.nzt{ margin-top:26px }
+/* панель вкладок — компактный «плавающий» segmented-контрол (матовое стекло),
+   без тёмной полосы во всю ширину; активная вкладка — скользящая пилюля */
+.nzt-bar{
+  position:sticky; top:12px; z-index:30; display:flex; gap:3px;
+  width:-moz-fit-content; width:fit-content; max-width:100%;
+  overflow-x:auto; scrollbar-width:none; padding:5px; border-radius:16px;
+  background:rgba(30,30,34,.62);
+  -webkit-backdrop-filter:blur(18px) saturate(1.4); backdrop-filter:blur(18px) saturate(1.4);
+  box-shadow:0 10px 34px -12px rgba(0,0,0,.7);
+}
+.nzt-bar::-webkit-scrollbar{ display:none }
+.nzt-pill{
+  position:absolute; top:5px; bottom:5px; left:0; z-index:0; border-radius:12px;
+  background:var(--accent-dim);
+  transition:transform .32s cubic-bezier(.23,1,.32,1), width .32s cubic-bezier(.23,1,.32,1);
+}
+.nzt-tab{
+  position:relative; z-index:1; flex:0 0 auto; padding:8px 14px; border-radius:12px;
+  font:600 14px/1 Roboto,sans-serif; color:var(--text-muted); background:none;
+  cursor:pointer; white-space:nowrap; transition:color .2s ease;
+}
+.nzt-tab:hover{ color:var(--text) }
+.nzt-tab.on{ color:var(--accent-light) }
+.nzt-tab .n{ color:currentColor; opacity:.6; font-size:12px; font-weight:600; margin-left:5px }
+.nzt-panels{ padding:28px 0 20px; min-height:40vh }
+.nzt-panel{ display:none }
+.nzt-panel.on{ display:block; animation:nztIn .28s cubic-bezier(.23,1,.32,1) both }
+@keyframes nztIn{ from{ opacity:0; transform:translateY(10px) } }
+
+/* Обзор */
+.nz-chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:14px }
+.nz-chip{ font-size:13px; color:var(--text-secondary); background:rgba(255,255,255,.05);
+  padding:5px 12px; border-radius:8px }
+.nz-subhead{ font-size:14px; font-weight:600; color:var(--text-secondary);
+  margin:22px 0 0; letter-spacing:.01em }
+
+/* Награды */
+.nz-awg{ margin-bottom:22px }
+.nz-awg-h{ display:flex; align-items:center; gap:10px; margin-bottom:8px }
+.nz-awg-h b{ font-size:16px }
+.nz-awg-h .p{ font-size:12px; font-weight:600; color:var(--accent-light);
+  background:var(--accent-dim); padding:3px 10px; border-radius:999px }
+.nz-aw{ display:flex; align-items:center; gap:12px; padding:9px 2px }
+.nz-aw + .nz-aw{ box-shadow:inset 0 1px 0 rgba(255,255,255,.05) }
+.nz-aw .m{ flex:0 0 auto; width:20px; height:20px; display:grid; place-items:center;
+  border-radius:50%; color:var(--text-muted) }
+.nz-aw.won .m{ background:var(--accent-dim); color:var(--accent-light) }
+.nz-aw .m svg{ width:13px; height:13px }
+.nz-aw span{ font-size:14px } .nz-aw.nom span{ color:var(--text-muted) }
+.nz-aw time{ margin-left:auto; color:var(--text-muted); font-size:13px }
+
+/* Видео */
+.nz-vids{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px }
+.nz-vid{ position:relative; border-radius:12px; overflow:hidden; background:rgba(255,255,255,.05);
+  aspect-ratio:16/9; display:block; transition:transform .2s cubic-bezier(.23,1,.32,1) }
+.nz-vid:hover{ transform:translateY(-3px) }
+.nz-vid img{ width:100%; height:100%; object-fit:cover; opacity:.85;
+  transition:opacity .2s, transform .35s cubic-bezier(.23,1,.32,1) }
+.nz-vid:hover img{ opacity:1; transform:scale(1.04) }
+.nz-vid .pl{ position:absolute; inset:0; display:grid; place-items:center; pointer-events:none }
+.nz-vid .pl span{ width:46px; height:46px; border-radius:50%; background:rgba(0,0,0,.5);
+  display:grid; place-items:center; -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
+  transition:transform .2s cubic-bezier(.23,1,.32,1), background .2s }
+.nz-vid:hover .pl span{ transform:scale(1.1); background:var(--accent) }
+.nz-vid .pl svg{ width:17px; height:17px; margin-left:2px; fill:#fff }
+.nz-vid .mt{ position:absolute; left:0; right:0; bottom:0; padding:24px 12px 10px;
+  background:linear-gradient(transparent,rgba(0,0,0,.82)); pointer-events:none }
+.nz-vid .k{ font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--accent-light); font-weight:700 }
+.nz-vid .d{ color:#e8eaed; font-size:12px }
+
+/* Актёры */
+.nz-cast{ display:grid; grid-template-columns:repeat(auto-fill,minmax(132px,1fr)); gap:18px }
+.nz-actor{ display:block; color:var(--text) }
+.nz-actor .av{ aspect-ratio:1; border-radius:14px; overflow:hidden;
+  background:linear-gradient(135deg, rgba(39,174,96,.22), rgba(255,255,255,.05));
+  display:grid; place-items:center; font:700 24px/1 Cinzel,Georgia,serif; color:var(--accent-light);
+  transition:transform .2s cubic-bezier(.23,1,.32,1) }
+.nz-actor:hover .av{ transform:translateY(-4px) }
+.nz-actor .av img{ width:100%; height:100%; object-fit:cover }
+.nz-actor .nm{ margin-top:10px; font-size:14px; font-weight:600; color:var(--accent-light);
+  text-decoration:underline; text-decoration-color:rgba(46,204,113,.35); text-underline-offset:3px; line-height:1.25 }
+.nz-actor .rl{ font-size:12.5px; color:var(--text-muted); margin-top:2px }
+
+/* Фото */
+.nz-photos{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px }
+.nz-photo{ aspect-ratio:16/9; border-radius:12px; overflow:hidden; background:rgba(255,255,255,.05);
+  cursor:zoom-in; display:block }
+.nz-photo img{ width:100%; height:100%; object-fit:cover;
+  transition:transform .4s cubic-bezier(.23,1,.32,1) }
+.nz-photo:hover img{ transform:scale(1.05) }
+.nz-photo:first-child{ grid-column:span 2 }
+@media (max-width:560px){ .nz-photo:first-child{ grid-column:span 1 } }
+.nz-photos.posters{ grid-template-columns:repeat(auto-fill,minmax(120px,1fr)) }
+.nz-photos.posters .nz-photo{ aspect-ratio:2/3 }
+.nz-photos.posters .nz-photo:first-child{ grid-column:auto }
+
+/* Цитаты */
+.nz-quotes{ display:grid; gap:6px }
+.nz-quote{ position:relative; padding:20px 22px; border-radius:var(--radius);
+  background:rgba(255,255,255,.04) }
+.nz-quote .mk{ position:absolute; top:22px; left:15px; font:700 48px/0 Cinzel,Georgia,serif;
+  color:var(--accent); opacity:.35 }
+.nz-quote blockquote{ font-size:18px; font-weight:500; padding-left:32px; line-height:1.45 }
+.nz-quote .o{ padding-left:32px; margin-top:8px; color:var(--text-muted); font-style:italic; font-size:14px }
+.nz-quote .b{ padding-left:32px; margin-top:12px; font-size:13px; color:var(--text-muted) }
+.nz-quote .b b{ color:var(--text); font-weight:600 }
+
+/* Родителям */
+.nz-pg-list{ display:grid; gap:2px; max-width:640px }
+.nz-pg{ display:flex; align-items:center; gap:14px; padding:13px 2px }
+.nz-pg + .nz-pg{ box-shadow:inset 0 1px 0 rgba(255,255,255,.05) }
+.nz-pg .cat{ font-size:15px; flex:1; text-transform:capitalize }
+.nz-pg .src{ font-size:12px; color:var(--text-muted) }
+.nz-pg .mtr{ display:flex; gap:4px }
+.nz-pg .mtr i{ width:24px; height:5px; border-radius:3px; background:rgba(255,255,255,.1) }
+.nz-pg.mild   .mtr i:nth-child(-n+1),
+.nz-pg.moderate .mtr i:nth-child(-n+2),
+.nz-pg.severe .mtr i:nth-child(-n+3){ background:currentColor }
+.nz-pg.mild{ color:#51cf66 } .nz-pg.moderate{ color:#e8b84b } .nz-pg.severe{ color:#e17055 }
+.nz-pg .lvl{ font-size:12px; font-weight:600; min-width:54px; text-align:right }
+.nz-pg .cat,.nz-pg .lvl{ color:var(--text) }
+
+/* Вопросы (аккордеон) */
+.nz-faq{ display:grid; gap:4px; max-width:840px }
+.nz-qa{ border-radius:var(--radius); overflow:hidden; background:rgba(255,255,255,.04);
+  transition:background .2s cubic-bezier(.23,1,.32,1) }
+.nz-qa[open]{ background:rgba(255,255,255,.06) }
+.nz-qa summary{ list-style:none; cursor:pointer; padding:15px 17px; display:flex;
+  align-items:center; gap:13px; font-size:15px; font-weight:600 }
+.nz-qa summary::-webkit-details-marker{ display:none }
+.nz-qa summary .ic{ flex:0 0 auto; color:var(--text-muted);
+  transition:transform .28s cubic-bezier(.23,1,.32,1) }
+.nz-qa[open] summary .ic{ transform:rotate(45deg); color:var(--accent) }
+.nz-qa .bd{ padding:0 17px 17px 44px; color:var(--text-secondary); font-size:14.5px; line-height:1.65 }
+.nz-qa .bd a{ color:var(--accent-light) }
+
+/* Где смотреть */
+.nz-sg{ margin-bottom:22px }
+.nz-sg .lbl{ display:block; font-size:11px; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--text-muted); font-weight:600; margin-bottom:11px }
+.nz-links{ display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:4px }
+.nz-lnk{ display:flex; align-items:center; gap:12px; padding:11px 13px; border-radius:10px;
+  background:rgba(255,255,255,.04); color:var(--text);
+  transition:background .18s cubic-bezier(.23,1,.32,1), transform .18s cubic-bezier(.23,1,.32,1) }
+.nz-lnk:hover{ background:rgba(255,255,255,.08); transform:translateY(-2px) }
+.nz-lnk .ic{ position:relative; width:26px; height:26px; flex:0 0 auto;
+  display:grid; place-items:center; font-weight:800; color:var(--accent-light); text-transform:uppercase }
+.nz-lnk .ic::before{ content:attr(data-l) }        /* fallback-буква под иконкой */
+.nz-lnk .ic img{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain }
+.nz-lnk b{ font-size:14px; font-weight:600 }
+.nz-lnk span{ display:block; font-size:11px; color:var(--text-muted) }
+
+/* favicon-иконка источника оценки (кликабельная ссылка), без рамки */
+.rating-fav{ position:relative; width:20px; height:20px; flex:0 0 auto;
+  display:inline-grid; place-items:center;
+  font-size:11px; font-weight:800; color:var(--text-secondary); text-transform:uppercase; line-height:1 }
+.rating-fav::before{ content:attr(data-l) }
+.rating-fav img{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain }
+
+/* статичный сайдбар-каркас (родные классы .side-panel/.nav-link) */
+.side-panel .nav-link svg{ width:20px; height:20px; flex:0 0 auto }
+.rd-brand{ display:grid; place-items:center; height:56px; margin-bottom:8px;
+  font:800 20px/1 Cinzel,Georgia,serif; color:var(--accent) }
+
+@media (max-width:700px){
+  .nz-quote blockquote{ font-size:16px }
+}
+</style>
+</head>
+<body>
+
+<!-- фон-постер (родной класс, размывается) -->
+<div class="bg-poster visible" id="bg-poster"></div>
+
+<!-- каркас сайта: статичный сайдбар -->
+<aside class="side-panel">
+  <div class="rd-brand">NZ</div>
+  <nav style="display:flex;flex-direction:column;gap:4px;padding:0 8px">
+    <a class="nav-link" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8M5 10v10h14V10" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="nav-text">Главная</span></a>
+    <a class="nav-link" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.5 1.6 6.7L12 17l-6.2 3.6 1.6-6.7L2.2 8.9l6.9-.6z" stroke-linejoin="round"/></svg><span class="nav-text">Популярное</span></a>
+    <a class="nav-link" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6" stroke-linecap="round"/></svg><span class="nav-text">Профиль</span></a>
+    <a class="nav-link" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" stroke-linecap="round"/></svg><span class="nav-text">Настройки</span></a>
+    <a class="nav-link" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 015 .5c0 1.5-2 2-2 3.5M12 17h.01" stroke-linecap="round"/></svg><span class="nav-text">FAQ</span></a>
+  </nav>
+</aside>
+
+<!-- плавающая «Назад» (родной класс) -->
+<button type="button" class="movie-back-top" onclick="history.length>1?history.back():location.href='/'">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg> Назад
+</button>
+
+<div class="movie-info">
+  <div class="content">
+    <div class="content-card" id="movieContent"><!-- заполняется скриптом --></div>
+  </div>
+</div>
+
+<script>
+/* ═══ ДАННЫЕ (api.kinodata.space, kp/301 «Матрица») ═══ */
+const DATA = {
+  title:{ru:"Матрица",en:"The Matrix"},
+  kp_id:301, imdb_id:"tt0133093", tmdb_id:603,
+  rt_url:"https://www.rottentomatoes.com/m/matrix",
+  mc_url:"https://www.metacritic.com/movie/the-matrix/",
+  year:1999, runtime:136, age:18, mpaa:"R",
+  tagline:"Добро пожаловать в реальный мир",
+  overview:"Жизнь Томаса Андерсона разделена на две части: днём он — самый обычный офисный работник, получающий нагоняи от начальства, а ночью превращается в хакера по имени Нео, и нет места в сети, куда он бы не смог проникнуть. Но однажды всё меняется. Томас узнаёт ужасающую правду о реальности.",
+  poster:"https://image.tmdb.org/t/p/w500/kEDbym5htJgDQNenjUtSJxAHysB.jpg",
+  backdrop:"https://image.tmdb.org/t/p/original/tlm8UkiQsitc8rSuIAscQDCnP8d.jpg",
+  countries:["США","Австралия"], genres:["боевик","фантастика"],
+  ratings:{kp:8.5,imdb:8.7,tmdb:8.3,rt:83,mc:73},
+  votes:{kp:805257,imdb:2259771,tmdb:28198},
+  finance:{budget:63000000,box:463517383},
+  premiere_ru:"14 октября 1999",
+  awards_text:"4 «Оскара» · 42 победы, 52 номинации",
+  collection:{name:"The Matrix Collection",poster:"https://image.tmdb.org/t/p/w200/bV9qTVHTVf0gkW0j7p7M0ILD4pG.jpg"},
+  companies:{studio:["Warner Bros. Pictures","Silver Pictures","Village Roadshow Pictures"],vfx:["Animal Logic","Manex Visual Effects","Bullet Time"]},
+  cast:[
+    {name:"Киану Ривз",role:"Нео",photo:null},
+    {name:"Лоренс Фишбёрн",role:"Морфеус",photo:null},
+    {name:"Кэрри-Энн Мосс",role:"Тринити",photo:null},
+    {name:"Хьюго Уивинг",role:"Агент Смит",photo:null},
+    {name:"Джо Пантольяно",role:"Сайфер",photo:null},
+    {name:"Глория Фостер",role:"Оракул",photo:null},
+    {name:"Маркус Чонг",role:"Тэнк",photo:null},
+    {name:"Джулиан Арахага",role:"Апок",photo:null}
+  ],
+  photos:{
+    "Кадры из фильма":[
+      "https://images.kinorium.com/movie/shot/116780/original_146207.jpg",
+      "https://images.kinorium.com/movie/shot/116780/original_1286918.jpg",
+      "https://images.kinorium.com/movie/shot/116780/original_146178.jpg",
+      "https://images.kinorium.com/movie/shot/116780/original_146197.jpg",
+      "https://images.kinorium.com/movie/shot/116780/original_146199.jpg"
+    ],
+    "Фоны":[
+      "https://image.tmdb.org/t/p/original/tlm8UkiQsitc8rSuIAscQDCnP8d.jpg"
+    ],
+    "Постеры":[
+      "https://image.tmdb.org/t/p/original/kEDbym5htJgDQNenjUtSJxAHysB.jpg",
+      "https://avatars.mds.yandex.net/get-kinopoisk-image/4774061/cf1970bc-3f08-4e0e-a095-2fb57c3aa7c6/600x900",
+      "https://image.tmdb.org/t/p/original/bV9qTVHTVf0gkW0j7p7M0ILD4pG.jpg"
+    ]
+  },
+  awards:[
+    {name:"Оскар",category:"Лучший звук",won:true,year:2000},
+    {name:"Оскар",category:"Лучший монтаж",won:true,year:2000},
+    {name:"Оскар",category:"Лучший монтаж звука",won:true,year:2000},
+    {name:"Оскар",category:"Лучшие визуальные эффекты",won:true,year:2000},
+    {name:"Британская академия",category:"Лучшие визуальные эффекты",won:true,year:2000},
+    {name:"Британская академия",category:"Лучший звук",won:true,year:2000},
+    {name:"Британская академия",category:"Лучшая работа оператора: Билл Поуп",won:false,year:2000},
+    {name:"Британская академия",category:"Лучший монтаж",won:false,year:2000},
+    {name:"Сатурн",category:"Лучший режиссёр: Лилли Вачовски",won:true,year:2000},
+    {name:"Сатурн",category:"Лучший научно-фантастический фильм",won:true,year:2000},
+    {name:"Сатурн",category:"Лучшая мужская роль: Киану Ривз",won:false,year:2000},
+    {name:"Сатурн",category:"Лучшие спецэффекты",won:false,year:2000},
+    {name:"Премия канала MTV",category:"Лучший фильм",won:true,year:2000},
+    {name:"Премия канала MTV",category:"Лучшая мужская роль: Киану Ривз",won:true,year:2000},
+    {name:"Премия канала MTV",category:"Лучшая драка",won:true,year:2000},
+    {name:"Премия канала MTV",category:"Лучшая экшн-сцена",won:false,year:2000}
+  ],
+  videos:[
+    {kind:"трейлер",dur:117,id:"YihPA42fdQ8",prev:"https://i.ytimg.com/vi/YihPA42fdQ8/hqdefault.jpg"},
+    {kind:"тизер",dur:0,id:"QOLwRpD8tTY",prev:"https://i.ytimg.com/vi/QOLwRpD8tTY/hqdefault.jpg"},
+    {kind:"трейлер",dur:0,id:"nUEQNVV3Gfs",prev:"https://i.ytimg.com/vi/nUEQNVV3Gfs/hqdefault.jpg"},
+    {kind:"обзор",dur:560,id:"NskB18r0tPY",prev:"https://i.ytimg.com/vi/NskB18r0tPY/hqdefault.jpg"},
+    {kind:"фрагмент",dur:0,id:"AI94emaJjCA",prev:"https://i.ytimg.com/vi/AI94emaJjCA/hqdefault.jpg"},
+    {kind:"фрагмент",dur:0,id:"yB1i2DCj1KE",prev:"https://i.ytimg.com/vi/yB1i2DCj1KE/hqdefault.jpg"},
+    {kind:"фрагмент",dur:0,id:"BpwimtOwNh4",prev:"https://i.ytimg.com/vi/BpwimtOwNh4/hqdefault.jpg"},
+    {kind:"со съёмок",dur:0,id:"ykeijmOPUl0",prev:"https://i.ytimg.com/vi/ykeijmOPUl0/hqdefault.jpg"},
+    {kind:"со съёмок",dur:0,id:"fRkCY9THKhM",prev:"https://i.ytimg.com/vi/fRkCY9THKhM/hqdefault.jpg"},
+    {kind:"фрагмент",dur:0,id:"1LRGe5YElj8",prev:"https://i.ytimg.com/vi/1LRGe5YElj8/hqdefault.jpg"}
+  ],
+  quotes:[
+    {by:"Роуэн Уитт",role:"мальчик с ложкой",orig:"There is no spoon.",text:"Ложки не существует."},
+    {by:"Киану Ривз",role:"Нео",orig:"I know kung fu.",text:"Я знаю кунг-фу."},
+    {by:"Лоренс Фишбёрн",role:"Морфеус",orig:"Welcome to the real world.",text:"Добро пожаловать в реальный мир."},
+    {by:"Лоренс Фишбёрн",role:"Морфеус",orig:"Unfortunately, no one can be told what the Matrix is. You have to see it for yourself.",text:"К сожалению, никто не может объяснить, что такое Матрица. Ты должен увидеть это сам."},
+    {by:"Лоренс Фишбёрн",role:"Морфеус",orig:"The Matrix is everywhere. It is all around us.",text:"Матрица повсюду. Она вокруг нас."}
+  ],
+  parental:[
+    {cat:"алкоголь, наркотики, курение",sev:"mild",ru:"Мало",src:"IMDB"},
+    {cat:"жестокость / кровь",sev:"moderate",ru:"Средне",src:"IMDB"},
+    {cat:"ненормативная лексика",sev:"moderate",ru:"Средне",src:"IMDB"},
+    {cat:"пугающие сцены",sev:"moderate",ru:"Средне",src:"IMDB"},
+    {cat:"секс / нагота",sev:"mild",ru:"Мало",src:"IMDB"}
+  ],
+  faq:[
+    {q:"О чём фильм «Матрица» без спойлеров концовки?",a:`Фильм следует за Томасом Андерсоном, который начинает подозревать, что привычная реальность — лишь тщательно сконструированная иллюзия. Встреча с Морфеусом и его командой втягивает героя в конфликт с системой контроля и её агентами, заставляя выбирать между комфортной ложью и рискованной правдой.`},
+    {q:"Почему фильм называется «The Matrix»?",a:`«Матрица» — это название симулированной реальности, в которой живёт большинство людей, не подозревая об этом. Слово намекает и на «систему», и на «среду», которая формирует восприятие мира и поведение человека.`},
+    {q:"Что означают красная и синяя таблетки?",a:`Это метафора выбора: синяя — остаться в привычной картине мира, красная — узнать правду и принять последствия. В контексте фильма это не «магия», а сюжетный инструмент, который фиксирует момент осознанного решения героя.`},
+    {q:"Кто такой Нео и почему он важен?",a:`Нео — хакер Томас Андерсон, которого считают ключевой фигурой в борьбе с Матрицей. Его путь — история о сомнениях, выборе и становлении. Персонажа играет <a href="#">Киану Ривз</a>.`},
+    {q:"Что означает фраза «There is no spoon»?",a:`Внутри симуляции объект не «реален» сам по себе — меняется восприятие и понимание правил, по которым устроена Матрица. Контролируя ум и интерпретацию, можно «согнуть» ограничения симуляции.`},
+    {q:"Нужно ли смотреть продолжения, чтобы понять первый фильм?",a:`Нет, первый фильм работает как самостоятельная история с завершённой аркой. Продолжения расширяют лор, но базовые идеи и сюжет 1999 года понятны без них.`}
+  ],
+  references:[
+    {t:"Терминатор 2: Судный день",y:1991,r:8.4,p:"https://image.tmdb.org/t/p/w300/67MopMcqqke4sJmcOwY5zu3kmYz.jpg"},
+    {t:"Призрак в доспехах",y:1995,r:8.1,p:"https://image.tmdb.org/t/p/w300/q1rLN197K4faderh0YT5YLx13IQ.jpg"},
+    {t:"Тёмный город",y:1997,r:7.3,p:"https://image.tmdb.org/t/p/w300/ydHQM1uMPAHWK0buNG2vG3FEpwI.jpg"},
+    {t:"Акира",y:1988,r:7.9,p:"https://image.tmdb.org/t/p/w300/3F0bDMbhjlXiMCYMEiIVpxUaVDZ.jpg"},
+    {t:"12 обезьян",y:1995,r:7.8,p:"https://image.tmdb.org/t/p/w300/p8WRofuh7P4a0ttjnZdAslnyex1.jpg"},
+    {t:"Бразилия",y:1985,r:7.7,p:"https://image.tmdb.org/t/p/w300/xl8Ssrnt89BkTIXzmglc7NCdY7d.jpg"},
+    {t:"Вспомнить всё",y:1990,r:7.7,p:"https://image.tmdb.org/t/p/w300/9DgOw0nnklgfqWBYU50bPRjXAvx.jpg"},
+    {t:"Головокружение",y:1958,r:7.9,p:"https://image.tmdb.org/t/p/w300/9vz61IT7YzgPknag4VNxy25BwSu.jpg"}
+  ],
+  referenced_in:[
+    {t:"Начало",y:2010,r:8.7,p:"https://image.tmdb.org/t/p/w300/piQXcdOGgv1O9HQ07pI0tnjkGJw.jpg"},
+    {t:"Дэдпул",y:2016,r:7.6,p:"https://image.tmdb.org/t/p/w300/r5PYZGOiIQuGpaZas9TTplNZ5Ox.jpg"},
+    {t:"Области тьмы",y:2011,r:8.0,p:"https://image.tmdb.org/t/p/w300/tpvt8Le1Pyd3d7lnp9GTW2uD7hj.jpg"},
+    {t:"Доктор Стрэндж",y:2016,r:7.5,p:"https://image.tmdb.org/t/p/w300/fR4oifDjoGFAyhWyPUl3h9H1xpQ.jpg"},
+    {t:"Всё везде и сразу",y:2021,r:7.2,p:"https://image.tmdb.org/t/p/w300/oFiudghfudYUtW3yHgvv82xgoXP.jpg"},
+    {t:"Первому игроку приготовиться",y:2018,r:7.4,p:"https://image.tmdb.org/t/p/w300/eVvMjpcw2lkS1A7hTeOzZDk0Ocf.jpg"},
+    {t:"Главный герой",y:2020,r:7.4,p:"https://image.tmdb.org/t/p/w300/qJZ3UeKAOgz2kFVJPZZFzLtn1Qk.jpg"},
+    {t:"Джон Уик 2",y:2017,r:7.2,p:"https://image.tmdb.org/t/p/w300/60dPOD22s6TS2SfQiiOGOePBg8N.jpg"}
+  ],
+  franchise:[
+    {t:"Матрица 5",y:null,r:null,p:"https://st.kp.yandex.net/images/film_big/5516267.jpg"},
+    {t:"Матрица: Перезагрузка",y:2003,r:7.7,p:"https://avatars.mds.yandex.net/get-kinopoisk-image/4774061/a53d1c75-4d1a-4c86-a936-65b2a724345c/600x900"},
+    {t:"Матрица: Революция",y:2003,r:7.6,p:"https://avatars.mds.yandex.net/get-kinopoisk-image/1900788/37fc55e7-dfc7-406f-a187-17ef49f65b6f/600x900"},
+    {t:"Матрица: Воскрешение",y:2021,r:5.7,p:"https://avatars.mds.yandex.net/get-kinopoisk-image/1898899/f71f55b2-0a74-4a9e-b9a2-7369eccbb3a3/600x900"},
+    {t:"Аниматрица",y:2003,r:7.6,p:"https://avatars.mds.yandex.net/get-kinopoisk-image/1599028/4444092e-4da7-4315-aff3-80b1c7d9a3e2/600x900"},
+    {t:"Аниматрица: Второе возрождение — Часть 1",y:2003,r:7.7,p:"https://avatars.mds.yandex.net/get-kinopoisk-image/1599028/fe4bd7c6-c344-4b51-a19a-a1541960f965/600x900"},
+    {t:"Аниматрица: Второе возрождение — Часть 2",y:2003,r:7.7,p:"https://avatars.mds.yandex.net/get-kinopoisk-image/1599028/85639052-8fda-4b41-ab6d-b573d2b17cdd/600x900"},
+    {t:"Аниматрица: Последний полёт Осириса",y:2003,r:7.3,p:"https://avatars.mds.yandex.net/get-kinopoisk-image/1600647/6b03721c-f98c-415e-8c59-1933ec84e810/600x900"}
+  ],
+  similar:[
+    {t:"Удачи, веселья, не сдохни",y:2025,r:7.0,p:"https://avatars.mds.yandex.net/get-kinopoisk-image/4716873/4bcec9ea-a1b6-4fe7-ac1e-822bae34a022/600x900"},
+    {t:"Разделение",y:2022,r:8.1,p:"https://avatars.mds.yandex.net/get-kinopoisk-image/10768063/fb5acf4d-c57e-4bf2-96ce-cdd4e78adf63/600x900"},
+    {t:"Всё везде и сразу",y:2021,r:7.2,p:"https://avatars.mds.yandex.net/get-kinopoisk-image/10671298/5a114ee7-3a48-4edb-8693-b1e769fb006e/600x900"},
+    {t:"Довод",y:2020,r:7.5,p:"https://avatars.mds.yandex.net/get-kinopoisk-image/4303601/b35131e0-041b-4ebc-af90-7104f2f75821/600x900"},
+    {t:"Главный герой",y:2020,r:7.4,p:"https://avatars.mds.yandex.net/get-kinopoisk-image/6201401/db4fbef1-466a-4dec-9b7a-d4f13eb45738/600x900"},
+    {t:"Видоизменённый углерод",y:2018,r:7.4,p:"https://avatars.mds.yandex.net/get-kinopoisk-image/1773646/03d01bf7-550c-4e6d-8e81-15d8ac274238/600x900"},
+    {t:"Первому игроку приготовиться",y:2018,r:7.4,p:"https://avatars.mds.yandex.net/get-kinopoisk-image/1946459/5ae82f4b-fd6a-46b5-b5ba-897106eb1eae/600x900"},
+    {t:"Призрак в доспехах",y:2017,r:6.4,p:"https://avatars.mds.yandex.net/get-kinopoisk-image/10853012/a3904d63-c9e6-4069-abbd-7c2e0c42bf4a/600x900"},
+    {t:"Мир Дикого Запада",y:2016,r:7.8,p:"https://avatars.mds.yandex.net/get-kinopoisk-image/6201401/f53a7b05-60ce-4fa5-be13-ec75189505a8/600x900"},
+    {t:"Доктор Стрэндж",y:2016,r:7.5,p:"https://avatars.mds.yandex.net/get-kinopoisk-image/4303601/bb966b79-5b10-485d-88d7-fb6aeb79b185/600x900"},
+    {t:"Мистер Робот",y:2015,r:7.8,p:"https://avatars.mds.yandex.net/get-kinopoisk-image/1898899/f3b08a0e-9f75-4e2f-8879-0a914cb54d05/600x900"},
+    {t:"Алита: Боевой ангел",y:2019,r:7.2,p:"https://avatars.mds.yandex.net/get-kinopoisk-image/1900788/296962f5-fe56-4036-bdc1-2111c065ff69/600x900"},
+    {t:"1899",y:2022,r:7.0,p:"https://avatars.mds.yandex.net/get-kinopoisk-image/6201401/5a30621d-a7e3-46b8-a673-fff0d07597fd/600x900"},
+    {t:"Восхождение Юпитер",y:2015,r:5.6,p:"https://avatars.mds.yandex.net/get-kinopoisk-image/1600647/f565b441-4991-40a9-a05b-2a85e09e9868/600x900"}
+  ],
+  sites:{
+    "Онлайн-кинотеатры":[
+      {host:"okko.tv",url:"#",stream:true},{host:"kion.ru",url:"#",stream:true},
+      {host:"netflix.com",url:"#",stream:true},{host:"amazon.com",url:"#",stream:true},
+      {host:"tv.apple.com",url:"#",stream:true},{host:"kino.tricolor.ru",url:"#",stream:true}
+    ],
+    "Официальные сайты":[{host:"warnerbros.com",url:"#"},{host:"radiofrance.fr",url:"#"}],
+    "Саундтреки":[{host:"open.spotify.com",url:"#"},{host:"music.yandex.ru",url:"#"},{host:"filmmusic.com",url:"#"}],
+    "Энциклопедии":[{host:"ru.wikipedia.org",url:"#"},{host:"rottentomatoes.com",url:"#"},{host:"metacritic.com",url:"#"},{host:"boxofficemojo.com",url:"#"}]
+  }
+};
+
+/* ═══ ХЕЛПЕРЫ ═══ */
+const $=(s,r=document)=>r.querySelector(s);
+const cls=v=>v>=7?'high':v<5?'low':'';           // родные модификаторы .high/.low
+const money=n=>'$'+n.toLocaleString('ru-RU');
+const votes=n=>n>=1e6?(n/1e6).toFixed(1)+' млн':n>=1e3?Math.round(n/1e3)+'K':n;
+const dur=s=>{if(!s)return'';const m=Math.floor(s/60);return m+':'+String(s%60).padStart(2,'0')};
+
+/* фон-постер как на сайте */
+$('#bg-poster').style.backgroundImage=`url("${DATA.backdrop}")`;
+
+/* ═══ HERO (родные классы content-card / ratings-links / movie-layout) ═══ */
+const R=DATA.ratings;
+const nf=n=>n.toLocaleString('ru-RU');
+// favicon источника с откатом DDG → Google → буква
+const favIco=(host,letter)=>`<span class="rating-fav" data-l="${letter}"><img src="https://icons.duckduckgo.com/ip3/${host}.ico" alt="" data-h="${host}" onerror="if(this.dataset.g){this.remove()}else{this.dataset.g=1;this.src='https://www.google.com/s2/favicons?domain='+this.dataset.h+'&sz=64'}"></span>`;
+const ratingLink=(host,letter,url,val,cls2,title='')=>
+  `<div class="rating-container"><a class="rating-link" href="${url}" target="_blank" rel="noopener"${title?` title="${title}"`:''}>${favIco(host,letter)}<span class="rating-value ${cls2}">${val}</span></a></div>`;
+const ratingsHtml=[
+  ratingLink('kinopoisk.ru','К',`https://www.kinopoisk.ru/film/${DATA.kp_id}/`, R.kp, cls(R.kp), `${nf(DATA.votes.kp)} оценок на Кинопоиске`),
+  ratingLink('imdb.com','I',`https://www.imdb.com/title/${DATA.imdb_id}/`, R.imdb, cls(R.imdb), `${nf(DATA.votes.imdb)} оценок на IMDb`),
+  ratingLink('themoviedb.org','T',`https://www.themoviedb.org/movie/${DATA.tmdb_id}`, R.tmdb, cls(R.tmdb), `${nf(DATA.votes.tmdb)} оценок на TMDB`),
+  ratingLink('rottentomatoes.com','R',DATA.rt_url, R.rt+'%', cls(R.rt/10), 'Rotten Tomatoes'),
+  ratingLink('metacritic.com','M',DATA.mc_url, R.mc, cls(R.mc/10), 'Metacritic')
+].join('');
+
+$('#movieContent').innerHTML=`
+  <div class="content-header"><h1 class="content-title">${DATA.title.ru}</h1></div>
+  <div class="ratings-links">${ratingsHtml}</div>
+
+  <div class="movie-layout">
+    <div class="movie-layout-poster">
+      <a class="movie-poster-side" href="#"><img src="${DATA.poster}" alt="${DATA.title.ru}"></a>
+    </div>
+    <div class="movie-layout-main">
+      <div class="player-coming-soon" style="width:100%;margin-left:0;margin-top:0">
+        <span>▶ Плеер и «Буду смотреть» — здесь (без изменений от текущей страницы)</span>
+      </div>
+
+      <!-- ═══ ВКЛАДКИ ═══ -->
+      <div class="nzt">
+        <div class="nzt-bar" id="nztBar"><span class="nzt-pill" id="nztPill"></span></div>
+        <div class="nzt-panels" id="nztPanels"></div>
+      </div>
+    </div>
+  </div>`;
+
+/* ═══ ВКЛАДКИ ═══ */
+const TABS=[
+  {id:'overview',label:'Обзор'},
+  {id:'actors',label:'Актёры',n:DATA.cast.length},
+  {id:'photos',label:'Фото',n:Object.values(DATA.photos).flat().length},
+  {id:'videos',label:'Видео',n:DATA.videos.length},
+  {id:'awards',label:'Награды',n:DATA.awards.length},
+  {id:'quotes',label:'Цитаты',n:DATA.quotes.length},
+  {id:'parental',label:'Родителям'},
+  {id:'faq',label:'Вопросы',n:DATA.faq.length},
+  {id:'similar',label:'Связи',n:DATA.franchise.length+DATA.similar.length+DATA.references.length+DATA.referenced_in.length},
+  {id:'sites',label:'Сайты'}
+];
+const bar=$('#nztBar'), ink=$('#nztPill'), panels=$('#nztPanels');
+TABS.forEach((t,i)=>{
+  const b=document.createElement('button');
+  b.className='nzt-tab'+(i===0?' on':'');
+  b.innerHTML=t.label+(t.n?`<span class="n">${t.n}</span>`:'');
+  b.onclick=()=>select(i);
+  bar.appendChild(b);
+  const p=document.createElement('section');
+  p.className='nzt-panel'+(i===0?' on':''); p.id='np-'+t.id;
+  panels.appendChild(p);
+});
+const tabBtns=[...bar.querySelectorAll('.nzt-tab')];
+function moveInk(b){ ink.style.width=b.offsetWidth+'px'; ink.style.transform=`translateX(${b.offsetLeft}px)` }
+function select(i){
+  tabBtns.forEach((b,j)=>b.classList.toggle('on',i===j));
+  panels.querySelectorAll('.nzt-panel').forEach((p,j)=>p.classList.toggle('on',i===j));
+  moveInk(tabBtns[i]);
+  tabBtns[i].scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'});
+}
+
+/* ═══ РЕНДЕР ПАНЕЛЕЙ ═══ */
+const F=DATA.finance;
+$('#np-overview').innerHTML=`
+  <p style="font-style:italic;color:var(--text-secondary);margin:0 0 14px;font-size:16px">«${DATA.tagline}»</p>
+  <ul class="info-list">
+    <li><strong>Оригинал:</strong> ${DATA.title.en}</li>
+    <li><strong>Год:</strong> ${DATA.year} · ${DATA.runtime} мин</li>
+    <li><strong>Страны:</strong> ${DATA.countries.join(', ')}</li>
+    <li><strong>Жанры:</strong> ${DATA.genres.join(', ')}</li>
+    <li><strong>Бюджет:</strong> ${money(F.budget)}</li>
+    <li><strong>Сборы в мире:</strong> ${money(F.box)}</li>
+    <li><strong>Премьера в РФ:</strong> ${DATA.premiere_ru}</li>
+  </ul>
+  <p class="content-description-text" style="margin-top:14px">${DATA.overview}</p>
+  <div class="rating-boxes" style="margin-top:14px">
+    <span class="rating-box age">${DATA.age}+</span>
+    <span class="rating-box" style="background:rgba(255,255,255,.06);color:var(--text-secondary)">${DATA.mpaa}</span>
+  </div>
+  <p class="nz-subhead">Студии</p>
+  <div class="nz-chips">${DATA.companies.studio.map(c=>`<span class="nz-chip">${c}</span>`).join('')}</div>
+  <p class="nz-subhead">Визуальные эффекты</p>
+  <div class="nz-chips">${DATA.companies.vfx.map(c=>`<span class="nz-chip">${c}</span>`).join('')}</div>`;
+
+// Награды
+(()=>{
+  const g={}; DATA.awards.forEach(a=>(g[a.name]=g[a.name]||[]).push(a));
+  const ok=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const dt=`<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="3"/></svg>`;
+  $('#np-awards').innerHTML=Object.entries(g).map(([name,list])=>{
+    const won=list.filter(a=>a.won).length;
+    return `<div class="nz-awg"><div class="nz-awg-h"><b>${name}</b>${won?`<span class="p">${won} побед</span>`:''}</div>
+      ${list.map(a=>`<div class="nz-aw ${a.won?'won':'nom'}"><span class="m">${a.won?ok:dt}</span><span>${a.category}</span><time>${a.year}</time></div>`).join('')}</div>`;
+  }).join('');
+})();
+
+// Видео — группировка по типу (как «Сайты»)
+(()=>{
+  const play=`<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>`;
+  const ORDER=['трейлер','тизер','обзор','фрагмент','со съёмок'];
+  const LABEL={'трейлер':'Трейлеры','тизер':'Тизеры','обзор':'Обзоры','фрагмент':'Фрагменты','со съёмок':'Со съёмок'};
+  const card=v=>`<a class="nz-vid" href="https://www.youtube.com/watch?v=1785600758${v.id}" target="_blank" rel="noopener">
+      <img loading="lazy" src="${v.prev}" alt=""><div class="pl"><span>${play}</span></div>
+      <div class="mt"><span class="k">${v.kind}</span>${v.dur?` <span class="d">${dur(v.dur)}</span>`:''}</div></a>`;
+  // сначала известный порядок, затем прочие типы из данных
+  const kinds=[...ORDER, ...[...new Set(DATA.videos.map(v=>v.kind))].filter(k=>!ORDER.includes(k))];
+  $('#np-videos').innerHTML=kinds.map(k=>{
+    const list=DATA.videos.filter(v=>v.kind===k);
+    return list.length?`<div class="nz-sg"><span class="lbl">${LABEL[k]||k}</span>
+      <div class="nz-vids">${list.map(card).join('')}</div></div>`:'';
+  }).join('');
+})();
+
+// Цитаты
+$('#np-quotes').innerHTML=`<div class="nz-quotes">${DATA.quotes.map(q=>`
+  <figure class="nz-quote"><span class="mk">“</span>
+    <blockquote>${q.text}</blockquote><div class="o">${q.orig}</div>
+    <figcaption class="b"><b>${q.by}</b> · ${q.role}</figcaption></figure>`).join('')}</div>`;
+
+// Родителям
+$('#np-parental').innerHTML=`<div class="nz-pg-list">${DATA.parental.map(p=>`
+  <div class="nz-pg ${p.sev}"><span class="cat">${p.cat}</span>
+    <span class="mtr"><i></i><i></i><i></i></span><span class="lvl">${p.ru}</span></div>`).join('')}</div>`;
+
+// Вопросы
+(()=>{
+  const plus=`<svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>`;
+  $('#np-faq').innerHTML=`<div class="nz-faq">${DATA.faq.map(f=>`
+    <details class="nz-qa"><summary>${plus}<span>${f.q}</span></summary><div class="bd">${f.a}</div></details>`).join('')}</div>`;
+})();
+
+// Связи — родные similar-card, 4 группы
+(()=>{
+  const meta=m=>[m.y||null, m.r!=null?('★ '+m.r):null].filter(Boolean).join(' · ');
+  const cards=arr=>`<div class="similars-list">${arr.map(m=>`
+    <a class="similar-card" href="#">
+      <div class="similar-poster-wrap"><img loading="lazy" src="${m.p}" alt=""></div>
+      <div class="similar-info"><div class="similar-title">${m.t}</div>
+        <div class="similar-meta">${meta(m)}</div></div></a>`).join('')}</div>`;
+  const grp=(title,arr,first)=>arr.length?`<div class="nz-section-title"${first?'':' style="margin-top:26px"'}>${title}</div>${cards(arr)}`:'';
+  $('#np-similar').innerHTML=
+    grp('Франшизы',DATA.franchise,true)+
+    grp('Похожие',DATA.similar)+
+    grp('Ссылается на',DATA.references)+
+    grp('Упоминается в',DATA.referenced_in);
+})();
+
+// Где смотреть
+$('#np-sites').innerHTML=Object.entries(DATA.sites).map(([sec,list])=>`
+  <div class="nz-sg"><span class="lbl">${sec}</span>
+    <div class="nz-links">${list.map(s=>`
+      <a class="nz-lnk ${s.stream?'stream':''}" href="${s.url}" target="_blank" rel="noopener">
+        <span class="ic" data-l="${s.host[0]}"><img src="https://icons.duckduckgo.com/ip3/${s.host}.ico" alt="" loading="lazy" data-h="${s.host}" onerror="if(this.dataset.g){this.remove()}else{this.dataset.g=1;this.src='https://www.google.com/s2/favicons?domain='+this.dataset.h+'&sz=64'}"></span>
+        <span><b>${s.host}</b><span>${s.stream?'Смотреть онлайн':'Перейти'}</span></span></a>`).join('')}</div></div>`).join('');
+
+// Актёры
+(()=>{
+  $('#np-actors').innerHTML=`<div class="nz-cast">${DATA.cast.map(a=>{
+    const ini=a.name.split(' ').map(w=>w[0]).slice(0,2).join('');
+    const av=a.photo?`<img loading="lazy" src="${a.photo}" alt="">`:ini;
+    return `<a class="nz-actor" href="#"><div class="av">${av}</div>
+      <div class="nm">${a.name}</div><div class="rl">${a.role}</div></a>`;
+  }).join('')}</div>`;
+})();
+
+// Фото — группировка по типу (как «Сайты»)
+$('#np-photos').innerHTML=Object.entries(DATA.photos).map(([sec,list])=>list.length?`
+  <div class="nz-sg"><span class="lbl">${sec}</span>
+    <div class="nz-photos${sec==='Постеры'?' posters':''}">${list.map(u=>`
+      <a class="nz-photo" href="${u}" target="_blank" rel="noopener"><img loading="lazy" src="${u}" alt=""></a>`).join('')}</div>
+  </div>`:'').join('');
+
+/* индикатор */
+requestAnimationFrame(()=>requestAnimationFrame(()=>moveInk(tabBtns[0])));
+addEventListener('resize',()=>{const i=tabBtns.findIndex(b=>b.classList.contains('on'));if(i>=0)moveInk(tabBtns[i])});
+</script>
+</body>
+</html>

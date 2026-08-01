@@ -2,6 +2,40 @@ const API_BASE = window.location.hostname.endsWith('github.io')
   ? 'https://aucklanda.online'
   : ''
 
+
+// GitHub Pages ?????????? ???????? ????????, ???? ????? origin API ??????????.
+// ? ???? ?????? ?????? ??????? ?????????? ????????? ???????????? ?? ?????????
+// ???????? ? ??????????? ? ??????? ?????????????.
+
+// GitHub Pages can serve the static frontend while the API origin is offline.
+// Redirect failed API requests to a static status page instead of leaving the UI empty.
+const BACKEND_UNAVAILABLE_PAGE = '/hosting-issue.html'
+const _nativeFetch = window.fetch.bind(window)
+let _backendUnavailableRedirecting = false
+
+function _isBackendRequest(input) {
+  const url = typeof input === 'string' ? input : input?.url
+  return Boolean(API_BASE && url && url.startsWith(API_BASE + '/'))
+}
+
+function _showBackendUnavailable() {
+  if (_backendUnavailableRedirecting || location.pathname === BACKEND_UNAVAILABLE_PAGE) return
+  _backendUnavailableRedirecting = true
+  location.replace(BACKEND_UNAVAILABLE_PAGE)
+}
+
+window.fetch = async (input, init) => {
+  const isBackendRequest = _isBackendRequest(input)
+  try {
+    const response = await _nativeFetch(input, init)
+    if (isBackendRequest && response.status >= 500) _showBackendUnavailable()
+    return response
+  } catch (error) {
+    if (isBackendRequest) _showBackendUnavailable()
+    throw error
+  }
+}
+
 // credentials mode для fetch:
 // - same-origin (API_BASE = ''): 'include' — куки работают
 // - github.io cross-origin с корректным origin: 'include' — CORS разрешает
