@@ -15,7 +15,14 @@ const NZ_BLOCKED_TITLES = new Set([
 async function fetchWithRetry(url, opts, retries = 2, delay = 1200) {
   for (let i = 0; i <= retries; i++) {
     try {
-      return await fetch(url, opts)
+      const res = await fetch(url, opts)
+      // 5xx = бэкенд перезапускается/лёг — повторяем (последнюю попытку отдаём
+      // как есть, чтобы вызывающий отличил «сервер недоступен» от проблем сети).
+      if (res.status >= 500 && i < retries) {
+        await new Promise(r => setTimeout(r, delay))
+        continue
+      }
+      return res
     } catch (e) {
       if (i === retries) throw e
       await new Promise(r => setTimeout(r, delay))
@@ -1292,13 +1299,21 @@ function showToast(msg, type = 'info') {
   }, 3000)
 }
 
-function renderError(message) {
-  document.getElementById('movieContent').innerHTML = `
-    <div class="empty-state">
-      <i class="fas fa-film"></i>
-      <p>${message}</p>
-    </div>
-  `
+// message — всегда наш захардкоженный текст (никогда raw e.message: на части
+// TV/webview-браузеров нативный текст сетевой ошибки рендерится как «?????????»).
+// opts.retry — показать кнопку «Обновить». Стили .movie-blocked* уже в бандле.
+function renderError(message, opts = {}) {
+  const retry = opts.retry
+    ? `<button class="movie-blocked-home" onclick="location.reload()">Обновить</button>`
+    : ''
+  const c = document.getElementById('movieContent')
+  if (!c) return
+  c.innerHTML = `
+    <div class="movie-blocked">
+      <i class="fas fa-triangle-exclamation movie-blocked-icon"></i>
+      <p class="movie-blocked-text">${message}</p>
+      ${retry}
+    </div>`
 }
 
 // Заглушка для тайтла, снятого по требованию правообладателя (см. NZ_BLOCKED_TITLES).
@@ -1644,9 +1659,16 @@ async function loadMovie() {
   // Предотвращаем unhandled rejection если основной запрос упадёт раньше
   playersRes.catch(() => {})
 
+  // Показываем ошибку только если на странице ещё ничего нет (не перетираем превью).
+  const showError = (msg, opts) => {
+    if (!document.getElementById('movieContent').children.length) renderError(msg, opts)
+  }
+
   try {
     const r = await fetchWithRetry(`${API_BASE}/api/movie/${movieId}`)
-    if (!r.ok) throw new Error('Фильм не найден')
+    if (r.status === 404) { showError('Фильм не найден'); return }
+    // Ответ пришёл, но с ошибкой (5xx после ретраев) — бэкенд реально недоступен.
+    if (!r.ok) { showError('Сервер временно недоступен. Попробуйте позже.', { retry: true }); return }
     const raw = await r.json()
     const movie = normalizeMovie(raw)
     renderMovie(movie)
@@ -1662,9 +1684,16 @@ async function loadMovie() {
     loadSimilars(raw.similar)   // {items,relation} встроен в /api/movie
     loadPlayers(playersRes, movie.kinopoiskId || movie.filmId)
   } catch (e) {
-    if (!document.getElementById('movieContent').children.length) {
-      renderError(e.message || 'Ошибка загрузки фильма')
-    }
+    // Сюда попадаем, только если fetch вообще не достучался (после ретраев): это
+    // проблема соединения на стороне клиента / сети, а НЕ ошибка бэкенда. Поэтому
+    // не пишем «сервер недоступен» — это ложно винило бы бэкенд.
+    const netProblem = (typeof navigator !== 'undefined' && navigator.onLine === false) || e instanceof TypeError
+    showError(
+      netProblem
+        ? 'Не удалось соединиться. Проверьте интернет и попробуйте ещё раз.'
+        : 'Не удалось загрузить фильм. Попробуйте позже.',
+      { retry: true }
+    )
   }
 }
 

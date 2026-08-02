@@ -19,6 +19,14 @@
    подчёркивание акцентом; палитра/шрифт/переменные — из проекта.
    Моторика: cubic-bezier(.23,1,.32,1), <300мс (Emil Kowalski).
    ───────────────────────────────────────────────────────────── */
+/* Hero: лого вместо текстового заголовка (если есть) + ротатор постеров */
+.nz-logo{ display:block; margin:0 auto; max-width:min(560px,82%); max-height:150px; object-fit:contain }
+.nz-poster-rotator{ position:relative; aspect-ratio:2/3; border-radius:12px; overflow:hidden;
+  box-shadow:0 4px 12px rgba(0,0,0,.4) }
+.nz-poster-rotator img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+  opacity:0; transition:opacity .7s ease }
+.nz-poster-rotator img.on{ opacity:1 }
+
 .nzt{ margin-top:26px }
 /* панель вкладок — компактный «плавающий» segmented-контрол (матовое стекло),
    без тёмной полосы во всю ширину; активная вкладка — скользящая пилюля */
@@ -94,12 +102,13 @@
 /* Актёры */
 .nz-cast{ display:grid; grid-template-columns:repeat(auto-fill,minmax(132px,1fr)); gap:18px }
 .nz-actor{ display:block; color:var(--text) }
-.nz-actor .av{ aspect-ratio:1; border-radius:14px; overflow:hidden;
+.nz-actor .av{ position:relative; aspect-ratio:1; border-radius:14px; overflow:hidden;
   background:linear-gradient(135deg, rgba(39,174,96,.22), rgba(255,255,255,.05));
   display:grid; place-items:center; font:700 24px/1 Cinzel,Georgia,serif; color:var(--accent-light);
   transition:transform .2s cubic-bezier(.23,1,.32,1) }
 .nz-actor:hover .av{ transform:translateY(-4px) }
-.nz-actor .av img{ width:100%; height:100%; object-fit:cover }
+.nz-actor .av::before{ content:attr(data-l) }
+.nz-actor .av img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover }
 .nz-actor .nm{ margin-top:10px; font-size:14px; font-weight:600; color:var(--accent-light);
   text-decoration:underline; text-decoration-color:rgba(46,204,113,.35); text-underline-offset:3px; line-height:1.25 }
 .nz-actor .rl{ font-size:12.5px; color:var(--text-muted); margin-top:2px }
@@ -111,11 +120,19 @@
 .nz-photo img{ width:100%; height:100%; object-fit:cover;
   transition:transform .4s cubic-bezier(.23,1,.32,1) }
 .nz-photo:hover img{ transform:scale(1.05) }
+.nz-photo video{ width:100%; height:100%; object-fit:cover; display:block }
 .nz-photo:first-child{ grid-column:span 2 }
 @media (max-width:560px){ .nz-photo:first-child{ grid-column:span 1 } }
 .nz-photos.posters{ grid-template-columns:repeat(auto-fill,minmax(120px,1fr)) }
 .nz-photos.posters .nz-photo{ aspect-ratio:2/3 }
 .nz-photos.posters .nz-photo:first-child{ grid-column:auto }
+
+/* Факты и ляпы */
+.nz-facts-list{ display:grid; gap:6px }
+.nz-factrow{ display:flex; gap:13px; padding:15px 17px; border-radius:var(--radius);
+  background:rgba(255,255,255,.04); font-size:14.5px; line-height:1.65; color:var(--text-secondary) }
+.nz-factrow .fi{ flex:0 0 auto; font-size:16px; line-height:1.45 }
+.nz-factrow p{ margin:0 }
 
 /* Цитаты */
 .nz-quotes{ display:grid; gap:6px }
@@ -230,6 +247,8 @@ const DATA = {
   overview:"Жизнь Томаса Андерсона разделена на две части: днём он — самый обычный офисный работник, получающий нагоняи от начальства, а ночью превращается в хакера по имени Нео, и нет места в сети, куда он бы не смог проникнуть. Но однажды всё меняется. Томас узнаёт ужасающую правду о реальности.",
   poster:"https://image.tmdb.org/t/p/w500/kEDbym5htJgDQNenjUtSJxAHysB.jpg",
   backdrop:"https://image.tmdb.org/t/p/original/tlm8UkiQsitc8rSuIAscQDCnP8d.jpg",
+  logo:null,
+  posters:["https://image.tmdb.org/t/p/original/aOIuZAjPaRIE6CMzbazvcHuHXDc.jpg","https://images.kinorium.com/movie/poster/116780/w1500_3441887.jpg","https://image.tmdb.org/t/p/original/pEoqbqtLc4CcwDUDqxmEDSWpWTZ.jpg","https://ru-images.kinorium.com/movie/600/116780.jpg?1769529342","https://images.kinorium.com/movie/poster/116780/w1500_52804978.jpg","https://image.tmdb.org/t/p/original/dXNAPwY7VrqMAo51EKhhCJfaGb5.jpg","https://image.tmdb.org/t/p/original/iTufGwAEMMIafxJg3RT2DtOgdZb.jpg","https://image.tmdb.org/t/p/original/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg","https://image.tmdb.org/t/p/original/lDqMDI3xpbB9UQRyeXfei0MXhqb.jpg","https://images.kinorium.com/movie/poster/116780/w1500_3441889.jpg"],
   countries:["США","Австралия"], genres:["боевик","фантастика"],
   ratings:{kp:8.5,imdb:8.7,tmdb:8.3,rt:83,mc:73},
   votes:{kp:805257,imdb:2259771,tmdb:28198},
@@ -238,33 +257,8 @@ const DATA = {
   awards_text:"4 «Оскара» · 42 победы, 52 номинации",
   collection:{name:"The Matrix Collection",poster:"https://image.tmdb.org/t/p/w200/bV9qTVHTVf0gkW0j7p7M0ILD4pG.jpg"},
   companies:{studio:["Warner Bros. Pictures","Silver Pictures","Village Roadshow Pictures"],vfx:["Animal Logic","Manex Visual Effects","Bullet Time"]},
-  cast:[
-    {name:"Киану Ривз",role:"Нео",photo:null},
-    {name:"Лоренс Фишбёрн",role:"Морфеус",photo:null},
-    {name:"Кэрри-Энн Мосс",role:"Тринити",photo:null},
-    {name:"Хьюго Уивинг",role:"Агент Смит",photo:null},
-    {name:"Джо Пантольяно",role:"Сайфер",photo:null},
-    {name:"Глория Фостер",role:"Оракул",photo:null},
-    {name:"Маркус Чонг",role:"Тэнк",photo:null},
-    {name:"Джулиан Арахага",role:"Апок",photo:null}
-  ],
-  photos:{
-    "Кадры из фильма":[
-      "https://images.kinorium.com/movie/shot/116780/original_146207.jpg",
-      "https://images.kinorium.com/movie/shot/116780/original_1286918.jpg",
-      "https://images.kinorium.com/movie/shot/116780/original_146178.jpg",
-      "https://images.kinorium.com/movie/shot/116780/original_146197.jpg",
-      "https://images.kinorium.com/movie/shot/116780/original_146199.jpg"
-    ],
-    "Фоны":[
-      "https://image.tmdb.org/t/p/original/tlm8UkiQsitc8rSuIAscQDCnP8d.jpg"
-    ],
-    "Постеры":[
-      "https://image.tmdb.org/t/p/original/kEDbym5htJgDQNenjUtSJxAHysB.jpg",
-      "https://avatars.mds.yandex.net/get-kinopoisk-image/4774061/cf1970bc-3f08-4e0e-a095-2fb57c3aa7c6/600x900",
-      "https://image.tmdb.org/t/p/original/bV9qTVHTVf0gkW0j7p7M0ILD4pG.jpg"
-    ]
-  },
+cast:[{"role_ru": "Режиссёры", "items": [{"n": "Лана Вачовски", "c": "", "p": "https://st.kp.yandex.net/images/actor_iphone/iphone360_23330.jpg"}, {"n": "Лилли Вачовски", "c": "", "p": "https://st.kp.yandex.net/images/actor_iphone/iphone360_23329.jpg"}]}, {"role_ru": "Актёры", "items": [{"n": "Киану Ривз", "c": "Нео", "p": "https://st.kp.yandex.net/images/actor_iphone/iphone360_7836.jpg"}, {"n": "Лоренс Фишбёрн", "c": "Морфеус", "p": "https://st.kp.yandex.net/images/actor_iphone/iphone360_9838.jpg"}, {"n": "Кэрри-Энн Мосс", "c": "Тринити", "p": "https://st.kp.yandex.net/images/actor_iphone/iphone360_6226.jpg"}, {"n": "Хьюго Уивинг", "c": "Агент Смит", "p": "https://st.kp.yandex.net/images/actor_iphone/iphone360_1491.jpg"}, {"n": "Глория Фостер", "c": "Оракул", "p": "https://st.kp.yandex.net/images/actor_iphone/iphone360_23331.jpg"}, {"n": "Джо Пантольяно", "c": "Сайфер", "p": "https://st.kp.yandex.net/images/actor_iphone/iphone360_9030.jpg"}, {"n": "Маркус Чонг", "c": "Т'нк", "p": "https://st.kp.yandex.net/images/actor_iphone/iphone360_23332.jpg"}, {"n": "Джулиан Араханга", "c": "Апок", "p": "https://st.kp.yandex.net/images/actor_iphone/iphone360_23333.jpg"}, {"n": "Мэтт Доран", "c": "Мышь", "p": "https://st.kp.yandex.net/images/actor_iphone/iphone360_23334.jpg"}, {"n": "Белинда МакКлори", "c": "Свитч", "p": "https://st.kp.yandex.net/images/actor_iphone/iphone360_23335.jpg"}, {"n": "Энтони Рэй Паркер", "c": "Дозер", "p": "https://st.kp.yandex.net/images/actor_iphone/iphone360_23336.jpg"}, {"n": "Пол Годдард", "c": "Агент Браун", "p": "https://st.kp.yandex.net/images/actor_iphone/iphone360_21711.jpg"}]}, {"role_ru": "Сценаристы", "items": [{"n": "Лилли Вачовски", "c": "", "p": "https://st.kp.yandex.net/images/actor_iphone/iphone360_23329.jpg"}, {"n": "Лана Вачовски", "c": "", "p": "https://st.kp.yandex.net/images/actor_iphone/iphone360_23330.jpg"}]}, {"role_ru": "Продюсеры", "items": [{"n": "Джоэл Силвер", "c": "", "p": "https://st.kp.yandex.net/images/actor_iphone/iphone360_1790.jpg"}, {"n": "Брюс Берман", "c": "", "p": "https://st.kp.yandex.net/images/actor_iphone/iphone360_712.jpg"}, {"n": "Дэн Краччиоло", "c": "", "p": "https://st.kp.yandex.net/images/actor_iphone/iphone360_1787.jpg"}, {"n": "Эндрю Мэйсон", "c": "", "p": "https://images.kinorium.com/persona/300/418857.jpg?20201106102855"}]}, {"role_ru": "Операторы", "items": [{"n": "Билл Поуп", "c": "", "p": "https://st.kp.yandex.net/images/actor_iphone/iphone360_278101.jpg"}]}, {"role_ru": "Композиторы", "items": [{"n": "Дон Дэвис", "c": "", "p": "https://st.kp.yandex.net/images/actor_iphone/iphone360_477776.jpg"}]}, {"role_ru": "Художники", "items": [{"n": "Хью Бэйтап", "c": "", "p": "https://st.kp.yandex.net/images/actor_iphone/iphone360_1987225.jpg"}, {"n": "Ким Барретт", "c": "", "p": "https://image.tmdb.org/t/p/original/cZ3jE9PNY6kiI45kFUOIjeyxPlU.jpg"}, {"n": "Лиза Бреннан", "c": "", "p": null}]}, {"role_ru": "Монтажёры", "items": [{"n": "Зак Стэнберг", "c": "", "p": "https://st.kp.yandex.net/images/actor_iphone/iphone360_310065.jpg"}]}, {"role_ru": "Дубляж", "items": [{"n": "Всеволод Кузнецов", "c": "Нео", "p": "https://images.kinorium.com/persona/300/2430945.jpg?20220127122949"}, {"n": "Владимир Вихров", "c": "Морфеус", "p": "https://images.kinorium.com/persona/300/672164.jpg?20240715224109"}, {"n": "Владимир Антоник", "c": "Агент Смит", "p": "https://images.kinorium.com/persona/300/25224.jpg?20240209123034"}, {"n": "Леонид Белозорович", "c": "Сайфер", "p": "https://images.kinorium.com/persona/300/54305.jpg?20220127161653"}, {"n": "Светлана Старикова", "c": "Оракул", "p": "https://images.kinorium.com/persona/300/616865.jpg?20201106103625"}, {"n": "Андрей Бархударов", "c": "Т'нк", "p": "https://images.kinorium.com/persona/300/1476671.jpg?20240209123220"}, {"n": "Борис Шувалов", "c": "Апок", "p": "https://images.kinorium.com/persona/300/597031.jpg?20220127162230"}, {"n": "Андрей Казанцев", "c": "Мышь", "p": "https://images.kinorium.com/persona/300/3120953.jpg?20210130211613"}]}],
+photos:{"Кадры": ["https://image.tmdb.org/t/p/original/tlm8UkiQsitc8rSuIAscQDCnP8d.jpg", "https://image.tmdb.org/t/p/original/oMsxZEvz9a708d49b6UdZK1KAo5.jpg", "https://image.tmdb.org/t/p/original/8K9qHeM6G6QjQN0C5XKFGvK5lzM.jpg", "https://image.tmdb.org/t/p/original/ncEsesgOJDNrTUED89hYbA117wo.jpg", "https://image.tmdb.org/t/p/original/fNG7i7RqMErkcqhohV2a6cV1Ehy.jpg", "https://image.tmdb.org/t/p/original/oCkOhekO65sH5o3UnnWPStYHEnv.jpg", "https://image.tmdb.org/t/p/original/icmmSD4vTTDKOq2vvdulafOGw93.jpg", "https://image.tmdb.org/t/p/original/waCRuAW5ocONRehP556vPexVXA9.jpg"], "Постеры": ["https://image.tmdb.org/t/p/original/aOIuZAjPaRIE6CMzbazvcHuHXDc.jpg", "https://images.kinorium.com/movie/poster/116780/w1500_3441887.jpg", "https://image.tmdb.org/t/p/original/pEoqbqtLc4CcwDUDqxmEDSWpWTZ.jpg", "https://ru-images.kinorium.com/movie/600/116780.jpg?1769529342", "https://images.kinorium.com/movie/poster/116780/w1500_52804978.jpg"], "Живые постеры": ["https://images.kinorium.com/movie/aniface/116780/original_1128241.mp4"]},
   awards:[
     {name:"Оскар",category:"Лучший звук",won:true,year:2000},
     {name:"Оскар",category:"Лучший монтаж",won:true,year:2000},
@@ -309,6 +303,7 @@ const DATA = {
     {cat:"пугающие сцены",sev:"moderate",ru:"Средне",src:"IMDB"},
     {cat:"секс / нагота",sev:"mild",ru:"Мало",src:"IMDB"}
   ],
+facts:[{"kind": "fact", "text": "На роль Нео претендовали Юэн МакГрегор и Леонардо ДиКаприо и Том Круз. В свою очередь, Вэл Килмер претендовал на роль Морфиуса. Уилл Смит также вполне мог сыграть Нео, однако предпочел сняться в неудавшемся «Диком, диком Западе» (1999).", "spoiler": false}, {"kind": "fact", "text": "Роль агента Смита по замыслу режиссёров Ланы Вачовски и Лилли должен был исполнить француз Жан Рено. Однако последний предпочел поработать в другом голливудском блокбастере — «Годзилла».", "spoiler": false}, {"kind": "fact", "text": "Во время съемок одной из сцен актриса Керри-Энн Мосс сломала ногу, однако решила не ставить в известность съемочную группу, дабы не лишиться знаковой в её карьере роли.", "spoiler": false}, {"kind": "fact", "text": "Перед началом съемок ведущие актеры изучали основы восточных единоборств. Длилось это обучение с октября 1997 года по март 1998 года. Актеры не ожидали таких нагрузок и были полностью уверены, что для получения практических навыков хватит и нескольких недель.", "spoiler": false}, {"kind": "fact", "text": "Как только картина вышла на экраны и поразила зрителей эффектом замирающей камеры, тут же возникло множество людей, утверждающих, что именно они первыми перенесли это изобретение на большой экран. Французский режиссер Мишель Гондри использовал этот эффект в рекламе страховой компании, а чуть позднее в клипе поп-звезды Бьорк. Архитектор Мэттью Банистер подробно описал данную проблему в своей научной работе. Он предположил, что движение и время в кадре могут идти как параллельно, так и отдельно друг от друга. Однако в то время аппаратура не позволяла провести данный эксперимент. И, наконец, художник Тим МакМиллан продемонстрировал эту технику на одном из британских каналов в 1993 году. Возможно, каждый из них изобрел этот эффект по отдельности, возможно кто-то воспользовался идеями других. Так или иначе, для большинства обывателей, революционерами все равно останутся Лана и Лилли Вачовски.", "spoiler": false}, {"kind": "fact", "text": "В картине немало обращений к сказкам Льюиса Кэрролла «Алиса в стране чудес» и «Алиса в зазеркалье». В фильме также содержится множество ссылок на Маркса, Кафку, дзэн-буддизм и «Одиссею» Гомера.", "spoiler": false}, {"kind": "blooper", "text": "В эпизоде, где Тринити и Нео в поисках Морфиуса оказываются на крыше, один из пилотов вертолета трансформируется в агента Джонса. При этом левый висок Джонса приходится на затылок пилота. Однако после выстрела Тринити именно в этот висок, пулевое отверстие у пилота, покинутого «программой» агента, почему-то оказывается во лбу.", "spoiler": true}, {"kind": "blooper", "text": "В сцене, когда Нео впервые встречается с Морфиусом, герой Лоренса Фишбёрна здоровается с Избранным. Морфиус протягивает правую руку, при этом левая рука у него за спиной. Далее сразу же следует вставка с другого ракурса, где левая рука уже почему-то опущена к полу. В следующем кадре левая рука Морфиуса снова за спиной.", "spoiler": true}, {"kind": "blooper", "text": "Когда агент Смит и Морфиус дерутся, последний бьёт агента головой и ломает ему очки. В следующем кадре камера показывает Морфиуса, и можно заметить, что очки ещё надеты на агенте Смите.", "spoiler": true}, {"kind": "blooper", "text": "Когда на 2-й минуте фильма полицейские вламываются в гостиничный номер, чтобы задержать Тринити, она в это момент сидит в неосвещённой комнате. Когда в следующей сцене ей удаётся обезвредить всех полицейских, отчётливо видно, что на стенах появляются работающие светильники.", "spoiler": true}, {"kind": "blooper", "text": "Когда на 6-й минуте фильма Тринити с разбега прыгает в окно, плафон лампы под потолком висит неподвижно. После смены кадра, когда Тринити целится в сторону разбитого окна, и камера приближается к окну, плафон начинает качаться. Светильник вновь висит неподвижно, когда Тринити собирается встать.", "spoiler": true}, {"kind": "blooper", "text": "Когда на 6-й минуте фильма Тринити забегает в телефонную будку, у неё на лице заметен кровавый порез, хотя в прошлой сцене, после прыжка в окно, пореза не было.", "spoiler": true}, {"kind": "blooper", "text": "Когда на 13-й минуте фильма начальник отчитывает Нео за опоздание, положение рук Томаса меняется при сменах кадра.", "spoiler": true}, {"kind": "blooper", "text": "На 14-й минуте фильма Нео берётся за край конверта, чтобы открыть его. В следующем кадре, когда курьер уходит, Нео делает это ещё раз.", "spoiler": true}],
   faq:[
     {q:"О чём фильм «Матрица» без спойлеров концовки?",a:`Фильм следует за Томасом Андерсоном, который начинает подозревать, что привычная реальность — лишь тщательно сконструированная иллюзия. Встреча с Морфеусом и его командой втягивает героя в конфликт с системой контроля и её агентами, заставляя выбирать между комфортной ложью и рискованной правдой.`},
     {q:"Почему фильм называется «The Matrix»?",a:`«Матрица» — это название симулированной реальности, в которой живёт большинство людей, не подозревая об этом. Слово намекает и на «систему», и на «среду», которая формирует восприятие мира и поведение человека.`},
@@ -401,12 +396,14 @@ const ratingsHtml=[
 ].join('');
 
 $('#movieContent').innerHTML=`
-  <div class="content-header"><h1 class="content-title">${DATA.title.ru}</h1></div>
+  <div class="content-header">${DATA.logo
+    ? `<img class="nz-logo" src="${DATA.logo}" alt="${DATA.title.ru}">`
+    : `<h1 class="content-title">${DATA.title.ru}</h1>`}</div>
   <div class="ratings-links">${ratingsHtml}</div>
 
   <div class="movie-layout">
     <div class="movie-layout-poster">
-      <a class="movie-poster-side" href="#"><img src="${DATA.poster}" alt="${DATA.title.ru}"></a>
+      <div class="nz-poster-rotator" id="posterRot"></div>
     </div>
     <div class="movie-layout-main">
       <div class="player-coming-soon" style="width:100%;margin-left:0;margin-top:0">
@@ -421,14 +418,27 @@ $('#movieContent').innerHTML=`
     </div>
   </div>`;
 
+/* ═══ РОТАТОР ПОСТЕРОВ (все постеры из /images, кросс-фейд каждые 3с) ═══ */
+(()=>{
+  const rot=$('#posterRot'), P=DATA.posters||[];
+  if(!P.length){ rot.innerHTML=`<img class="on" src="${DATA.poster}" alt="">`; return; }
+  rot.innerHTML=P.map((u,i)=>`<img src="${u}" alt="" loading="${i<2?'eager':'lazy'}"${i===0?' class="on"':''}>`).join('');
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(P.length>1 && !reduce){
+    let i=0;
+    setInterval(()=>{const im=rot.children;im[i].classList.remove('on');i=(i+1)%im.length;im[i].classList.add('on')},3000);
+  }
+})();
+
 /* ═══ ВКЛАДКИ ═══ */
 const TABS=[
   {id:'overview',label:'Обзор'},
-  {id:'actors',label:'Актёры',n:DATA.cast.length},
+  {id:'actors',label:'Актёры',n:DATA.cast.reduce((s,g)=>s+g.items.length,0)},
   {id:'photos',label:'Фото',n:Object.values(DATA.photos).flat().length},
   {id:'videos',label:'Видео',n:DATA.videos.length},
   {id:'awards',label:'Награды',n:DATA.awards.length},
   {id:'quotes',label:'Цитаты',n:DATA.quotes.length},
+  {id:'facts',label:'Факты',n:DATA.facts.length},
   {id:'parental',label:'Родителям'},
   {id:'faq',label:'Вопросы',n:DATA.faq.length},
   {id:'similar',label:'Связи',n:DATA.franchise.length+DATA.similar.length+DATA.references.length+DATA.referenced_in.length},
@@ -494,7 +504,7 @@ $('#np-overview').innerHTML=`
   const play=`<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>`;
   const ORDER=['трейлер','тизер','обзор','фрагмент','со съёмок'];
   const LABEL={'трейлер':'Трейлеры','тизер':'Тизеры','обзор':'Обзоры','фрагмент':'Фрагменты','со съёмок':'Со съёмок'};
-  const card=v=>`<a class="nz-vid" href="https://www.youtube.com/watch?v=1785600758${v.id}" target="_blank" rel="noopener">
+  const card=v=>`<a class="nz-vid" href="https://www.youtube.com/watch?v=1785692756${v.id}" target="_blank" rel="noopener">
       <img loading="lazy" src="${v.prev}" alt=""><div class="pl"><span>${play}</span></div>
       <div class="mt"><span class="k">${v.kind}</span>${v.dur?` <span class="d">${dur(v.dur)}</span>`:''}</div></a>`;
   // сначала известный порядок, затем прочие типы из данных
@@ -548,22 +558,42 @@ $('#np-sites').innerHTML=Object.entries(DATA.sites).map(([sec,list])=>`
         <span class="ic" data-l="${s.host[0]}"><img src="https://icons.duckduckgo.com/ip3/${s.host}.ico" alt="" loading="lazy" data-h="${s.host}" onerror="if(this.dataset.g){this.remove()}else{this.dataset.g=1;this.src='https://www.google.com/s2/favicons?domain='+this.dataset.h+'&sz=64'}"></span>
         <span><b>${s.host}</b><span>${s.stream?'Смотреть онлайн':'Перейти'}</span></span></a>`).join('')}</div></div>`).join('');
 
-// Актёры
+// Актёры и съёмочная группа — реальный /cast, секции по ролям
 (()=>{
-  $('#np-actors').innerHTML=`<div class="nz-cast">${DATA.cast.map(a=>{
-    const ini=a.name.split(' ').map(w=>w[0]).slice(0,2).join('');
-    const av=a.photo?`<img loading="lazy" src="${a.photo}" alt="">`:ini;
-    return `<a class="nz-actor" href="#"><div class="av">${av}</div>
-      <div class="nm">${a.name}</div><div class="rl">${a.role}</div></a>`;
-  }).join('')}</div>`;
+  const ini=n=>n.split(' ').map(w=>w[0]).slice(0,2).join('');
+  const card=p=>`<a class="nz-actor" href="#">
+      <div class="av" data-l="${ini(p.n)}">${p.p?`<img loading="lazy" src="${p.p}" alt="" onerror="this.remove()">`:''}</div>
+      <div class="nm">${p.n}</div>${p.c?`<div class="rl">${p.c}</div>`:''}</a>`;
+  $('#np-actors').innerHTML=DATA.cast.map(g=>
+    `<div class="nz-section-title">${g.role_ru}</div><div class="nz-cast">${g.items.map(card).join('')}</div>`
+  ).join('');
 })();
 
-// Фото — группировка по типу (как «Сайты»)
+// Фото — реальный /images, группировка по типу
 $('#np-photos').innerHTML=Object.entries(DATA.photos).map(([sec,list])=>list.length?`
   <div class="nz-sg"><span class="lbl">${sec}</span>
-    <div class="nz-photos${sec==='Постеры'?' posters':''}">${list.map(u=>`
-      <a class="nz-photo" href="${u}" target="_blank" rel="noopener"><img loading="lazy" src="${u}" alt=""></a>`).join('')}</div>
+    <div class="nz-photos${(sec==='Постеры'||sec==='Живые постеры')?' posters':''}">${list.map(u=>
+      u.endsWith('.mp4')
+        ? `<div class="nz-photo"><video src="${u}" autoplay muted loop playsinline></video></div>`
+        : `<a class="nz-photo" href="${u}" target="_blank" rel="noopener"><img loading="lazy" src="${u}" alt=""></a>`
+    ).join('')}</div>
   </div>`:'').join('');
+
+// Факты и ляпы — реальный /facts (спойлеры под блюром)
+(()=>{
+  const groups=[['fact','Интересные факты'],['blooper','Ляпы и ошибки']];
+  $('#np-facts').innerHTML=groups.map(([k,label])=>{
+    const list=DATA.facts.filter(f=>f.kind===k);
+    if(!list.length) return '';
+    return `<div class="nz-sg"><span class="lbl">${label}</span>
+      <div class="nz-facts-list">${list.map(f=>
+        `<div class="nz-factrow"><span class="fi">${k==='fact'?'💡':'🎬'}</span>`+
+        (f.spoiler
+          ? `<p class="nz-spoiler" onclick="this.classList.remove('nz-spoiler')" title="Спойлер — нажмите, чтобы показать">${f.text}</p>`
+          : `<p>${f.text}</p>`)+
+        `</div>`).join('')}</div></div>`;
+  }).join('');
+})();
 
 /* индикатор */
 requestAnimationFrame(()=>requestAnimationFrame(()=>moveInk(tabBtns[0])));
