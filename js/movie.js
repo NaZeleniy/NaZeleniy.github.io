@@ -12,20 +12,36 @@ const NZ_BLOCKED_TITLES = new Set([
   '9932878', // жалоба правообладателя, 2026-07-09
 ])
 
-async function fetchWithRetry(url, opts, retries = 2, delay = 1200) {
+// timeoutMs обязателен: у fetch нет своего таймаута, и подвисшее соединение
+// (мобильная сеть, стухший keep-alive к cross-origin API) оставляет промис
+// нерезолвнутым НАВСЕГДА — страница молча застревает в состоянии превью.
+// Серверный таймаут (10с в api.go) тут не спасает: запрос до сервера не доходит.
+// onAttemptFail(attempt) вызывается после каждой неудачной попытки, кроме последней —
+// чтобы вызывающий мог показать «пробуем ещё раз», а не держать пользователя перед
+// неподвижной страницей все ~38с худшего случая (3 попытки × таймаут + паузы).
+async function fetchWithRetry(url, opts, retries = 2, delay = 1200, timeoutMs = 12000, onAttemptFail) {
   for (let i = 0; i <= retries; i++) {
+    const ac = new AbortController()
+    const timer = setTimeout(() => ac.abort(), timeoutMs)
     try {
-      const res = await fetch(url, opts)
+      const res = await fetch(url, { ...opts, signal: ac.signal })
       // 5xx = бэкенд перезапускается/лёг — повторяем (последнюю попытку отдаём
       // как есть, чтобы вызывающий отличил «сервер недоступен» от проблем сети).
       if (res.status >= 500 && i < retries) {
+        try { onAttemptFail?.(i + 1) } catch {}
         await new Promise(r => setTimeout(r, delay))
         continue
       }
       return res
     } catch (e) {
-      if (i === retries) throw e
+      // Наш таймаут помечаем отдельно: это не «нет интернета» и не «сервер лёг»,
+      // а зависший запрос — вызывающий покажет свой текст и предложит повтор.
+      const err = ac.signal.aborted ? Object.assign(new Error('timeout'), { name: 'NZTimeout' }) : e
+      if (i === retries) throw err
+      try { onAttemptFail?.(i + 1) } catch {}
       await new Promise(r => setTimeout(r, delay))
+    } finally {
+      clearTimeout(timer)
     }
   }
 }
@@ -1316,6 +1332,44 @@ function renderError(message, opts = {}) {
     </div>`
 }
 
+// Ненавязчивый баннер поверх УЖЕ отрисованного превью: полностью перерисовывать
+// страницу ошибкой нельзя (потеряем то, что пользователь уже видит), но и молчать
+// нельзя — иначе застревание выглядит как «сайт просто не грузится».
+// opts.pending — идёт повторная попытка: спиннер вместо кнопки, нейтральный тон
+// (кнопка «Повторить» была бы обманом — параллельный прогон всё равно отсекается).
+function renderRetryBar(msg, opts = {}) {
+  const c = document.getElementById('movieContent')
+  if (!c) return
+  dismissRetryBar()
+  const bar = document.createElement('div')
+  bar.id = 'nz-retry-bar'
+  bar.className = 'movie-retry-bar' + (opts.pending ? ' movie-retry-bar-pending' : '')
+  bar.innerHTML =
+    (opts.pending
+      ? `<i class="fas fa-circle-notch fa-spin movie-retry-icon"></i>`
+      : `<i class="fas fa-triangle-exclamation movie-retry-icon"></i>`) +
+    `<span class="movie-retry-text"></span>` +
+    (opts.pending ? '' : `<button type="button" class="movie-retry-btn">Повторить</button>`)
+  bar.querySelector('.movie-retry-text').textContent = msg
+  bar.querySelector('.movie-retry-btn')?.addEventListener('click', () => {
+    dismissRetryBar()
+    loadMovie()
+  })
+  c.prepend(bar)
+}
+
+function dismissRetryBar() {
+  document.getElementById('nz-retry-bar')?.remove()
+}
+
+// Этот баг ловили «на глаз» много раз — теперь причина срыва загрузки уезжает
+// целью в Метрику (счётчик уже на странице). По распределению reason видно, что
+// именно происходит у людей: подвисший запрос, 5xx, обрыв сети или 404.
+function reportLoadFail(reason) {
+  try { if (typeof ym === 'function') ym(108313126, 'reachGoal', 'movie_load_fail', { reason, id: movieId }) } catch {}
+  try { console.warn('[nz] movie load failed:', reason, 'id=' + movieId) } catch {}
+}
+
 // Заглушка для тайтла, снятого по требованию правообладателя (см. NZ_BLOCKED_TITLES).
 function renderBlocked() {
   document.title = 'Недоступно — NaZeleniy'
@@ -1630,8 +1684,17 @@ function _nzApplyCast() {
   })
 }
 
+// Загрузка может быть перезапущена (кнопка в баннере, возврат сети, возврат на
+// вкладку), поэтому идемпотентна: _movieLoaded не даёт грузить уже показанный
+// фильм, _movieLoading — запускать второй прогон поверх идущего.
+let _movieLoaded = false
+let _movieLoading = false
+
 async function loadMovie() {
+  // Оба состояния окончательные — помечаем загрузку завершённой, иначе
+  // retryIfStuck перерисовывал бы их при каждом возврате на вкладку.
   if (!movieId) {
+    _movieLoaded = true
     renderError('ID фильма не указан')
     return
   }
@@ -1639,9 +1702,13 @@ async function loadMovie() {
   // Тайтл заблокирован по требованию правообладателя — заглушка вместо страницы,
   // не грузим ни превью, ни /api/movie, ни плееры.
   if (NZ_BLOCKED_TITLES.has(String(movieId))) {
+    _movieLoaded = true
     renderBlocked()
     return
   }
+
+  if (_movieLoaded || _movieLoading) return
+  _movieLoading = true
 
   try {
     const preview = JSON.parse(sessionStorage.getItem('moviePreview') || 'null')
@@ -1655,23 +1722,43 @@ async function loadMovie() {
   // Каст и похожие встроены в ответ /api/movie (include=cast,similar) — экономят
   // холодные upstream-запросы. Франшиза грузится отдельным /api/sequels/:id, т.к.
   // встроенный include игнорирует фильтр required=kp_id и тянет тайтлы без kp_id.
-  const playersRes  = fetchWithRetry(`${API_BASE}/api/players/${movieId}`)
+  // Плееры опрашивают внешних провайдеров — им нужен запас по времени (20с).
+  const playersRes  = fetchWithRetry(`${API_BASE}/api/players/${movieId}`, undefined, 2, 1200, 20000)
   // Предотвращаем unhandled rejection если основной запрос упадёт раньше
   playersRes.catch(() => {})
 
-  // Показываем ошибку только если на странице ещё ничего нет (не перетираем превью).
-  const showError = (msg, opts) => {
-    if (!document.getElementById('movieContent').children.length) renderError(msg, opts)
+  // Раньше ошибка при уже отрисованном превью терялась молча (условие «рендерим
+  // только в пустой #movieContent» не выполнялось никогда) — и страница навсегда
+  // оставалась в состоянии превью: ни данных, ни сообщения, ни кнопки. Именно так
+  // и выглядело «застряло, помогает только F5». Теперь выход есть всегда.
+  const fail = (msg, reason) => {
+    reportLoadFail(reason)
+    if (document.querySelector('#movieContent .movie-layout')) renderRetryBar(msg)
+    else renderError(msg, { retry: true })
+  }
+
+  // Пока идут ретраи, страница не должна выглядеть замершей: после первой
+  // неудачной попытки показываем статус поверх превью (в пустой странице уже
+  // крутится спиннер — там баннер не нужен).
+  const onAttemptFail = () => {
+    if (document.querySelector('#movieContent .movie-layout')) {
+      renderRetryBar('Сервер не отвечает — пробуем ещё раз…', { pending: true })
+    }
   }
 
   try {
-    const r = await fetchWithRetry(`${API_BASE}/api/movie/${movieId}`)
-    if (r.status === 404) { showError('Фильм не найден'); return }
+    const r = await fetchWithRetry(`${API_BASE}/api/movie/${movieId}`, undefined, 2, 1200, 12000, onAttemptFail)
+    // 404 окончателен — ретраить нечего, помечаем загрузку завершённой.
+    if (r.status === 404) { _movieLoaded = true; fail('Фильм не найден', 'http-404'); return }
     // Ответ пришёл, но с ошибкой (5xx после ретраев) — бэкенд реально недоступен.
-    if (!r.ok) { showError('Сервер временно недоступен. Попробуйте позже.', { retry: true }); return }
+    if (!r.ok) { fail('Сервер временно недоступен. Попробуйте позже.', 'http-' + r.status); return }
     const raw = await r.json()
     const movie = normalizeMovie(raw)
     renderMovie(movie)
+    // Данные на экране. Всё, что ниже, — довесок: если оно упадёт, показывать
+    // ошибку загрузки уже нельзя (страница-то отрисована), см. catch.
+    _movieLoaded = true
+    dismissRetryBar()
     enrichMovie(raw) // полная инфа + языковой тумблер (поверх renderMovie)
     initRatingWidget(movie)
     initFavorite(movie.kinopoiskId || movie.filmId)
@@ -1684,17 +1771,31 @@ async function loadMovie() {
     loadSimilars(raw.similar)   // {items,relation} встроен в /api/movie
     loadPlayers(playersRes, movie.kinopoiskId || movie.filmId)
   } catch (e) {
-    // Сюда попадаем, только если fetch вообще не достучался (после ретраев): это
-    // проблема соединения на стороне клиента / сети, а НЕ ошибка бэкенда. Поэтому
-    // не пишем «сервер недоступен» — это ложно винило бы бэкенд.
+    // Фильм уже отрисован — значит упало что-то из довесков (каст, похожие,
+    // комментарии). Это не срыв загрузки, ошибку показывать нельзя.
+    if (_movieLoaded) { console.warn('[nz] post-render error:', e); return }
+    // Иначе fetch вообще не достучался (после ретраев) либо тело ответа битое:
+    // проблема соединения / зависший запрос, а НЕ ошибка бэкенда. Поэтому не
+    // пишем «сервер недоступен» — это ложно винило бы бэкенд.
+    const timedOut = e && e.name === 'NZTimeout'
     const netProblem = (typeof navigator !== 'undefined' && navigator.onLine === false) || e instanceof TypeError
-    showError(
-      netProblem
-        ? 'Не удалось соединиться. Проверьте интернет и попробуйте ещё раз.'
-        : 'Не удалось загрузить фильм. Попробуйте позже.',
-      { retry: true }
-    )
+    if (timedOut) fail('Загрузка затянулась. Попробуйте ещё раз.', 'timeout')
+    else if (netProblem) fail('Не удалось соединиться. Проверьте интернет и попробуйте ещё раз.', 'network')
+    else fail('Не удалось загрузить фильм. Попробуйте позже.', 'other-' + (e && e.name))
+  } finally {
+    _movieLoading = false
   }
 }
+
+// Самовосстановление: пока фильм не загружен, повторяем при возврате сети и при
+// возврате на вкладку. Пользователю больше не нужно жать F5 — а если он всё-таки
+// ушёл и вернулся, страница дозагрузится сама.
+function retryIfStuck() {
+  if (_movieLoaded || _movieLoading) return
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return
+  loadMovie()
+}
+window.addEventListener('online', retryIfStuck)
+document.addEventListener('visibilitychange', () => { if (!document.hidden) retryIfStuck() })
 
 loadMovie()

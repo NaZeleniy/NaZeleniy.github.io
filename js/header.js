@@ -113,7 +113,10 @@ function _renderSidebar(activePage) {
     </a>`
   }).join('')
 
-  document.getElementById('app-sidebar').outerHTML = `
+  // Без опциональной цепочки отсутствие #app-sidebar роняло весь renderHeader
+  // на первой же строке — вместе с поиском, кнопкой входа, TV-навигацией и параллаксом.
+  const mount = document.getElementById('app-sidebar')
+  if (mount) mount.outerHTML = `
     <aside class="side-panel">
       <a href="/" class="rail-mark" title="NaZeleniy"><img src="img/logo/logo_na.svg" alt="NaZeleniy"/></a>
       <nav class="nav-links">${linksHtml}</nav>

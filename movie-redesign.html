@@ -504,7 +504,7 @@ $('#np-overview').innerHTML=`
   const play=`<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>`;
   const ORDER=['трейлер','тизер','обзор','фрагмент','со съёмок'];
   const LABEL={'трейлер':'Трейлеры','тизер':'Тизеры','обзор':'Обзоры','фрагмент':'Фрагменты','со съёмок':'Со съёмок'};
-  const card=v=>`<a class="nz-vid" href="https://www.youtube.com/watch?v=1785746725${v.id}" target="_blank" rel="noopener">
+  const card=v=>`<a class="nz-vid" href="https://www.youtube.com/watch?v=1785778327${v.id}" target="_blank" rel="noopener">
       <img loading="lazy" src="${v.prev}" alt=""><div class="pl"><span>${play}</span></div>
       <div class="mt"><span class="k">${v.kind}</span>${v.dur?` <span class="d">${dur(v.dur)}</span>`:''}</div></a>`;
   // сначала известный порядок, затем прочие типы из данных
