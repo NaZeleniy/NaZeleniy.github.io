@@ -169,6 +169,15 @@
   font-size: 13px;
   color: var(--text-muted);
 }
+/* Подпись-«кикер» над названием фасета (/tag, /company) */
+.collection-detail-title .collection-kicker {
+  order: -1;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
 
 @media (max-width: 620px) {
   .collections-grid { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }

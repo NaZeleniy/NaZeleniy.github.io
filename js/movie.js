@@ -77,6 +77,86 @@ let _players = []
 let _currentUserRating = null
 let _currentKpId = null
 let _isFavorited = false
+
+// ── Статистика популярности плееров ─────────────────────────────────────────
+// Засчитываем плеер, если пользователь реально смотрел ~10 минут ФОКУС-времени
+// вкладки на загруженном плеере (точное время из кросс-доменных iframe не читается).
+// Один раз на пользователя/фильм/плеер (гвард в localStorage). Считаем время по
+// текущему активному плееру; при переключении — фиксируем и начинаем заново.
+const _PW_THRESHOLD_MS = 10 * 60 * 1000
+let _pwPlayer = null        // имя активного плеера
+let _pwAccum = {}           // {player: накопленное видимое ms} за эту загрузку
+let _pwLast = 0             // timestamp начала текущего видимого отрезка (0 = пауза)
+let _pwInit = false
+let _selectedPlayerName = null // имя текущего выбранного плеера (для статистики)
+function _pwFlush() {
+  if (_pwPlayer && _pwLast) {
+    _pwAccum[_pwPlayer] = (_pwAccum[_pwPlayer] || 0) + (Date.now() - _pwLast)
+    _pwLast = 0
+    if ((_pwAccum[_pwPlayer] || 0) >= _PW_THRESHOLD_MS) _pwCount(_pwPlayer)
+  }
+}
+function _pwResume() { if (_pwPlayer && document.visibilityState === 'visible') _pwLast = Date.now() }
+function _pwCount(player) {
+  if (!_currentKpId || !player) return
+  const key = 'nz_pw_' + _currentKpId + '_' + player
+  try { if (localStorage.getItem(key)) return; localStorage.setItem(key, '1') } catch {}
+  fetch(`${API_BASE}/api/player-stats/${_currentKpId}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: _CREDS,
+    body: JSON.stringify({ player })
+  }).catch(() => {})
+}
+// Показывает популярность плееров: % у каждого пункта дропдауна + бейдж «чаще
+// смотрят» рядом с селектором. Данные — GET /api/player-stats/:kpId (по фильму).
+function _renderPlayerStats() {
+  if (!_currentKpId) return
+  fetch(`${API_BASE}/api/player-stats/${_currentKpId}`, { credentials: _CREDS })
+    .then(r => r.ok ? r.json() : null)
+    .then(d => {
+      // Показываем ТОЛЬКО проценты и только если статистики достаточно (enough).
+      if (!d || !d.enough) return
+      const pct = {}
+      let top = null, topP = -1
+      ;(d.items || []).forEach(x => { pct[x.player] = x.percent; if (x.percent > topP) { topP = x.percent; top = x.player } })
+      document.querySelectorAll('.player-option').forEach(o => {
+        const p = pct[o.dataset.name]
+        let s = o.querySelector('.player-pct')
+        if (!s) { s = document.createElement('span'); s.className = 'player-pct'; o.appendChild(s) }
+        s.textContent = (p != null) ? p + '%' : ''
+      })
+      if (top != null && topP >= 0) {
+        const wrap = document.querySelector('.player-select-wrap')
+        if (wrap) {
+          let ind = document.getElementById('playerPopular')
+          if (!ind) {
+            ind = document.createElement('span'); ind.id = 'playerPopular'; ind.className = 'player-popular'
+            const inner = wrap.querySelector('.player-select-inner')
+            if (inner && inner.nextSibling) wrap.insertBefore(ind, inner.nextSibling); else wrap.appendChild(ind)
+          }
+          ind.innerHTML = '<i class="fas fa-fire"></i> Чаще смотрят: <b>' + _escAttr(top) + '</b> ' + topP + '%'
+        }
+      }
+    }).catch(() => {})
+}
+function _escAttr(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }
+
+// Вызывается, когда плеер стал ready (см. playerSetState).
+function _pwOnReady(player) {
+  if (!player) return
+  _pwFlush()                // зафиксировать время прошлого активного плеера
+  _pwPlayer = player
+  _pwResume()
+  if (_pwInit) return
+  _pwInit = true
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') _pwResume(); else _pwFlush()
+  })
+  // Периодически «сливаем» накопленное, чтобы порог 10 мин срабатывал без ожидания
+  // события смены вкладки/плеера.
+  setInterval(function () { if (document.visibilityState === 'visible') { _pwFlush(); _pwResume() } }, 30000)
+  window.addEventListener('pagehide', _pwFlush)
+}
+
 let _favoriteInFlight = false
 let _favoriteAbort = null
 let _commentsOffset = 0
@@ -95,6 +175,7 @@ function playerSetState(state, gen) {
     const frame = document.getElementById('player-frame')
     if (frame) frame.focus()
   }
+  if (state === 'ready') _pwOnReady(_selectedPlayerName) // старт отсчёта фокус-времени
 }
 
 function playerUpdateUI(name) {
@@ -107,6 +188,7 @@ function playerUpdateUI(name) {
 }
 
 function selectPlayer(name, url, type) {
+  _selectedPlayerName = name
   if (_playerCleanup) { _playerCleanup(); _playerCleanup = null }
 
   const gen = ++_playerGen
@@ -358,6 +440,8 @@ function initPlayerLazyLoad(players) {
     })
     dropdown.appendChild(opt)
   })
+
+  _renderPlayerStats() // % популярности у каждого плеера + бейдж самого частого
 
   // Восстанавливаем ранее выбранный плеер (глобальная настройка nz_player),
   // если он доступен для этого фильма; иначе — первый в списке.
@@ -1795,7 +1879,12 @@ function retryIfStuck() {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return
   loadMovie()
 }
-window.addEventListener('online', retryIfStuck)
-document.addEventListener('visibilitychange', () => { if (!document.hidden) retryIfStuck() })
-
-loadMovie()
+// Развилка дизайна: по умолчанию — новый вкладочный дизайн (js/movie-v2.js,
+// который сам себя гейтит). Классическую страницу запускаем ТОЛЬКО когда в
+// настройках включён «Старый дизайн» (nz_settings.movieClassic).
+const _nzClassic = (() => { try { return !!(window.Settings && window.Settings.get().movieClassic) } catch { return false } })()
+if (_nzClassic) {
+  window.addEventListener('online', retryIfStuck)
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) retryIfStuck() })
+  loadMovie()
+}

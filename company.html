@@ -3,14 +3,16 @@
 <head>
   <base href="/">
   <script>
-    // GitHub Pages отдаёт /platform/{slug} через redirect 404.html → /platform.html?slug={slug}
-    // (404.html — movie-shell). Синхронно (до header.js → canonical) возвращаем
-    // чистый URL /platform/{slug} в адресную строку. На Go-бэкенде путь уже чистый — no-op.
+    // GitHub Pages отдаёт /tag/{v} и /company/{v} через redirect 404.html →
+    // ?tag=/?company= (404.html — общий shell). Синхронно возвращаем чистый URL
+    // в адресную строку. На Go-бэкенде путь уже чистый — no-op.
     (function () {
       var p = new URLSearchParams(location.search)
-      var slug = p.get('slug') || p.get('platform')
-      if (slug && !/\/platform\/[^/]+/.test(location.pathname)) {
-        try { history.replaceState(null, '', '/platform/' + encodeURIComponent(slug)) } catch (e) {}
+      var t = p.get('tag'), c = p.get('company')
+      if (t && !/\/tag\/[^/]+/.test(location.pathname)) {
+        try { history.replaceState(null, '', '/tag/' + encodeURIComponent(t)) } catch (e) {}
+      } else if (c && !/\/company\/[^/]+/.test(location.pathname)) {
+        try { history.replaceState(null, '', '/company/' + encodeURIComponent(c)) } catch (e) {}
       }
     })()
   </script>
@@ -24,16 +26,16 @@
   <meta name="theme-color" content="#000000"/>
   <!-- SSR-META-START -->
   <title>Загрузка... — NaZeleniy</title>
-  <meta name="description" content="Тайтлы платформы на NaZeleniy."/>
+  <meta name="description" content="Фильмы и сериалы по тегу на NaZeleniy."/>
   <!-- SSR-META-END -->
   <link rel="icon" type="image/png" href="img/icons/favicon.png"/>
-  <link rel="preload" href="css/style-platform.css?v=1789582674" as="style">
-  <link rel="stylesheet" href="css/style-platform.css?v=1789582674"/>
+  <link rel="preload" href="css/style-collections.css?v=1789582674" as="style">
+  <link rel="stylesheet" href="css/style-collections.css?v=1789582674"/>
   <link rel="preload" href="css/icons.css?v=1789582674" as="style">
   <link rel="stylesheet" href="css/icons.css?v=1789582674"/>
   <script src="js/settings.js?v=1789582674"></script>
   <script defer src="js/api.js?v=1789582674"></script>
-  <script defer src="js/platform.js?v=1789582674"></script>
+  <script defer src="js/catalog.js?v=1789582674"></script>
   <script defer src="js/alpine.min.js?v=1789582674"></script>
   <!-- Yandex.Metrika counter -->
   <script type="text/javascript">
@@ -43,7 +45,7 @@
   <noscript><div><img src="https://mc.yandex.ru/watch/108313126" style="position:absolute; left:-9999px;" alt=""/></div></noscript>
   <!-- /Yandex.Metrika counter -->
 </head>
-<body x-data="platformPage()" x-init="init()">
+<body x-data="catalogPage()" x-init="init()">
 
   <div class="bg-poster"
        :style="bgPoster ? 'background-image: url(' + bgPoster + ')' : ''"
@@ -51,40 +53,28 @@
 
   <div id="app-sidebar"></div>
 
-  <button type="button" class="platform-back-top" @click="back()" x-show="!loading && platform" x-cloak>
+  <button type="button" class="person-back person-back-top" @click="back()" x-show="!loading" x-cloak>
     <i class="ph ph-arrow-left"></i> Назад
   </button>
 
-  <main class="main-content platform-wrap">
+  <main class="main-content">
 
-    <div class="loading-spinner platform-loading" x-show="loading" x-transition>
+    <div class="loading-spinner" x-show="loading" x-transition>
       <i class="ph ph-circle-notch nz-spin"></i>
     </div>
 
-    <template x-if="!loading && platform">
+    <template x-if="!loading && !loadError">
       <div>
 
-        <!-- HERO -->
-        <header class="platform-hero" :style="heroVars">
-          <div class="platform-logo" :style="logoStyle">
-            <img x-show="platform.poster_url" :src="logoUrl" :alt="platform.name" @error="platform.poster_url = ''">
-            <span x-show="!platform.poster_url" x-text="platform.monogram"></span>
+        <div class="collection-detail-head">
+          <div class="collection-detail-title">
+            <span class="collection-kicker" x-text="kicker"></span>
+            <h1 x-text="value"></h1>
           </div>
-          <div class="platform-headings">
-            <div class="platform-kicker">Платформа</div>
-            <h1 class="platform-name" x-text="platform.name"></h1>
-            <div class="platform-meta">
-              <span class="platform-count">
-                <i class="ph-fill ph-film-slate"></i>
-                <b x-text="platform.count"></b> <span x-text="plural(platform.count, ['тайтл', 'тайтла', 'тайтлов'])"></span>
-              </span>
-            </div>
-          </div>
-        </header>
+        </div>
 
-        <!-- Список тайтлов -->
         <div class="grid" x-show="movies.length > 0" x-transition>
-          <template x-for="(movie, i) in movies" :key="'pm' + (movie.kinopoiskId || movie.filmId || i)">
+          <template x-for="(movie, i) in movies" :key="'catm' + (movie.kinopoiskId || movie.filmId || i)">
             <a class="movie-card" :href="'/movie/' + (movie.kinopoiskId || movie.filmId)" @mouseenter="onCardEnter(movie)" @click="sessionStorage.setItem('moviePreview', JSON.stringify(movie))">
               <div class="movie-poster-container">
                 <img class="movie-poster" :src="posterFor(movie)" :alt="movie.nameRu || movie.nameEn || 'Постер'" loading="lazy" @load="$el.classList.add('loaded')" @error="$el.src='img/placeholder.svg'; $el.classList.add('loaded')">
@@ -106,7 +96,7 @@
 
         <div class="empty-state" x-show="movies.length === 0" x-transition>
           <i class="ph ph-film-strip"></i>
-          <p>На этой платформе пока нет тайтлов</p>
+          <p>Ничего не найдено</p>
         </div>
 
         <div class="load-more-spinner" x-show="_loadingMore" x-cloak x-transition>
@@ -118,16 +108,16 @@
       </div>
     </template>
 
-    <div class="empty-state" x-show="!loading && !platform" x-transition>
+    <div class="empty-state" x-show="!loading && loadError" x-transition>
       <i class="ph ph-question"></i>
-      <p x-text="loadError || 'Платформа не найдена'"></p>
-      <a href="/" class="platform-back-link"><i class="ph ph-arrow-left"></i> На главную</a>
+      <p x-text="loadError"></p>
+      <a href="/" class="person-back-link"><i class="ph ph-arrow-left"></i> На главную</a>
     </div>
 
   </main>
 
   <script src="js/header.js?v=1789582674"></script>
-  <script>renderHeader('platform')</script>
+  <script>renderHeader('catalog')</script>
   <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js')</script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 const Settings = (() => {
   const KEY = 'nz_settings'
-  const DEFAULTS = { bgEffect: true, cardSize: 'medium', bgPosterHover: true, bgParallax: false, lang: 'ru' }
+  const DEFAULTS = { bgEffect: true, cardSize: 'medium', bgPosterHover: true, bgParallax: false, lang: 'ru', movieClassic: false, contentWidth: 'wide' }
 
   function get() {
     try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(KEY) || '{}') } }
@@ -13,6 +13,7 @@ const Settings = (() => {
 
   function apply(s) {
     const h = document.documentElement
+    h.dataset.contentWidth = s.contentWidth || 'wide' // ширина контента (отступы по краям)
     h.dataset.bgEffect = s.bgEffect ? '1' : '0'
     h.dataset.bgParallax = (s.bgParallax && s.bgEffect) ? '1' : '0'
     if (!(s.bgParallax && s.bgEffect)) {
@@ -31,3 +32,7 @@ const Settings = (() => {
 
   return { get, save, apply }
 })()
+
+// top-level `const` НЕ становится свойством window — а movie.js/movie-v2.js
+// проверяют `window.Settings` для развилки дизайна. Вешаем явно.
+window.Settings = Settings

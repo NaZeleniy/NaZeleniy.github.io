@@ -178,7 +178,8 @@
   background: linear-gradient(150deg, #2aabee 0%, #229ed9 55%, #1b8ac4 100%);
   box-shadow: 0 14px 30px -8px rgba(34, 158, 217, 0.65), 0 0 0 6px rgba(42, 171, 238, 0.1);
 }
-.login-logo i { transform: translateX(-1px) rotate(-8deg); }
+/* Инлайновый самолётик Telegram, центрирован (лёгкий оптический сдвиг влево-вверх). */
+.login-logo svg { width: 42px; height: 42px; display: block; transform: translate(-1px, -1px); }
 
 .login-title {
   font-size: 23px;

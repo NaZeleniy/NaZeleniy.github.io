@@ -16,6 +16,7 @@ function app() {
     _searchLoading: false,
     _prefetched: new Set(),
     _seenIds: new Set(),
+    _inited: false,
 
     // ── Анимация плейсхолдера строки поиска (печатающийся текст) ──
     animatedPlaceholder: 'Поиск фильмов и сериалов…',
@@ -46,7 +47,7 @@ function app() {
     // ── Фильтры (Discover) ──────────────────────────────────
     filterOpen: false,
     filtersMeta: { genres: [], kinds: [], regions: [], yearMax: 2031 },
-    filters: { kind: '', genres: [], yearFrom: '', yearTo: '', ratingMin: 0, region: '', sort: 'popularity', order: 'desc' },
+    filters: { kind: '', genres: [], yearFrom: '', yearTo: '', ratingMin: 0, region: '', tag: '', company: '', sort: 'popularity', order: 'desc' },
     appliedFilters: null,            // снимок применённых фильтров (для тегов и пагинации)
     _filtersMetaLoaded: false,
     _discoverOffset: 0,
@@ -82,6 +83,8 @@ function app() {
         const rg = this.filtersMeta.regions.find(x => x.slug === a.region)
         tags.push({ key: 'region', kind: 'region', label: rg ? rg.name_ru : a.region })
       }
+      if (a.tag) tags.push({ key: 'tag', kind: 'tag', label: a.tag })
+      if (a.company) tags.push({ key: 'company', kind: 'company', label: a.company })
       return tags
     },
 
@@ -119,9 +122,27 @@ function app() {
     },
 
     init() {
+      // Alpine 3 сам вызывает метод init() компонента, а в index.html есть ещё и
+      // явный x-init="init()" → init() отрабатывал ДВАЖДЫ. Два параллельных
+      // applyFilters() затирали друг другу _seenIds/movies (второй dedup видел уже
+      // «увиденные» id → movies=[]), из-за чего каталог по ?tag=/?company= схлопывался
+      // до последней страницы («48 → 0 → 3 тайтла»). Гвард делает init идемпотентным.
+      if (this._inited) return
+      this._inited = true
       this._removeSSR()
       this.searchType = 'name'
       this.loading = false
+      // Переход по клику на тег со страницы фильма: /?tag=<значение> → сразу
+      // показываем каталог, отфильтрованный по этому тегу (discover-режим).
+      try {
+        const usp = new URLSearchParams(location.search)
+        const urlTag = usp.get('tag'), urlCompany = usp.get('company')
+        if (urlTag || urlCompany) {
+          if (urlTag) this.filters.tag = urlTag
+          if (urlCompany) this.filters.company = urlCompany
+          this.applyFilters(); return
+        }
+      } catch {}
       this._loadHistory()
       if (this.history.length > 0) {
         const first = this.history[0]
@@ -571,6 +592,8 @@ function app() {
       else if (tag.kind === 'year') { this.appliedFilters.yearFrom = ''; this.appliedFilters.yearTo = '' }
       else if (tag.kind === 'rating') this.appliedFilters.ratingMin = 0
       else if (tag.kind === 'region') this.appliedFilters.region = ''
+      else if (tag.kind === 'tag') this.appliedFilters.tag = ''
+      else if (tag.kind === 'company') this.appliedFilters.company = ''
       this.filters = JSON.parse(JSON.stringify(this.appliedFilters))
       if (this.filterCount === 0) this.clearAllFilters()
       else this.applyFilters()
@@ -585,6 +608,8 @@ function app() {
       if (f.yearTo) p.set('year.lte', f.yearTo)
       if (f.ratingMin) p.set('rating_kp.gte', f.ratingMin)
       if (f.region) p.set('region', f.region)
+      if (f.tag) p.set('tag', f.tag)
+      if (f.company) p.set('companies', f.company)
       p.set('sort', f.sort || 'popularity')
       p.set('order', f.order || 'desc')
       p.set('required', 'kp_id')
