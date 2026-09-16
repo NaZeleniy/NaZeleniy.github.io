@@ -98,7 +98,6 @@ function _renderSidebar(activePage) {
     { href: '/top',         icon: 'fire',         label: 'Популярное', page: 'top'         },
     { href: '/collections', icon: 'squares-four', label: 'Подборки',   page: 'collections' },
     { href: '/me',          icon: 'user',         label: 'Профиль',    page: 'me'          },
-    { href: '/reacts',   icon: 'twitch-logo', label: 'Реакции',    page: 'reacts'   },
     { href: '/settings', icon: 'gear',        label: 'Настройки',  page: 'settings' },
     { href: '/faq',      icon: 'question',    label: 'FAQ',        page: 'faq'      },
   ]
