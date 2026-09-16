@@ -838,9 +838,16 @@
       gifs = gifs.filter(function (u) { if (seen[u]) return false; seen[u] = 1; return true; });
       items = gifs.concat(items);
       if (!items.length) return;
+      // Постер для «размытой подложки» под живым постером: у роликов разные
+      // пропорции — вписываем видео целиком (contain), а пустоты вместо чёрных
+      // полей заполняем размытым постером (прямой КП). Для ровных 2:3 подложки
+      // не видно. Решает «то мелко с чёрными полями, то текст обрезан».
+      var blur = med.poster_kp || STUB_POSTER || (med.poster_url ? murl(tmdbSize(med.poster_url, 'w300')) : '') || '';
       rot.innerHTML = items.map(function (u, i) {
         return u.endsWith('.mp4')
-          ? '<div class="rot-frame gif' + (i === 0 ? ' on' : '') + '"><video src="' + esc(u) + '" autoplay muted playsinline onerror="this.closest(\'.rot-frame\').remove()"></video></div>'
+          ? '<div class="rot-frame gif' + (i === 0 ? ' on' : '') + '">' +
+              (blur ? '<div class="rot-blurbg" style="background-image:url(\'' + esc(blur) + '\')"></div>' : '') +
+              '<video src="' + esc(u) + '" autoplay muted playsinline onerror="this.closest(\'.rot-frame\').remove()"></video></div>'
           : '<div class="rot-frame' + (i === 0 ? ' on' : '') + '"><img src="' + esc(murl(tmdbSize(u, 'w780'))) + '" alt="' + esc(title) + '" loading="' + (i < 2 ? 'eager' : 'lazy') + '" onerror="this.closest(\'.rot-frame\').remove()"></div>';
       }).join('');
       var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
