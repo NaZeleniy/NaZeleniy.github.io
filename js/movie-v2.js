@@ -20,6 +20,18 @@
   var API = (typeof API_BASE !== 'undefined') ? API_BASE : '';
   var CREDS = (typeof _CREDS !== 'undefined') ? _CREDS : 'omit';
 
+  // Постер с карточки, с которой пришли (sessionStorage['moviePreview']) — он на
+  // CDN Кинопоиска (прямой, точно рабочий) и уже прогрет в кеше браузера. Держим
+  // как надёжный fallback, чтобы постер тайтла НИКОГДА не был пустым (карточка
+  // могла отдать tmdb-постер, который заблокирован/не прошёл через прокси).
+  var STUB_POSTER = (function () {
+    try {
+      var s = JSON.parse(sessionStorage.getItem('moviePreview') || 'null');
+      if (s && String(s.kinopoiskId || s.filmId) === String(id)) return s.posterUrlPreview || s.posterUrl || '';
+    } catch (e) {}
+    return '';
+  })();
+
   // язык интерфейса пользователя (для выбора языка постера/логотипа)
   function userLang() {
     try { return (window.Settings && window.Settings.get().lang) || localStorage.getItem('nz_lang') || 'ru'; }
@@ -155,7 +167,7 @@
 
     // фон — размытый ПОСТЕР (как в классике: «Постер фильма размытым фоном»),
     // fallback на backdrop. Сохраняем в localStorage, чтобы фон жил при навигации.
-    var bgUrl = murl(med.poster_url || med.poster_kp || med.poster_tmdb || med.backdrop_url);
+    var bgUrl = murl(med.poster_kp || med.poster_url || med.poster_tmdb || med.backdrop_url) || STUB_POSTER;
     var bg = $('#bg-poster');
     if (bg && bgUrl) {
       bg.style.backgroundImage = 'url("' + bgUrl + '")';
@@ -214,7 +226,14 @@
 
     // постер (сразу главный, затем ротатор из /media)
     var rot = $('#nzRot');
-    rot.innerHTML = '<div class="rot-frame on"><img src="' + esc(murl(med.poster_url || med.poster_kp) || '/img/placeholder.svg') + '" alt="' + esc(title) + '" onerror="this.onerror=null;this.src=\'/img/placeholder.svg\'"></div>';
+    // Стартовый постер: прямой КП (poster_kp) → постер с карточки (прямой, прогрет) →
+    // poster_url (может быть tmdb через прокси) → плейсхолдер. При ошибке загрузки
+    // сначала пробуем постер с карточки (data-fb), только потом плейсхолдер — чтобы
+    // тайтл не оставался с пустым постером, если tmdb/прокси не отдал картинку.
+    var initialPoster = (med.poster_kp ? murl(med.poster_kp) : '') || STUB_POSTER || (med.poster_url ? murl(med.poster_url) : '') || '/img/placeholder.svg';
+    var fb = (STUB_POSTER && STUB_POSTER !== initialPoster) ? STUB_POSTER : '';
+    rot.innerHTML = '<div class="rot-frame on"><img src="' + esc(initialPoster) + '" data-fb="' + esc(fb) + '" alt="' + esc(title) +
+      '" onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.dataset.fb=\'\'}else{this.onerror=null;this.src=\'/img/placeholder.svg\'}"></div>';
 
     // ── вкладки ──
     var TABS = [
@@ -757,22 +776,35 @@
 
   // ═══ РОТАТОР ПОСТЕРОВ ═══════════════════════════════════════════════════════
   function initRotator(rot, med, title) {
-    api('/api/v2/media/' + id + '?class=image&type=poster&limit=40').then(function (d) {
+    Promise.all([
+      api('/api/v2/media/' + id + '?class=image&type=poster&limit=40').catch(function () { return null; }),
+      // Живые постеры (poster_gif — короткие .mp4). Берём ВСЕГДА и на ЛЮБОМ языке
+      // (у них language обычно null) — отдельным запросом, без языковой фильтрации.
+      api('/api/v2/media/' + id + '?class=image&type=poster_gif&limit=20').catch(function () { return null; })
+    ]).then(function (res) {
+      var d = res[0] || {}, dg = res[1] || {};
       var top = d.items || [];
       var flat = (top.length && top[0] && top[0].items) ? top[0].items : top;
       var lang = userLang();
       var imgs = flat.filter(function (i) { return i.url && !i.url.endsWith('.mp4'); });
-      // только постеры на языке пользователя; если таких нет — без языка / другой язык
+      // статичные постеры: на языке пользователя; если таких нет — без языка / другой язык
       var matching = imgs.filter(function (i) { return i.language === lang; });
       var rank = langRankFor(lang);
       var chosen = matching.length ? matching
         : imgs.slice().sort(function (a, b) { return rank(a.language) - rank(b.language); });
       var items = chosen.slice(0, 12).map(function (i) { return i.url; });
-      if (med.poster_gif) items.unshift(med.poster_gif);
+      // живые постеры — впереди (показываем первыми), любой язык, без дублей
+      var gtop = dg.items || [];
+      var gflat = (gtop.length && gtop[0] && gtop[0].items) ? gtop[0].items : gtop;
+      var gifs = gflat.filter(function (i) { return i.url; }).map(function (i) { return i.url; });
+      if (med.poster_gif) gifs.unshift(med.poster_gif);
+      var seen = {};
+      gifs = gifs.filter(function (u) { if (seen[u]) return false; seen[u] = 1; return true; });
+      items = gifs.concat(items);
       if (!items.length) return;
       rot.innerHTML = items.map(function (u, i) {
         return u.endsWith('.mp4')
-          ? '<div class="rot-frame gif' + (i === 0 ? ' on' : '') + '"><video src="' + esc(u) + '" autoplay muted playsinline></video></div>'
+          ? '<div class="rot-frame gif' + (i === 0 ? ' on' : '') + '"><video src="' + esc(u) + '" autoplay muted playsinline onerror="this.closest(\'.rot-frame\').remove()"></video></div>'
           : '<div class="rot-frame' + (i === 0 ? ' on' : '') + '"><img src="' + esc(murl(u)) + '" alt="' + esc(title) + '" loading="' + (i < 2 ? 'eager' : 'lazy') + '" onerror="this.closest(\'.rot-frame\').remove()"></div>';
       }).join('');
       var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
