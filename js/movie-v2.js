@@ -186,6 +186,28 @@
       try { localStorage.setItem('nz_bg_poster', bgUrl); } catch (e) {}
     }
 
+    // История просмотров (главная читает localStorage['nz_history']). Классика писала
+    // через movie.js, но в новом дизайне он не работает → пишем здесь. Постер берём
+    // КП/прямой (poster_kp → постер с карточки → tmdb): на главной постеры идут БЕЗ
+    // прокси, а tmdb в РФ заблокирован — иначе карточка истории была бы пустой.
+    try {
+      if (typeof historyAdd === 'function') {
+        var histPoster = med.poster_kp || STUB_POSTER || med.poster_url || '';
+        var kpR = (c.ratings && c.ratings.sources && c.ratings.sources.kp) ? c.ratings.sources.kp.value : undefined;
+        historyAdd({
+          kinopoiskId: id,
+          nameRu: c.title && c.title.title_ru,
+          nameEn: titleEn,
+          nameOriginal: c.title && c.title.title,
+          year: rel.year,
+          type: (cls && (cls.kind || cls.type)) || '',
+          ratingKinopoisk: kpR,
+          posterUrlPreview: histPoster,
+          posterUrl: histPoster,
+        });
+      }
+    } catch (e) {}
+
     // ── оценки ──
     var SRC_NAME = { kp: 'Кинопоиск', imdb: 'IMDb', tmdb: 'TMDB', kinorium: 'Kinorium', letterboxd: 'Letterboxd', rt: 'Rotten Tomatoes', metacritic: 'Metacritic', critics: 'Критики' };
     var SRC_HOST = { kp: 'kinopoisk.ru', imdb: 'imdb.com', tmdb: 'themoviedb.org', kinorium: 'ru.kinorium.com', letterboxd: 'letterboxd.com', rt: 'rottentomatoes.com', metacritic: 'metacritic.com' };
