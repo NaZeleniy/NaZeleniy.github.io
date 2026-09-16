@@ -63,6 +63,16 @@
   // заблокирован, но сервер достаёт → через прокси), 'drop' (недоступен никак). Так
   // мы НЕ гоняем через бэкенд то, что и так грузится (kinorium/yandex) — экономия.
   var _hostMode = {};
+  // Пред-засев хостов, которые в РФ грузятся НАПРЯМУЮ (не заблокированы). Без него на
+  // проде (MEDIA_PROXY=true) непроверенный хост идёт через прокси — и критичный
+  // hero-постер/фон на ПЕРВОЙ отрисовке зря гонятся через бэкенд (round-trip + webp-
+  // конвертация именно для самой заметной картинки, + лишняя нагрузка на прокси).
+  // Постеры Кинопоиска/Яндекса и kinorium в РФ доступны напрямую → грузим сразу.
+  // image.tmdb.org сюда НЕ входит (заблокирован в РФ → остаётся на прокси); youtube-
+  // превью тоже не сеем — их решает probe. onerror на <img> подстрахует, если хост
+  // у конкретного пользователя всё же недоступен.
+  ['avatars.mds.yandex.net', 'st.kp.yandex.net', 'images.kinorium.com', 'images-s.kinorium.com', 'ru-images.kinorium.com']
+    .forEach(function (h) { _hostMode[h] = 'direct'; });
   function proxied(u) { return API + '/proxy/poster?url=' + encodeURIComponent(u); }
   function murl(u) {
     if (!u) return u;
