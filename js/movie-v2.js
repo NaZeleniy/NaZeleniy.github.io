@@ -50,6 +50,17 @@
   function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
   function nf(n) { return Number(n || 0).toLocaleString('ru-RU'); }
   function clsRating(v) { return v >= 7 ? 'high' : (v < 5 ? 'low' : ''); }
+  // tmdb отдаёт оригиналы (1–3 МБ) — для сетки/эскизов это перебор: скачивание +
+  // webp-конвертация большого файла на прокси = 2–6 с на холодную (сервер 2 vCPU).
+  // Просим у tmdb нужный размер (w300/w500/w780) — источник в 10–30× меньше,
+  // конвертация мгновенна, диск/трафик прокси меньше. Только image.tmdb.org
+  // (у него есть /t/p/<size>/); прочие CDN (КП/kinorium) не трогаем. Оригинал
+  // остаётся на клик — ссылки в тайлах ведут на исходный url.
+  function tmdbSize(u, size) {
+    return (u && u.indexOf('image.tmdb.org') !== -1)
+      ? u.replace(/\/t\/p\/(?:original|w\d+)\//, '/t/p/' + size + '/')
+      : u;
+  }
   function money(n) { return n ? '$' + Number(n).toLocaleString('ru-RU') : '—'; }
   function durSec(s) { if (!s) return ''; var m = Math.floor(s / 60); return m + ':' + String(s % 60).padStart(2, '0'); }
   function poster(u) { return u || '/img/placeholder.svg'; }
@@ -167,7 +178,7 @@
 
     // фон — размытый ПОСТЕР (как в классике: «Постер фильма размытым фоном»),
     // fallback на backdrop. Сохраняем в localStorage, чтобы фон жил при навигации.
-    var bgUrl = murl(med.poster_kp || med.poster_url || med.poster_tmdb || med.backdrop_url) || STUB_POSTER;
+    var bgUrl = murl(tmdbSize(med.poster_kp || med.poster_url || med.poster_tmdb || med.backdrop_url, 'w780')) || STUB_POSTER;
     var bg = $('#bg-poster');
     if (bg && bgUrl) {
       bg.style.backgroundImage = 'url("' + bgUrl + '")';
@@ -230,7 +241,7 @@
     // poster_url (может быть tmdb через прокси) → плейсхолдер. При ошибке загрузки
     // сначала пробуем постер с карточки (data-fb), только потом плейсхолдер — чтобы
     // тайтл не оставался с пустым постером, если tmdb/прокси не отдал картинку.
-    var initialPoster = (med.poster_kp ? murl(med.poster_kp) : '') || STUB_POSTER || (med.poster_url ? murl(med.poster_url) : '') || '/img/placeholder.svg';
+    var initialPoster = (med.poster_kp ? murl(med.poster_kp) : '') || STUB_POSTER || (med.poster_url ? murl(tmdbSize(med.poster_url, 'w780')) : '') || '/img/placeholder.svg';
     var fb = (STUB_POSTER && STUB_POSTER !== initialPoster) ? STUB_POSTER : '';
     rot.innerHTML = '<div class="rot-frame on"><img src="' + esc(initialPoster) + '" data-fb="' + esc(fb) + '" alt="' + esc(title) +
       '" onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.dataset.fb=\'\'}else{this.onerror=null;this.src=\'/img/placeholder.svg\'}"></div>';
@@ -474,7 +485,10 @@
         // не по картинке. Затем выкидываем недоступные ('drop') и рисуем; murl сам
         // возьмёт прямой URL или прокси по режиму хоста.
         var urls = [];
-        mediaGroups(d).forEach(function (g) { (g.items || []).forEach(function (it) { if (it.url && !String(it.url).endsWith('.mp4')) urls.push(it.url); }); });
+        // Пробим уменьшенные url (тот же хост) — иначе проба сэмплит tmdb-оригинал
+        // через прокси на холодную (2–6 с) и блокирует отрисовку. Режим кешируется
+        // по ХОСТУ, размер не важен — рендер оригиналов/эскизов применит тот же режим.
+        mediaGroups(d).forEach(function (g) { (g.items || []).forEach(function (it) { if (it.url && !String(it.url).endsWith('.mp4')) urls.push(tmdbSize(it.url, 'w500')); }); });
         return resolveHostModes(urls).then(function (modes) { renderPhotos(panel, d, modes); });
       })
       .catch(function () { errBox(panel, function () { lazyMedia(panel, cls); }); });
@@ -532,7 +546,7 @@
   }
   function videoTile(v) {
     return '<a class="nz-vid" href="' + esc(v.url) + '" target="_blank" rel="noopener">' +
-      '<img loading="lazy" src="' + esc(murl(v.preview_url || v.thumbnail_url || '')) + '" alt="" onerror="this.style.opacity=0.15">' +
+      '<img loading="lazy" src="' + esc(murl(tmdbSize(v.preview_url || v.thumbnail_url || '', 'w500'))) + '" alt="" onerror="this.style.opacity=0.15">' +
       '<div class="pl"><span>' + IC.play + '</span></div>' +
       (v.runtime_sec ? '<div class="mt"><span class="d">' + durSec(v.runtime_sec) + '</span></div>' : '') + '</a>';
   }
@@ -542,7 +556,7 @@
     if (String(it.url).endsWith('.mp4'))
       return '<div class="nz-photo"' + dl + '>' + badge + '<video src="' + esc(it.url) + '" autoplay muted loop playsinline></video></div>';
     return '<a class="nz-photo"' + dl + ' href="' + esc(it.url) + '" target="_blank" rel="noopener">' + badge +
-      '<img loading="lazy" src="' + esc(murl(it.url)) + '" alt="" onerror="this.onerror=null;this.style.opacity=0"></a>';
+      '<img loading="lazy" src="' + esc(murl(tmdbSize(it.url, 'w500'))) + '" alt="" onerror="this.onerror=null;this.style.opacity=0"></a>';
   }
   function renderVideos(panel, d) {
     var groups = mediaGroups(d).sort(function (a, b) { return VID_ORDER.indexOf(a.type) - VID_ORDER.indexOf(b.type); });
@@ -616,14 +630,14 @@
     function actorCard(a) {
       var img = a.cphoto || a.aphoto;
       var inner = '<div class="av" data-l="' + esc(ini(a.char || a.actor)) + '">' +
-        (img ? '<img loading="lazy" src="' + esc(murl(img)) + '" alt="" onerror="this.remove()">' : '') + '</div>' +
+        (img ? '<img loading="lazy" src="' + esc(murl(tmdbSize(img, 'w300'))) + '" alt="" onerror="this.remove()">' : '') + '</div>' +
         (a.char ? '<div class="nm">' + esc(a.char) + '</div><div class="rl">' + esc(a.actor) + '</div>' : '<div class="nm">' + esc(a.actor) + '</div>') +
         (a.voice ? '<div class="dub"><span>дубляж</span> ' + esc(a.voice) + '</div>' : '');
       return personCard(a.id, inner);
     }
     function crewCard(p) {
       var inner = '<div class="av" data-l="' + esc(ini(p.n)) + '">' +
-        (p.p ? '<img loading="lazy" src="' + esc(murl(p.p)) + '" alt="" onerror="this.remove()">' : '') + '</div><div class="nm">' + esc(p.n) + '</div>';
+        (p.p ? '<img loading="lazy" src="' + esc(murl(tmdbSize(p.p, 'w300'))) + '" alt="" onerror="this.remove()">' : '') + '</div><div class="nm">' + esc(p.n) + '</div>';
       return personCard(p.id, inner);
     }
     panel.innerHTML =
@@ -746,7 +760,7 @@
     var p = m.poster_url || m.poster_kp || m.poster_tmdb;
     var href = m.kp_id ? '/movie/' + m.kp_id : '#';
     return '<a class="similar-card" href="' + esc(href) + '"><div class="similar-poster-wrap">' +
-      '<img loading="lazy" src="' + esc(p ? murl(p) : poster(p)) + '" alt="' + esc(t) + '" onerror="this.onerror=null;this.src=\'/img/placeholder.svg\'"></div>' +
+      '<img loading="lazy" src="' + esc(p ? murl(tmdbSize(p, 'w500')) : poster(p)) + '" alt="' + esc(t) + '" onerror="this.onerror=null;this.src=\'/img/placeholder.svg\'"></div>' +
       '<div class="similar-info"><div class="similar-title">' + esc(t) + '</div><div class="similar-meta">' + esc(meta) + '</div></div></a>';
   }
 
@@ -805,7 +819,7 @@
       rot.innerHTML = items.map(function (u, i) {
         return u.endsWith('.mp4')
           ? '<div class="rot-frame gif' + (i === 0 ? ' on' : '') + '"><video src="' + esc(u) + '" autoplay muted playsinline onerror="this.closest(\'.rot-frame\').remove()"></video></div>'
-          : '<div class="rot-frame' + (i === 0 ? ' on' : '') + '"><img src="' + esc(murl(u)) + '" alt="' + esc(title) + '" loading="' + (i < 2 ? 'eager' : 'lazy') + '" onerror="this.closest(\'.rot-frame\').remove()"></div>';
+          : '<div class="rot-frame' + (i === 0 ? ' on' : '') + '"><img src="' + esc(murl(tmdbSize(u, 'w780'))) + '" alt="' + esc(title) + '" loading="' + (i < 2 ? 'eager' : 'lazy') + '" onerror="this.closest(\'.rot-frame\').remove()"></div>';
       }).join('');
       var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
       var els = [].slice.call(rot.children);
