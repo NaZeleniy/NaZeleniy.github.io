@@ -850,6 +850,19 @@
               '<video src="' + esc(u) + '" autoplay muted playsinline onerror="this.closest(\'.rot-frame\').remove()"></video></div>'
           : '<div class="rot-frame' + (i === 0 ? ' on' : '') + '"><img src="' + esc(murl(tmdbSize(u, 'w780'))) + '" alt="' + esc(title) + '" loading="' + (i < 2 ? 'eager' : 'lazy') + '" onerror="this.closest(\'.rot-frame\').remove()"></div>';
       }).join('');
+      // «Умно»: меряем реальные пропорции ролика. Близко к 2:3 → cover (заполняет
+      // рамку, по умолчанию). Сильно другие (>10%) → .fit = contain + размытый фон
+      // (видно целиком, без чёрных полос и без обрезки вшитого текста).
+      var TARGET = 2 / 3;
+      [].slice.call(rot.querySelectorAll('.rot-frame.gif video')).forEach(function (v) {
+        var apply = function () {
+          var r = (v.videoWidth && v.videoHeight) ? v.videoWidth / v.videoHeight : 0;
+          if (!r) return;
+          var fr = v.closest('.rot-frame');
+          if (fr) fr.classList.toggle('fit', Math.abs(r - TARGET) / TARGET > 0.10);
+        };
+        if (v.videoWidth) apply(); else v.addEventListener('loadedmetadata', apply, { once: true });
+      });
       var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
       var els = [].slice.call(rot.children);
       if (els.length < 2 || reduce) { var v = rot.querySelector('video'); if (v) v.loop = true; return; }
