@@ -496,9 +496,11 @@ a.movie-poster-side img {
 .player-section.nz-player-theater .player-select-wrap {
   position: absolute; top: 0; left: 0; right: 0; z-index: 2;
 }
+/* Видео начинается ПОД панелью управления (высота панели → --nzt-ctrl-h, ставит JS),
+   иначе панель накрывала бы верх плеера, где у провайдера кнопки озвучки/сезона/серии. */
 .player-section.nz-player-theater .player-wrapper {
-  position: absolute; inset: 0; z-index: 1;
-  width: auto; height: auto; padding-bottom: 0;
+  position: absolute; top: var(--nzt-ctrl-h, 60px); left: 0; right: 0; bottom: 0;
+  z-index: 1; width: auto; height: auto; padding-bottom: 0;
 }
 
 .player-wrapper iframe {

@@ -935,6 +935,14 @@
       if (!bd) { bd = el('div', 'nz-player-backdrop'); bd.id = 'nzPlayerBackdrop'; document.body.appendChild(bd); bd.addEventListener('click', function () { if (_playerMode()) history.back(); }); }
       requestAnimationFrame(function () { bd.classList.add('on'); });
     } else if (bd) { bd.classList.remove('on'); }
+    // Театр: видео начинается под панелью управления — меряем её высоту (может
+    // переноситься на узких экранах) и кладём в --nzt-ctrl-h, чтобы панель не
+    // накрывала верх плеера (кнопки озвучки/сезона/серии провайдера).
+    if (mode === 'theater') {
+      var setCtrlH = function () { var sw = sec.querySelector('.player-select-wrap'); if (sw) sec.style.setProperty('--nzt-ctrl-h', sw.offsetHeight + 'px'); };
+      requestAnimationFrame(setCtrlH);
+      if (!sec._nztCtrlResize) { sec._nztCtrlResize = function () { if (_playerMode() === 'theater') setCtrlH(); }; window.addEventListener('resize', sec._nztCtrlResize); }
+    }
     document.body.style.overflow = mode ? 'hidden' : '';
     if (mode) document.addEventListener('keydown', _playerEscClose);
     else document.removeEventListener('keydown', _playerEscClose);
