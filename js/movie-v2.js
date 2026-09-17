@@ -155,6 +155,9 @@
       '<div id="watchPartySlot"></div>' +
       '<button class="player-fs-btn" id="playerFsBtn" type="button" title="Кинорежим" aria-label="Кинорежим">' +
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>' +
+      '</button>' +
+      '<button class="player-fs-btn player-theater-btn" id="playerTheaterBtn" type="button" title="Театральный режим" aria-label="Театральный режим">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="1.5"/></svg>' +
       '</button></div>' +
       '<div class="player-wrapper">' +
       '<iframe id="player-frame" title="Видеоплеер" frameborder="0" allow="autoplay; fullscreen; encrypted-media; picture-in-picture"></iframe>' +
@@ -340,8 +343,8 @@
       window.__nzV2Pop = true;
       window.addEventListener('popstate', function (e) {
         var st = e.state || {};
-        if (_cineIsOpen() && !st.cine) _cineClose();
-        else if (!_cineIsOpen() && st.cine) _cineOpen();
+        var want = st.pmode || (st.cine ? 'cine' : '');   // st.cine — обратная совместимость
+        if (_playerMode() !== want) _applyPlayerMode(want);
       });
     }
 
@@ -358,6 +361,8 @@
     initStars();
     var _fsBtn = $('#playerFsBtn');
     if (_fsBtn) _fsBtn.addEventListener('click', togglePlayerFs);
+    var _thBtn = $('#playerTheaterBtn');
+    if (_thBtn) _thBtn.addEventListener('click', togglePlayerTheater);
 
     // ── диспетчер наполнения вкладок ──
     function fillTab(tabId, panel) {
@@ -903,33 +908,46 @@
     paint();
   }
 
-  // «Кинорежим»: виджет плеера центрируется и увеличивается поверх затемнённого
-  // фона (НЕ на весь монитор — с полями). Открытие кладёт запись в history, поэтому
-  // «Назад» (кнопка/браузер/Esc/клик по фону) СНАЧАЛА закрывает кинорежим, а не уходит
-  // со страницы. Само закрытие идёт через history.back() → popstate → _cineClose.
-  var _nzV2Tab = 0; // индекс активной вкладки (для записи в history вместе с кинорежимом)
-  function _cineIsOpen() { var s = document.querySelector('.player-section'); return !!(s && s.classList.contains('nz-player-expanded')); }
-  function _playerEscClose(e) { if (e.key === 'Escape' && _cineIsOpen()) history.back(); }
-  function _cineOpen() {
+  // Режимы плеера поверх страницы:
+  //   'cine'    — «Кинорежим»: виджет центрируется и увеличивается над затемнённым
+  //               фоном (с полями, НЕ на весь монитор).
+  //   'theater' — «Театральный»: плеер во ВСЮ страницу браузера (100vw×100vh), без
+  //               полей и БЕЗ нативного фуллскрина ОС.
+  // Открытие кладёт ОДНУ запись в history → «Назад» (кнопка/браузер/Esc/клик по фону)
+  // сначала закрывает режим, а не уходит со страницы. Переключение кино↔театр —
+  // replaceState (без новой записи), так что один «Назад» закрывает любой режим.
+  var _nzV2Tab = 0; // индекс активной вкладки (для записи в history вместе с режимом)
+  function _playerMode() {
+    var s = document.querySelector('.player-section'); if (!s) return '';
+    if (s.classList.contains('nz-player-theater')) return 'theater';
+    if (s.classList.contains('nz-player-expanded')) return 'cine';
+    return '';
+  }
+  function _playerEscClose(e) { if (e.key === 'Escape' && _playerMode()) history.back(); }
+  function _applyPlayerMode(mode) {
     var sec = document.querySelector('.player-section'); if (!sec) return;
-    sec.classList.add('nz-player-expanded');
+    if (mode && !sec.open) sec.open = true;                 // режим требует раскрытого плеера
+    sec.classList.toggle('nz-player-expanded', mode === 'cine');
+    sec.classList.toggle('nz-player-theater', mode === 'theater');
+    // Затемнённый фон нужен только кинорежиму (театр сам закрывает весь вьюпорт).
     var bd = document.getElementById('nzPlayerBackdrop');
-    if (!bd) { bd = el('div', 'nz-player-backdrop'); bd.id = 'nzPlayerBackdrop'; document.body.appendChild(bd); bd.addEventListener('click', function () { if (_cineIsOpen()) history.back(); }); }
-    requestAnimationFrame(function () { bd.classList.add('on'); });
-    document.body.style.overflow = 'hidden';
-    document.addEventListener('keydown', _playerEscClose);
+    if (mode === 'cine') {
+      if (!bd) { bd = el('div', 'nz-player-backdrop'); bd.id = 'nzPlayerBackdrop'; document.body.appendChild(bd); bd.addEventListener('click', function () { if (_playerMode()) history.back(); }); }
+      requestAnimationFrame(function () { bd.classList.add('on'); });
+    } else if (bd) { bd.classList.remove('on'); }
+    document.body.style.overflow = mode ? 'hidden' : '';
+    if (mode) document.addEventListener('keydown', _playerEscClose);
+    else document.removeEventListener('keydown', _playerEscClose);
   }
-  function _cineClose() {
-    var sec = document.querySelector('.player-section'); if (sec) sec.classList.remove('nz-player-expanded');
-    var bd = document.getElementById('nzPlayerBackdrop'); if (bd) bd.classList.remove('on');
-    document.body.style.overflow = '';
-    document.removeEventListener('keydown', _playerEscClose);
+  function _openMode(mode) {
+    var cur = _playerMode();
+    if (cur === mode) { history.back(); return; }            // повторный клик — закрыть
+    _applyPlayerMode(mode);
+    var st = { nzv2: true, tab: _nzV2Tab, pmode: mode };
+    try { cur ? history.replaceState(st, '') : history.pushState(st, ''); } catch (e) {}
   }
-  function togglePlayerFs() {
-    if (_cineIsOpen()) { history.back(); return; }             // закрытие — через историю
-    _cineOpen();
-    try { history.pushState({ nzv2: true, tab: _nzV2Tab, cine: true }, ''); } catch (e) {}
-  }
+  function togglePlayerFs() { _openMode('cine'); }            // «Кинорежим»
+  function togglePlayerTheater() { _openMode('theater'); }    // «Театральный»
 
   // ═══ ОЦЕНКА (10 звёзд, шаг 0.1) ═════════════════════════════════════════════
   // Наведение заполняет звёзды до курсора (десятые внутри звезды), клик сохраняет.

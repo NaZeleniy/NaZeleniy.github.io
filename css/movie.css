@@ -474,6 +474,25 @@ a.movie-poster-side img {
   .player-section.nz-player-expanded { width: 96vw; }
 }
 
+.player-theater-btn { margin-left: 6px; }
+/* «Театральный режим»: плеер во ВСЮ страницу браузера (весь вьюпорт вкладки, без
+   нативного фуллскрина ОС). Заголовок «Смотреть онлайн» скрыт; видео заполняет всё
+   оставшееся место под панелью выбора плеера. */
+.nzt-head .player-section.nz-player-theater,
+.player-section.nz-player-theater {
+  position: fixed; inset: 0; z-index: 901;
+  width: 100vw; height: 100vh; height: 100dvh;
+  max-width: none; margin: 0; border: none; border-radius: 0;
+  display: flex; flex-direction: column; background: #000;
+  animation: nzPlayerFade 0.18s ease;
+}
+@keyframes nzPlayerFade { from { opacity: 0.4 } to { opacity: 1 } }
+.player-section.nz-player-theater .player-summary { display: none; }
+.player-section.nz-player-theater .player-select-wrap { flex: 0 0 auto; }
+.player-section.nz-player-theater .player-wrapper {
+  flex: 1 1 auto; min-height: 0; height: auto; padding-bottom: 0;
+}
+
 .player-wrapper iframe {
   position: absolute;
   inset: 0;
