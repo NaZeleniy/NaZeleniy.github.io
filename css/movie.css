@@ -756,8 +756,21 @@ a.movie-poster-side img {
 }
 
 @media (max-width: 700px) {
-  .movie-layout { grid-template-columns: 100px 1fr; }
-  .movie-layout-poster { position: static; }
+  /* Одна колонка: плеер и вкладки — во ВСЮ ширину (раньше сетка 100px+1fr зажимала
+     плеер в узкую правую колонку → он был крошечный). Постер + «Буду смотреть» +
+     звёзды идут компактной строкой сверху. */
+  .movie-layout { grid-template-columns: 1fr; gap: 18px; }
+  .movie-layout-poster {
+    position: static;
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    align-items: center;
+    column-gap: 16px;
+  }
+  .movie-layout-poster .nz-poster-actions { display: flex; flex-direction: column; gap: 12px; }
+  .movie-layout-poster .nz-fav-btn { margin-top: 0; }
+  .movie-layout-poster .nz-stars { margin-top: 0; }
+  .nzt-head { width: auto; max-width: 100%; margin-top: 0; }
   .comments-wrap { max-width: 100%; }
 }
 
@@ -780,6 +793,10 @@ a.movie-poster-side img {
 
   /* На телефоне шапка на всю ширину: плеер полноэкранный, таб-бар скроллится. */
   .nzt-head { width: auto; max-width: 100%; }
+  /* Вкладки: крупнее тап-таргет, чуть выше прилипание */
+  .nzt-bar { top: 8px; padding: 5px 6px; gap: 4px; }
+  .nzt-tab { padding: 10px 14px; font-size: 14px; }
+  .nzt-panels { padding: 22px 0 20px; }
 
   .content-title { font-size: 1.35rem; line-height: 1.2; }
   .rating-link { padding: 3px 6px; font-size: 13px; }

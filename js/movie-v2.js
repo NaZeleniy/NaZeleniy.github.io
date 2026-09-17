@@ -240,8 +240,10 @@
       '<div class="ratings-links">' + ratingsHtml + '</div>' +
       '<div class="movie-layout">' +
         '<div class="movie-layout-poster"><div class="nz-poster-rotator" id="nzRot"></div>' +
-          '<button class="nz-fav-btn" id="nzFav" type="button">' + IC.plus + ' Буду смотреть</button>' +
-          '<div class="nz-stars" id="nzStars"></div>' +
+          '<div class="nz-poster-actions">' +
+            '<button class="nz-fav-btn" id="nzFav" type="button">' + IC.plus + ' Буду смотреть</button>' +
+            '<div class="nz-stars" id="nzStars"></div>' +
+          '</div>' +
         '</div>' +
         '<div class="movie-layout-main">' +
           // .nzt-head = fit-content по таб-бару: плеер (width:100%) выравнивается по
