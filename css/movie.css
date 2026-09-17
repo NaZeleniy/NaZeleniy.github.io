@@ -476,22 +476,29 @@ a.movie-poster-side img {
 
 .player-theater-btn { margin-left: 6px; }
 /* «Театральный режим»: плеер во ВСЮ страницу браузера (весь вьюпорт вкладки, без
-   нативного фуллскрина ОС). Заголовок «Смотреть онлайн» скрыт. Grid: панель выбора
-   плеера — строка auto сверху, видео — строка 1fr (заполняет всё остальное). Grid с
-   1fr даёт видео ЯВНУЮ высоту (flex-колонка схлопывалась: iframe absolute, in-flow
-   высоты у обёртки нет → плеер был не виден). */
+   нативного фуллскрина ОС). Заголовок «Смотреть онлайн» скрыт; панель выбора плеера
+   плавает сверху; видео заполняет всю секцию.
+   ВАЖНО: контент <details> в Chrome обёрнут в анонимный ::details-content, поэтому
+   flex/grid НА САМОМ <details> раскладывает summary+::details-content, а НЕ панель и
+   обёртку → обёртка оставалась height:auto=0 и видео было не видно (чёрный фон). Здесь
+   обёртка позиционируется АБСОЛЮТНО внутри фиксированной секции (резолвится к секции,
+   минуя ::details-content), поэтому надёжно заполняет весь вьюпорт. */
 .nzt-head .player-section.nz-player-theater,
 .player-section.nz-player-theater {
   position: fixed; inset: 0; z-index: 901;
   width: 100vw; height: 100vh; height: 100dvh;
   max-width: none; margin: 0; border: none; border-radius: 0;
-  display: grid; grid-template-rows: auto 1fr; background: #000;
+  background: #000;
   animation: nzPlayerFade 0.18s ease;
 }
 @keyframes nzPlayerFade { from { opacity: 0.4 } to { opacity: 1 } }
 .player-section.nz-player-theater .player-summary { display: none; }
+.player-section.nz-player-theater .player-select-wrap {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 2;
+}
 .player-section.nz-player-theater .player-wrapper {
-  min-height: 0; height: auto; padding-bottom: 0;
+  position: absolute; inset: 0; z-index: 1;
+  width: auto; height: auto; padding-bottom: 0;
 }
 
 .player-wrapper iframe {
