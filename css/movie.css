@@ -187,7 +187,10 @@
 /* ── Movie two-column layout ──────────────────────────── */
 .movie-layout {
   display: grid;
-  grid-template-columns: 200px 1fr;
+  /* 3-я колонка — пустая, зеркалит колонку постера справа: контент (актёры, панели)
+     получает справа отступ, равный ширине постера слева → симметрия, если не считать
+     постер. gap:20 добавляет одинаковый зазор с обеих сторон центральной колонки. */
+  grid-template-columns: 200px 1fr 200px;
   gap: 20px;
   align-items: start;
 }
@@ -1482,7 +1485,7 @@ a.movie-poster-side img {
   html[data-content-width="narrow"] .nzt-tab { padding:8px 10px; font-size:13px; }
   html[data-content-width="normal"] .nzt-bar,
   html[data-content-width="narrow"] .nzt-bar { gap:2px; padding:4px; }
-  html[data-content-width="narrow"] .movie-layout { grid-template-columns:160px 1fr; gap:16px; }
+  html[data-content-width="narrow"] .movie-layout { grid-template-columns:160px 1fr 160px; gap:16px; }
   html[data-content-width="narrow"] .nzt-tab { padding:8px 9px; font-size:12.5px; }
   html[data-content-width="narrow"] .nzt-tab .n { display:none; }
 }
