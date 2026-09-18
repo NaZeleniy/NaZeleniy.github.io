@@ -631,22 +631,26 @@
     function kino(r) { return r.person && r.person.kinorium_id != null ? String(r.person.kinorium_id) : ''; }
     // id для ссылки на /person/{kp_id} (страница персоны принимает kp id)
     function pid(p) { return p && p.kp_id != null && p.kp_id !== '' ? String(p.kp_id) : ''; }
+    // Имя персоны: рус → англ → оригинал (у части персон name_ru пустой, но есть name_en).
+    function pname(p) { p = p || {}; return p.name_ru || p.name_en || p.name_orig || ''; }
+    // Имя персонажа с фолбэком по языкам.
+    function cname(r) { var ch = r.character || {}; return ch.ru || ch.en || ch.orig || r.character_ru || ''; }
     // дубляж → актёр
     var voiceByKino = {}, voiceByChar = {};
     recs.forEach(function (r) {
       if (r.role !== 'voice') return;
-      var nm = r.person && r.person.name_ru; var db = r.dubs || {};
+      var nm = pname(r.person); var db = r.dubs || {};
       if (db.kinorium_id) voiceByKino[String(db.kinorium_id)] = nm;
-      var ch = r.character && (r.character.ru || r.character_ru); if (ch) voiceByChar[ch] = nm;
+      var ch = cname(r); if (ch) voiceByChar[ch] = nm;
     });
     var actors = recs.filter(function (r) { return r.role === 'actor'; }).map(function (r) {
-      var ch = r.character || {}; var chru = ch.ru || r.character_ru || '';
-      return { char: chru, cphoto: ch.photo_url, actor: r.person && r.person.name_ru, aphoto: ph(r.person || {}), id: pid(r.person), voice: voiceByKino[kino(r)] || voiceByChar[chru] };
+      var ch = r.character || {}; var chru = cname(r);
+      return { char: chru, cphoto: ch.photo_url, actor: pname(r.person), aphoto: ph(r.person || {}), id: pid(r.person), voice: voiceByKino[kino(r)] || voiceByChar[chru] };
     });
     var CREW = ['director', 'writer', 'producer', 'cinematographer', 'composer', 'art', 'editor'];
     var crew = CREW.map(function (role) {
       var items = recs.filter(function (r) { return r.role === role; }).slice(0, 8)
-        .map(function (r) { return { n: r.person && r.person.name_ru, p: ph(r.person || {}), id: pid(r.person) }; });
+        .map(function (r) { return { n: pname(r.person), p: ph(r.person || {}), id: pid(r.person) }; });
       return items.length ? { role_ru: roleRu[role] || ROLE_RU[role] || role, items: items } : null;
     }).filter(Boolean);
 

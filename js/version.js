@@ -1,7 +1,7 @@
 // Если браузер закэшировал старый HTML — форсируем перезагрузку.
 // Версия обновляется автоматически pre-commit хуком вместе с остальными ?v=
 ;(function () {
-  var V = 'v=1789750729'
+  var V = 'v=1789751023'
   var key = 'nz_page_v'
   var stored = localStorage.getItem(key)
   if (stored !== V) {
