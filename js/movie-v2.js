@@ -282,7 +282,10 @@
       { id: 'videos', label: 'Видео', n: counts.videos },
       { id: 'awards', label: 'Награды', n: (c.awards && c.awards.total_wins) || 0 },
       { id: 'quotes', label: 'Цитаты', n: counts.quotes },
-      { id: 'facts', label: 'Факты', n: counts.facts },
+      // counts.facts включает ровно 1 «общую» trivia-запись, которую мы не показываем
+      // → вычитаем её, чтобы счётчик = числу настоящих фактов и вкладка скрывалась,
+      // когда реальных фактов нет (осталась одна trivia).
+      { id: 'facts', label: 'Факты', n: Math.max(0, (counts.facts || 0) - 1) },
       { id: 'parental', label: 'Что внутри', n: (c.parental || []).length },
       { id: 'faq', label: 'Вопросы', n: counts.faq },
       { id: 'similar', label: 'Связи', n: counts.relations },
@@ -749,9 +752,11 @@
     }).join('') + '</div>';
   }
   function renderFacts(panel, items) {
-    if (!items.length) { panel.innerHTML = '<p class="nz-empty">Нет фактов.</p>'; return; }
+    // Показываем только настоящие факты и ляпы. trivia (kinodata всегда отдаёт ровно
+    // 1 «общую» запись на тайтл) НЕ выводим — она раздувала счётчик на +1 и держала
+    // вкладку видимой даже когда настоящих фактов нет.
     var groups = [['fact', 'Интересные факты'], ['blooper', 'Ляпы и ошибки']];
-    panel.innerHTML = groups.map(function (g) {
+    var html = groups.map(function (g) {
       var list = items.filter(function (f) { return (f.fact_kind || 'fact') === g[0]; });
       if (!list.length) return '';
       return '<div class="nz-sg"><span class="lbl">' + g[1] + ' <em>' + list.length + '</em></span><div class="nz-facts-list">' +
@@ -762,6 +767,7 @@
           return '<div class="nz-factrow"><span class="fi">' + (g[0] === 'fact' ? '💡' : '🎬') + '</span>' + body + '</div>';
         }).join('') + '</div></div>';
     }).join('');
+    panel.innerHTML = html || '<p class="nz-empty">Нет фактов.</p>';
   }
 
   // ═══ СВЯЗИ (ленивая /relations) ═════════════════════════════════════════════
