@@ -377,6 +377,10 @@ async function _fetchPlayers(res) {
 async function loadPlayers(res, id) {
   const section = document.querySelector('.player-section')
   if (!section) return
+  // Новый дизайн (movie-v2) НЕ зовёт initRatingWidget → _currentKpId оставался null,
+  // и статистика плееров не писалась (_pwCount) и не читалась (_renderPlayerStats) у
+  // большинства пользователей. loadPlayers зовут оба дизайна — выставляем здесь.
+  if (id) _currentKpId = id
   let players = await _fetchPlayers(res)
   for (let i = 0; players.length === 0 && i < 3; i++) {
     await new Promise(r => setTimeout(r, 2000))
